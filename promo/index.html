@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Banners Float Gardens</title>
+  <meta name="description" content="Banners promocionales del videojuego Float Gardens: La Conquista del Café.">
+  <style>
+    :root { --bg: #082419; --panel: #0f3d2e; --text: #fff3dc; --green: #2fbf71; --gold: #ffe08a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    header, main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+    header h1 { margin: 0 0 6px; letter-spacing: 3px; }
+    header p { margin: 0; opacity: 0.85; }
+    a { color: var(--green); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+    figure { margin: 0; background: var(--panel); border-radius: 14px; padding: 12px; }
+    figure img { width: 100%; height: auto; display: block; border-radius: 8px; }
+    figcaption { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-top: 8px; font-size: 14px; }
+    .wide { grid-column: 1 / -1; }
+    .copy { background: var(--panel); border-radius: 14px; padding: 16px; margin-top: 24px; }
+    .copy h2 { margin-top: 0; }
+    .post { background: rgba(0, 0, 0, 0.25); border-radius: 10px; padding: 12px; margin: 10px 0; white-space: pre-line; line-height: 1.5; }
+    button { font: inherit; font-weight: 700; padding: 6px 12px; border-radius: 8px; border: 0; background: var(--green); color: var(--bg); cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FLOAT GARDENS · BANNERS</h1>
+    <p>Material de promoción del videojuego <b>Float Gardens: La Conquista del Café</b>. <a href="../index.html">▶ Jugar</a></p>
+  </header>
+  <main>
+    <div class="grid">
+      <figure class="wide">
+        <img src="banner-redes-1200x628.svg" alt="Banner horizontal: ¡Farmea café! Gana Puntos Float y tómate un café gratis">
+        <figcaption><span>Redes / link preview · 1200×628</span><a href="banner-redes-1200x628.svg" download>Descargar SVG</a></figcaption>
+      </figure>
+      <figure>
+        <img src="banner-instagram-1080x1080.svg" alt="Post cuadrado: ¡Farmea café!">
+        <figcaption><span>Instagram post · 1080×1080</span><a href="banner-instagram-1080x1080.svg" download>Descargar SVG</a></figcaption>
+      </figure>
+      <figure>
+        <img src="banner-historia-1080x1920.svg" alt="Historia vertical: Farmea, suma, canjea">
+        <figcaption><span>Historias / Reels · 1080×1920</span><a href="banner-historia-1080x1920.svg" download>Descargar SVG</a></figcaption>
+      </figure>
+      <figure class="wide">
+        <img src="banner-web-728x90.svg" alt="Banner web horizontal pequeño">
+        <figcaption><span>Web leaderboard · 728×90</span><a href="banner-web-728x90.svg" download>Descargar SVG</a></figcaption>
+      </figure>
+    </div>
+
+    <section class="copy">
+      <h2>Textos para publicar</h2>
+      <div class="post" id="p1">🌱☕ ¡FARMEA CAFÉ! ☕🌱
+Llegó Float Gardens: La Conquista del Café, el videojuego de nuestro café hidropónico flotante hecho en Bogotá.
+Cosecha cerezas, prensa con tu AeroPress, vende y espanta a los inspectores de la Federación.
+Cada cereza que farmeas suma Puntos Float ⭐ ¡Júntalos y tómate un café GRATIS en un punto oficial de Float Gardens!
+#FloatGardens #CaféHidropónico #AeroPress #CaféDeBogotá</div>
+      <button data-copy="p1">Copiar</button>
+      <div class="post" id="p2">Un barista. Una AeroPress. Un invernadero flotante. 🌊🌱
+Y una Federación que no quiere competencia. 😤
+¿Te le mides a conquistar el mundo del café? Juega gratis, gana Puntos Float y canjéalos por café de verdad.
+#FloatGardens #LaConquistaDelCafé</div>
+      <button data-copy="p2">Copiar</button>
+      <div class="post" id="p3">⭐ Farmea → Suma → Canjea ☕
+1. Cosecha café hidropónico en el juego.
+2. Gana Puntos Float por cada cereza, cada café vendido y cada inspector espantado.
+3. Muestra tu cupón en Float Gardens y tómate un café gratis.
+Proyecto colaborativo de café hidropónico en Bogotá 💚</div>
+      <button data-copy="p3">Copiar</button>
+    </section>
+  </main>
+  <script>
+    document.querySelectorAll('[data-copy]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const text = document.getElementById(btn.dataset.copy).innerText;
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = '¡Copiado!';
+        } catch (e) {
+          btn.textContent = 'Selecciona y copia';
+        }
+        setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
+      });
+    });
+  </script>
+</body>
+</html>

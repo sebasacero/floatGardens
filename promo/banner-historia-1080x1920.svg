@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <title>Float Gardens — ¡Farmea café! (Historias)</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#145a40"/>
+      <stop offset="1" stop-color="#082419"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5cc4ec"/>
+      <stop offset="1" stop-color="#2b8fc0"/>
+    </linearGradient>
+    <symbol id="cherry" viewBox="-22 -26 44 44" overflow="visible">
+      <path d="M-6 2 Q-3 -12 4 -16 M7 4 Q6 -8 4 -16" stroke="#2a7a41" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="11" cy="-15" rx="8" ry="4" fill="#3fa35b" transform="rotate(-20 11 -15)"/>
+      <circle cx="-6" cy="6" r="8" fill="#d6423a"/>
+      <circle cx="8" cy="8" r="8" fill="#d6423a"/>
+      <circle cx="-8.5" cy="3.5" r="2.4" fill="#fff" opacity="0.7"/>
+      <circle cx="5.5" cy="5.5" r="2.4" fill="#fff" opacity="0.7"/>
+    </symbol>
+    <symbol id="plant" viewBox="-60 -90 120 110" overflow="visible">
+      <ellipse cx="0" cy="8" rx="56" ry="17" fill="#000" opacity="0.15"/>
+      <ellipse cx="0" cy="3" rx="56" ry="17" fill="#f2f2ee"/>
+      <ellipse cx="0" cy="0" rx="20" ry="7" fill="#2d2d2d"/>
+      <path d="M0 0 L0 -50" stroke="#2a7a41" stroke-width="5"/>
+      <g fill="#3fa35b">
+        <ellipse cx="-24" cy="-40" rx="20" ry="9" transform="rotate(-25 -24 -40)"/>
+        <ellipse cx="24" cy="-40" rx="20" ry="9" transform="rotate(25 24 -40)"/>
+        <ellipse cx="-20" cy="-60" rx="18" ry="8" fill="#2a7a41" transform="rotate(-40 -20 -60)"/>
+        <ellipse cx="20" cy="-60" rx="18" ry="8" fill="#2a7a41" transform="rotate(40 20 -60)"/>
+        <ellipse cx="0" cy="-66" rx="16" ry="12"/>
+      </g>
+      <g fill="#d6423a">
+        <circle cx="-14" cy="-48" r="6"/><circle cx="-4" cy="-44" r="6"/><circle cx="10" cy="-50" r="6"/>
+        <circle cx="18" cy="-42" r="6"/><circle cx="-20" cy="-58" r="6"/><circle cx="4" cy="-60" r="6"/>
+      </g>
+      <g fill="#fff" opacity="0.7">
+        <circle cx="-16" cy="-50" r="1.8"/><circle cx="8" cy="-52" r="1.8"/><circle cx="2" cy="-62" r="1.8"/>
+      </g>
+    </symbol>
+    <symbol id="aeropress" viewBox="-20 -60 40 70" overflow="visible">
+      <rect x="-18" y="-4" width="36" height="16" rx="5" fill="#f5f5f5"/>
+      <rect x="-12" y="-44" width="24" height="42" rx="3" fill="#cfe2ee" opacity="0.95"/>
+      <rect x="-10" y="-26" width="20" height="22" fill="#4a2c1d"/>
+      <rect x="-10" y="-58" width="20" height="18" rx="3" fill="#444"/>
+      <rect x="-16" y="-62" width="32" height="6" rx="2" fill="#222"/>
+    </symbol>
+    <symbol id="barista" viewBox="-60 -150 120 160" overflow="visible">
+      <ellipse cx="0" cy="0" rx="40" ry="12" fill="#000" opacity="0.25"/>
+      <rect x="-22" y="-48" width="17" height="48" rx="5" fill="#33302c"/>
+      <rect x="5" y="-48" width="17" height="48" rx="5" fill="#33302c"/>
+      <rect x="-36" y="-110" width="72" height="68" rx="18" fill="#f5f1e8"/>
+      <rect x="-26" y="-94" width="52" height="58" rx="8" fill="#0f3d2e"/>
+      <ellipse cx="0" cy="-70" rx="10" ry="6" fill="#bff0cf"/>
+      <rect x="-50" y="-104" width="16" height="46" rx="8" fill="#f5f1e8"/>
+      <rect x="34" y="-120" width="16" height="44" rx="8" fill="#f5f1e8" transform="rotate(-35 42 -98)"/>
+      <circle cx="-42" cy="-56" r="9" fill="#e0ac7e"/>
+      <circle cx="0" cy="-130" r="30" fill="#e0ac7e"/>
+      <path d="M-30 -136 A30 30 0 0 1 30 -136 Z" fill="#2a1a10"/>
+      <path d="M-29 -142 A29 26 0 0 1 29 -142 Z" fill="#2fbf71"/>
+      <rect x="10" y="-146" width="40" height="8" rx="3" fill="#2fbf71"/>
+      <circle cx="-10" cy="-128" r="4" fill="#222"/>
+      <circle cx="10" cy="-128" r="4" fill="#222"/>
+      <path d="M-10 -114 Q0 -106 10 -114" stroke="#7a3b2a" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="inspector" viewBox="-40 -120 80 130" overflow="visible">
+      <ellipse cx="0" cy="0" rx="28" ry="8" fill="#000" opacity="0.25"/>
+      <rect x="-16" y="-36" width="12" height="36" rx="4" fill="#3a3c42"/>
+      <rect x="4" y="-36" width="12" height="36" rx="4" fill="#3a3c42"/>
+      <rect x="-26" y="-84" width="52" height="52" rx="12" fill="#6d7078"/>
+      <path d="M-4 -82 L4 -82 L6 -56 L0 -50 L-6 -56 Z" fill="#c0392b"/>
+      <circle cx="14" cy="-70" r="5" fill="#e6c34a"/>
+      <circle cx="0" cy="-98" r="22" fill="#e0ac7e"/>
+      <ellipse cx="0" cy="-112" rx="34" ry="8" fill="#2b2b30"/>
+      <rect x="-20" y="-134" width="40" height="24" rx="8" fill="#2b2b30"/>
+      <rect x="-20" y="-118" width="40" height="5" fill="#c0392b"/>
+      <path d="M-14 -104 L-5 -100 M14 -104 L5 -100" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="-8" cy="-96" r="3" fill="#222"/><circle cx="8" cy="-96" r="3" fill="#222"/>
+      <ellipse cx="0" cy="-86" rx="7" ry="5" fill="#7a3b2a"/>
+    </symbol>
+    <symbol id="splash" viewBox="-30 -30 60 60" overflow="visible">
+      <ellipse cx="0" cy="0" rx="20" ry="12" fill="#6b3b1f"/>
+      <circle cx="-22" cy="-8" r="6" fill="#6b3b1f"/>
+      <circle cx="20" cy="-12" r="5" fill="#6b3b1f"/>
+      <circle cx="14" cy="12" r="4" fill="#6b3b1f"/>
+      <ellipse cx="-4" cy="-4" rx="7" ry="4" fill="#ffe6c8" opacity="0.6"/>
+    </symbol>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#bg)"/>
+  <g font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" text-anchor="middle">
+    <text x="540" y="170" font-size="44" font-weight="800" fill="#2fbf71" letter-spacing="10">FLOAT GARDENS</text>
+    <rect x="320" y="200" width="440" height="58" rx="29" fill="#d6423a"/>
+    <text x="540" y="240" font-size="30" font-weight="800" fill="#fff3dc" letter-spacing="1">LA CONQUISTA DEL CAFÉ</text>
+    <text x="540" y="420" font-size="140" font-weight="900" fill="#fff3dc">¡FARMEA</text>
+    <text x="540" y="560" font-size="140" font-weight="900" fill="#fff3dc">CAFÉ!</text>
+    <text x="540" y="640" font-size="40" font-weight="600" fill="#fff3dc">Un barista, una AeroPress y un</text>
+    <text x="540" y="694" font-size="40" font-weight="600" fill="#fff3dc">invernadero flotante contra la Federación.</text>
+  </g>
+  <g font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" text-anchor="middle">
+    <circle cx="230" cy="820" r="64" fill="#fff3dc" fill-opacity="0.1" stroke="#2fbf71" stroke-width="4"/>
+    <text x="230" y="842" font-size="64" fill="#ffe08a">🌱</text>
+    <text x="230" y="926" font-size="40" font-weight="900" fill="#fff3dc">Farmea</text>
+    <text x="230" y="960" font-size="28" fill="#9fe8bf">cosecha cerezas</text>
+  </g>
+  <text x="385.0" y="834" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="51" font-weight="900" fill="#2fbf71">➜</text>
+  <g font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" text-anchor="middle">
+    <circle cx="540" cy="820" r="64" fill="#fff3dc" fill-opacity="0.1" stroke="#2fbf71" stroke-width="4"/>
+    <text x="540" y="842" font-size="64" fill="#ffe08a">★</text>
+    <text x="540" y="926" font-size="40" font-weight="900" fill="#fff3dc">Suma</text>
+    <text x="540" y="960" font-size="28" fill="#9fe8bf">Puntos Float</text>
+  </g>
+  <text x="695.0" y="834" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="51" font-weight="900" fill="#2fbf71">➜</text>
+  <g font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" text-anchor="middle">
+    <circle cx="850" cy="820" r="64" fill="#fff3dc" fill-opacity="0.1" stroke="#2fbf71" stroke-width="4"/>
+    <text x="850" y="842" font-size="64" fill="#ffe08a">☕</text>
+    <text x="850" y="926" font-size="40" font-weight="900" fill="#fff3dc">Canjea</text>
+    <text x="850" y="960" font-size="28" fill="#9fe8bf">café gratis</text>
+  </g>
+  <path d="M0 1920 V1380 Q90 1358 180 1380 Q270 1358 360 1380 Q450 1358 540 1380 Q630 1358 720 1380 Q810 1358 900 1380 Q990 1358 1080 1380 V1920 Z" fill="url(#water)"/>
+  <path d="M40 1430 q14 -9 28 0" stroke="#fff" stroke-opacity="0.35" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M220 1475 q14 -9 28 0" stroke="#fff" stroke-opacity="0.35" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M400 1520 q14 -9 28 0" stroke="#fff" stroke-opacity="0.35" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M580 1430 q14 -9 28 0" stroke="#fff" stroke-opacity="0.35" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M760 1475 q14 -9 28 0" stroke="#fff" stroke-opacity="0.35" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M940 1520 q14 -9 28 0" stroke="#fff" stroke-opacity="0.35" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <use href="#plant" xlink:href="#plant" x="40" y="1250" width="260" height="238"/>
+  <use href="#plant" xlink:href="#plant" x="780" y="1270" width="260" height="238"/>
+  <use href="#barista" xlink:href="#barista" x="330" y="1060" width="380" height="506"/>
+  <use href="#aeropress" xlink:href="#aeropress" x="604" y="1095" width="99" height="172"/>
+  <path d="M690 1135 Q800 1075 900 1110" stroke="#6b3b1f" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="2 26"/>
+  <use href="#splash" xlink:href="#splash" x="880" y="1070" width="90" height="90"/>
+  <g transform="translate(960 1280) rotate(12)"><use href="#inspector" xlink:href="#inspector" x="-65" y="-205" width="130" height="212"/></g>
+  <g transform="translate(200 1130) rotate(-8)">
+    <rect x="-80.0" y="-32.0" width="160" height="64" rx="32.0" fill="#9fe8bf"/>
+    <text x="0" y="11.9" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="900" font-size="34" fill="#0f3d2e">+10 ★</text>
+  </g>
+  <g transform="translate(540 1640) rotate(0)">
+    <rect x="-260.0" y="-55.0" width="520" height="110" rx="55.0" fill="#ffe08a"/>
+    <text x="0" y="18.9" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="900" font-size="54" fill="#4a2c1d">CAFÉ GRATIS ☕</text>
+  </g>
+  <g transform="translate(540 1780) rotate(0)">
+    <rect x="-230.0" y="-48.0" width="460" height="96" rx="48.0" fill="#2fbf71"/>
+    <text x="0" y="15.4" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="900" font-size="44" fill="#082419">▶ JUEGA AHORA</text>
+  </g>
+  <text x="540" y="1880" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="26" fill="#fff3dc" opacity="0.85">Canjea tus Puntos Float en los puntos oficiales</text>
+</svg>
