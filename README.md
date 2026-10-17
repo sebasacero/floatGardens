@@ -56,6 +56,12 @@ GPS en pantalla que dice en qué esquina estás. Barrios con estilo propio:
 
 La vida se regenera si te cubres unos segundos. Si caes, vuelves al HQ y pierdes la mitad de tus cerezas.
 
+## Versión Unity (en desarrollo)
+
+En [`unity/`](unity/) está el mismo juego reescrito en C# para **Unity 6 + URP**: misma lógica, con sombras en tiempo
+real, materiales PBR, bloom, lluvia con partículas y exportación a Android e iOS. Para abrirlo, sigue
+[`unity/README.md`](unity/README.md).
+
 ## Puntos Float y café gratis
 
 | Acción | Puntos |
