@@ -15,7 +15,7 @@ puntos oficiales de Float Gardens.
 No necesita instalación ni dependencias: es HTML + CSS + JavaScript puro.
 
 - **Local:** abre `index.html` en el navegador (doble clic). O sirve la carpeta: `python3 -m http.server` y entra a `http://localhost:8000`.
-- **Publicarlo:** en GitHub, *Settings → Pages → Deploy from branch* (rama principal, carpeta raíz). El juego queda en `https://<usuario>.github.io/<repo>/`.
+- **En línea:** https://sebasacero.github.io/floatGardens/ (GitHub Pages: *Settings → Pages → Deploy from a branch → `main` / `(root)`*).
 
 ### Controles
 
