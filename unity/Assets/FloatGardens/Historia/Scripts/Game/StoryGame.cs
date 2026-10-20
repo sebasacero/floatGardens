@@ -446,7 +446,9 @@ namespace FloatGardens.Historia
             // si ya se cumple (p. ej. ya tienes los seguidores pedidos), se completa sola
             if (m.evt == HEvents.Cups) Emit(HEvents.Cups, "", S.cups);
             else if (m.evt == HEvents.Followers) Emit(HEvents.Followers, "", S.followers);
-            else if (m.evt == HEvents.Visit && lugar == Lugar.Region && S.region == m.arg) Emit(HEvents.Visit, S.region);
+            else if (m.evt == HEvents.Visit && (S.visited.Contains(m.arg) || (lugar == Lugar.Region && S.region == m.arg))) Emit(HEvents.Visit, m.arg);
+            else if (m.evt == HEvents.Reto && S.stamps.Contains(m.arg)) Emit(HEvents.Reto, m.arg, 100f);
+            else if (m.evt == HEvents.Competition && S.trophies.Contains(m.arg)) Emit(HEvents.Competition, m.arg, 1f);
         }
 
         /// <summary>Todos los sistemas avisan aquí lo que pasa; la misión activa decide si avanza.</summary>
