@@ -608,7 +608,7 @@ namespace FloatGardens.Historia
                 if (score + noise > run.rivalScore) run.votesFor++;
             }
             bool win = run.votesFor >= 2;
-            run.log.Add("Ronda " + (run.round + 1) + " vs " + run.rival.name + ": " + run.votesFor + "–" + (3 - run.votesFor) + (win ? " ✓" : " ✗"));
+            run.log.Add("Ronda " + (run.round + 1) + " vs " + run.rival.name + ": " + run.votesFor + "–" + (3 - run.votesFor) + (win ? " · ganaste" : " · perdiste"));
             if (!win) { run.finished = true; run.won = false; }
             else if (run.round + 1 >= run.comp.rounds) { run.finished = true; run.won = true; }
             else { run.round++; run.rival = run.bracket[Mathf.Min(run.round, run.bracket.Count - 1)]; }

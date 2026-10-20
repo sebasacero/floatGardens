@@ -404,7 +404,7 @@ namespace FloatGardens.Historia
             if (lot != null && lot.stage == "tostado")
             {
                 int age = today - lot.day;
-                if (age < 1) { cup -= 1.5f; taste.Add("muy fresco: el CO₂ hace la extracción irregular"); }
+                if (age < 1) { cup -= 1.5f; taste.Add("muy fresco: el CO2 hace la extracción irregular"); }
                 else if (age > 30) { cup -= 3f; taste.Add("oxidado: el café perdió aromas"); }
             }
             r.score = Mathf.Clamp(cup * Mathf.Lerp(0.72f, 1f, r.brewQuality), 0f, 100f);

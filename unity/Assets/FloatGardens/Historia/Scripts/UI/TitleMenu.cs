@@ -185,7 +185,7 @@ namespace FloatGardens.Historia
                 bool stamp = s.stamps.Contains(r.id), visited = s.visited.Contains(r.id), open = g.RegionUnlocked(r);
                 var card = HUI.Card(c, new Vector2(0, 1), new Vector2(8 + col * 214, -8 - row * 128), new Vector2(206, 120), stamp);
                 UIKit.Label(card.transform, r.name, 17, stamp ? UIKit.Yellow : UIKit.Text, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(10, -8), new Vector2(190, 44));
-                string state = stamp ? "SELLO ✓" : visited ? "Visitada" : open ? "Por visitar" : "Capítulo " + r.chapter;
+                string state = stamp ? "SELLO" : visited ? "Visitada" : open ? "Por visitar" : "Capítulo " + r.chapter;
                 UIKit.Label(card.transform, state, 15, stamp ? UIKit.Mint : HUI.Muted, TextAnchor.LowerLeft, new Vector2(0, 0), new Vector2(10, 8), new Vector2(190, 22), FontStyle.Normal);
                 var v = Catalog.Variety(r.giftVariety);
                 if (stamp && v != null)
