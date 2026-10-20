@@ -62,6 +62,13 @@ En [`unity/`](unity/) está el mismo juego reescrito en C# para **Unity 6 + URP*
 real, materiales PBR, bloom, lluvia con partículas y exportación a Android e iOS. Para abrirlo, sigue
 [`unity/README.md`](unity/README.md).
 
+### Modo historia: Float Gardens — Tierra de Café
+
+En [`unity/Assets/FloatGardens/Historia/`](unity/Assets/FloatGardens/Historia/) hay un juego de historia en Unity 3D. Un barista
+bogotano con una AeroPress y un PC cultiva café en balsas flotantes dentro de una bodega, recorre las regiones cafeteras de Colombia
+y compite hasta el Mundial, aprendiendo de verdad sobre la historia, el cultivo, el beneficio, la tostión y la preparación del café.
+Detalles en [`unity/README.md`](unity/README.md#7-modo-historia-float-gardens--tierra-de-café).
+
 ## Puntos Float y café gratis
 
 | Acción | Puntos |
