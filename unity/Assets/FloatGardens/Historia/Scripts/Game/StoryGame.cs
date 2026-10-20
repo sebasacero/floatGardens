@@ -154,8 +154,10 @@ namespace FloatGardens.Historia
                     scene = BodegaBuilder.Build(root, S);
                     break;
                 case Lugar.Mapa:
+                    string from = S.location == "region" && !string.IsNullOrEmpty(S.region) ? S.region : "bogota";
                     S.location = "mapa";
                     map = ColombiaMap.Build(root, S);
+                    map.origin = from;
                     scene = map.info;
                     OpenPanel<MapPanel>();
                     break;
