@@ -1,4 +1,6 @@
 // Generación de Bogotá: manzanas por barrio, Av. Caracas, cerros con Monserrate, Plaza de Bolívar y la Sede.
+// De noche la ciudad se enciende sola: ventanas, neones de las agrocorporaciones, hologramas, LEDs de los
+// invernaderos en las azoteas y postes (Atmosphere llama SetNight con la hora del día).
 // Coordenadas: x = oriente, z = norte. La fila 0 del mapa es el norte.
 using System.Collections.Generic;
 using UnityEngine;
@@ -34,6 +36,39 @@ namespace FloatGardens
         public const int MinimapPx = 1; // px por metro
         public Material waterMat, asphaltMat, crownMat;
         Transform cabin;
+
+        // ---------- Noche ----------
+        public class Glow { public Material mat; public Color color; public float day, night; }
+        public struct NeonSpot { public Vector3 pos; public Color color; }
+        public readonly List<Glow> glows = new List<Glow>();
+        readonly HashSet<Material> glowSet = new HashSet<Material>();
+        public readonly List<Vector3> lampHeads = new List<Vector3>();   // para las luces reales de los postes
+        public readonly List<NeonSpot> neonSpots = new List<NeonSpot>(); // luces de color de neones e invernaderos
+        public float Night { get; private set; }
+        readonly HashSet<string> noShadow = new HashSet<string>();
+        static readonly Vector3[] Faces = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
+        // Marcas del agro-punk bogotano: las corporaciones que controlan semillas, agua y tierra
+        static readonly string[] Brands =
+        {
+            "AGROCORP", "SEMILLAS Ω", "HIDRO·PONIA", "PANELA+", "CACAO.NET", "AGUA S.A.", "FINCA 2.0", "DRON·FUMIGA",
+            "TINTO EXPRESS", "FEDERACIÓN", "BIO·LAB", "ARROZ NORTE", "CAFÉ 24H", "MOTO·TAXI", "INVERNADERO", "ABONO MAX",
+        };
+        static readonly string[] NeonHex = { "#ff2bd6", "#22e8ff", "#7dff3a", "#ff8a1f", "#a95bff", "#ffe600" };
+
+        /// <summary>Registra un material emisivo con su intensidad de día y de noche.</summary>
+        public void RegisterGlow(Material m, Color color, float day, float night)
+        {
+            if (m == null || !glowSet.Add(m)) return;
+            glows.Add(new Glow { mat = m, color = color, day = day, night = night });
+            FGMaterials.SetEmission(m, color, Mathf.Lerp(day, night, Night));
+        }
+
+        /// <summary>0 = pleno día, 1 = noche cerrada. Enciende ventanas, neones y LEDs.</summary>
+        public void SetNight(float n)
+        {
+            Night = n;
+            foreach (var g in glows) FGMaterials.SetEmission(g.mat, g.color, Mathf.Lerp(g.day, g.night, n));
+        }
         Vector3 cableStart, cableEnd;
 
         public static Vector3 CellCenter(int row, int col) => new Vector3(-Half + col * Cell + Cell / 2f, 0, Half - row * Cell - Cell / 2f);
@@ -114,7 +149,8 @@ namespace FloatGardens
             BuildTrees();
             BuildBounds();
 
-            foreach (var kv in builders) kv.Value.Build(kv.Key, builderMats[kv.Key], transform);
+            BuildDrones();
+            foreach (var kv in builders) kv.Value.Build(kv.Key, builderMats[kv.Key], transform, !noShadow.Contains(kv.Key));
             BuildMinimap();
         }
 
@@ -156,6 +192,7 @@ namespace FloatGardens
             B("techo", FGMaterials.Lit("techo", Color.white, FGTextures.Roof, 0.05f)).Top(x, z, h + 0.25f, w, d);
             Collider(new Vector3(x, (h + 0.25f) / 2f, z), new Vector3(w, h + 0.25f, d));
             Details(mat, x, z, w, h, d);
+            Signage(mat, x, z, w, h, d);
 
             // Toldos de colores en algunos locales del primer piso
             if (h < 40 && R() < 0.35f)
@@ -233,6 +270,12 @@ namespace FloatGardens
             // Terraza: tanques de agua negros, aire acondicionado y antenas; las torres llevan cuarto de máquinas
             if (plainRoof) return;
             Mesh cyl = MeshBuilder.Primitive(PrimitiveType.Cylinder);
+            // Invernaderos hidropónicos en las azoteas: la agricultura vertical de esta Bogotá
+            if ((mat == "ladrillo" || mat == "concreto") && h <= 30 && w >= 12 && d >= 12 && R() < 0.3f)
+            {
+                Greenhouse(x, z, roof, w, d);
+                return;
+            }
             if (h >= 45)
             {
                 trim.Solid(x + RR(-2, 2), z + RR(-2, 2), roof, w * 0.4f, 3.5f, d * 0.4f);
@@ -269,7 +312,9 @@ namespace FloatGardens
 
             // Postes de luz en la mitad de cada cuadra, con la lámpara hacia la calle
             var pole = B("posteLuz", FGMaterials.Lit("posteLuz", FGMaterials.Hex("#3a3f44"), null, 0.5f, 0.8f));
-            var lamp = B("lampara", FGMaterials.Emissive("lampara", FGMaterials.Hex("#ffd59a"), 3f));
+            var lampMat = FGMaterials.Emissive("lampara", FGMaterials.Hex("#ffd59a"), 3f);
+            RegisterGlow(lampMat, FGMaterials.Hex("#ffd59a"), 0.2f, 5f);
+            var lamp = B("lampara", lampMat);
             foreach (var n in faces)
             {
                 Vector3 b = c + n * edge;
@@ -278,6 +323,7 @@ namespace FloatGardens
                 pole.Solid(arm.x, arm.z, 7.4f, Mathf.Abs(n.x) > 0 ? 1.8f : 0.1f, 0.1f, Mathf.Abs(n.z) > 0 ? 1.8f : 0.1f);
                 Vector3 head = b + n * 1.7f;
                 lamp.Solid(head.x, head.z, 7.2f, Mathf.Abs(n.x) > 0 ? 0.7f : 0.35f, 0.2f, Mathf.Abs(n.z) > 0 ? 0.7f : 0.35f);
+                lampHeads.Add(new Vector3(head.x, 7.1f, head.z));
                 Collider(new Vector3(b.x, 3.5f, b.z), new Vector3(0.35f, 7f, 0.35f));
             }
 
@@ -347,7 +393,9 @@ namespace FloatGardens
             var paint = B("auto" + hex, FGMaterials.Lit("auto" + hex, FGMaterials.Hex(hex), null, 0.82f, 0.45f));
             var glass = B("autoVidrio", FGMaterials.Lit("autoVidrio", FGMaterials.Hex("#141a20"), null, 0.95f, 0.3f));
             var tire = B("llanta", FGMaterials.Lit("llanta", FGMaterials.Hex("#121212"), null, 0.2f));
-            var lights = B("farolas", FGMaterials.Emissive("farolas", FGMaterials.Hex("#ffe9c4"), 1.5f));
+            var lightsMat = FGMaterials.Emissive("farolas", FGMaterials.Hex("#ffe9c4"), 1.5f);
+            RegisterGlow(lightsMat, FGMaterials.Hex("#ffe9c4"), 0.3f, 2.5f);
+            var lights = B("farolas", lightsMat);
             bool alongZ = Mathf.Abs(dir.z) > 0.5f;
             float L = 4.3f, W = 1.8f;
             float sx = alongZ ? W : L, sz = alongZ ? L : W;
@@ -373,6 +421,14 @@ namespace FloatGardens
         }
 
         Material FacadeMaterial(string mat, int variant)
+        {
+            var m = FacadeBase(mat, variant);
+            // ventanas encendidas de noche (el mapa de emisión trae el color; aquí solo la intensidad)
+            if (FGMaterials.HasWindows(m)) RegisterGlow(m, Color.white, 0f, mat == "vidrio" ? 1.7f : 1.4f);
+            return m;
+        }
+
+        Material FacadeBase(string mat, int variant)
         {
             switch (mat)
             {
@@ -535,6 +591,9 @@ namespace FloatGardens
             plainRoof = false;
             var leaf = B("hojaHQ", FGMaterials.Lit("#2f8f45", 0.1f));
             for (int i = -3; i <= 3; i++) leaf.Box(c.x + i * 4.5f, c.z + 12, 15.25f, 3, 1.4f, 10);
+            var ledHQ = GrowLight();
+            for (int i = -3; i <= 3; i++) B("ledCultivo", ledHQ).Solid(c.x + i * 4.5f, c.z + 12, 17.3f, 0.25f, 0.06f, 10);
+            neonSpots.Add(new NeonSpot { pos = new Vector3(c.x, 17.5f, c.z + 12), color = FGMaterials.Hex("#ff4fd8") });
             Sign("FLOAT GARDENS", new Vector3(c.x, 11, c.z + 4.9f), 0.55f, FGMaterials.Hex("#7dffb0"), FGMaterials.Hex("#0f3d2e"), new Vector2(20, 4));
             // piscina hidropónica (transitable, agua poco profunda)
             B("borde", FGMaterials.Lit("#9fb7a8", 0.2f)).Walls(c.x - 4, c.z - 7, 0.25f, 22, 0.6f, 11);
@@ -616,16 +675,19 @@ namespace FloatGardens
         }
 
         /// <summary>Letrero en un Canvas de espacio mundo (respeta la profundidad, a diferencia de TextMesh). Mira hacia el sur.</summary>
-        void Sign(string text, Vector3 pos, float charSize, Color fg, Color bg, Vector2 size)
+        void Sign(string text, Vector3 pos, float charSize, Color fg, Color bg, Vector2 size, Vector3? facing = null, Transform parent = null)
         {
             var go = new GameObject("Letrero " + text, typeof(RectTransform));
-            go.transform.SetParent(transform, false);
+            go.transform.SetParent(parent != null ? parent : transform, false);
             var canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
             go.AddComponent<UnityEngine.UI.CanvasScaler>().dynamicPixelsPerUnit = 4;
             var rt = (RectTransform)go.transform;
             rt.sizeDelta = size * 100f;
-            rt.position = pos - Vector3.forward * 0.03f;
+            // el frente del canvas mira hacia -z; facing es la normal de la pared donde va
+            Vector3 n = facing ?? Vector3.back;
+            rt.position = pos + n * 0.03f;
+            rt.rotation = Quaternion.LookRotation(-n);
             rt.localScale = Vector3.one * 0.01f;
             var img = go.AddComponent<UnityEngine.UI.Image>();
             img.sprite = UIKit.White;
@@ -636,6 +698,131 @@ namespace FloatGardens
             label.resizeTextMaxSize = label.fontSize;
             label.resizeTextMinSize = 10;
             label.horizontalOverflow = HorizontalWrapMode.Wrap;
+        }
+
+        // ---------- Agro-punk: neones, hologramas, invernaderos y drones ----------
+        Material GrowLight()
+        {
+            var led = FGMaterials.Emissive("ledCultivo", FGMaterials.Hex("#ff4fd8"), 1f);
+            RegisterGlow(led, FGMaterials.Hex("#ff4fd8"), 0.9f, 3.8f);
+            return led;
+        }
+
+        /// <summary>Invernadero de vidrio con camas hidropónicas y LEDs rosados de cultivo sobre una azotea.</summary>
+        void Greenhouse(float x, float z, float y, float w, float d)
+        {
+            float gw = w * 0.62f, gd = d * 0.62f, gh = 2.8f;
+            var glass = B("invernaderoVidrio", FGMaterials.Transparent("invernaderoVidrio", new Color(0.78f, 0.95f, 0.88f, 0.26f), true));
+            noShadow.Add("invernaderoVidrio");
+            glass.Box(x, z, y, gw, gh, gd);
+            var frame = B("invernaderoMarco", FGMaterials.Lit("invernaderoMarco", FGMaterials.Hex("#e8ecef"), null, 0.5f, 0.6f));
+            foreach (float sx in new[] { -1f, 1f })
+                foreach (float sz in new[] { -1f, 1f })
+                    frame.Solid(x + sx * gw / 2, z + sz * gd / 2, y, 0.12f, gh, 0.12f);
+            frame.Solid(x, z + gd / 2, y + gh - 0.1f, gw, 0.1f, 0.12f);
+            frame.Solid(x, z - gd / 2, y + gh - 0.1f, gw, 0.1f, 0.12f);
+            frame.Solid(x + gw / 2, z, y + gh - 0.1f, 0.12f, 0.1f, gd);
+            frame.Solid(x - gw / 2, z, y + gh - 0.1f, 0.12f, 0.1f, gd);
+
+            var bed = B("camaCultivo", FGMaterials.Lit("camaCultivo", FGMaterials.Hex("#2f8f45"), null, 0.1f));
+            var tray = B("bandejaCultivo", FGMaterials.Lit("bandejaCultivo", FGMaterials.Hex("#f2f4f5"), null, 0.35f));
+            var led = B("ledCultivo", GrowLight());
+            int rows = Mathf.Max(2, Mathf.RoundToInt(gd / 2.4f));
+            for (int r = 0; r < rows; r++)
+            {
+                float rz = z - gd / 2 + 1.2f + r * (gd - 2.4f) / (rows - 1);
+                tray.Solid(x, rz, y, gw * 0.8f, 0.5f, 1f);
+                bed.Solid(x, rz, y + 0.5f, gw * 0.78f, 0.45f, 0.9f);
+                led.Solid(x, rz, y + gh - 0.3f, gw * 0.8f, 0.06f, 0.25f);
+            }
+            neonSpots.Add(new NeonSpot { pos = new Vector3(x, y + 1.6f, z), color = FGMaterials.Hex("#ff4fd8") });
+        }
+
+        /// <summary>Caja de luz de neón con el nombre de una marca, pegada a una fachada de normal n.</summary>
+        void Neon(string text, Vector3 center, Vector3 n, float width, float height, string hex)
+        {
+            var color = FGMaterials.Hex(hex);
+            var mat = FGMaterials.Emissive("neon" + hex, color, 1.5f);
+            RegisterGlow(mat, color, 1.4f, 4.5f);
+            bool alongX = Mathf.Abs(n.z) > 0.5f;
+            B("neon" + hex, mat).Solid(center.x, center.z, center.y - height / 2, alongX ? width : 0.18f, height, alongX ? 0.18f : width);
+            Sign(text, center + n * 0.09f, 0.62f, FGMaterials.Hex("#0a0a14"), new Color(0, 0, 0, 0), new Vector2(width, height), n);
+            neonSpots.Add(new NeonSpot { pos = center + n * 1.6f, color = color });
+        }
+
+        /// <summary>Letreros y hologramas de cada edificio según su tipo y altura.</summary>
+        void Signage(string mat, float x, float z, float w, float h, float d)
+        {
+            if (plainRoof) return;
+            // Local en el primer piso
+            if (h >= 6 && mat != "bodega" && R() < 0.5f)
+            {
+                int side = rng.Next(4);
+                Vector3 n = Faces[side];
+                float faceW = side < 2 ? d : w;
+                float width = Mathf.Min(faceW * 0.7f, RR(4, 9));
+                Vector3 right = Vector3.Cross(Vector3.up, -n);
+                Vector3 center = new Vector3(x, 3.7f, z) + n * ((side < 2 ? w : d) / 2 + 0.1f) + right * RR(-(faceW - width) / 2, (faceW - width) / 2);
+                Neon(Pick(Brands), center, n, width, 1.1f, Pick(NeonHex));
+            }
+            // Marca grande en lo alto de torres y oficinas
+            if (h >= 24 && (mat == "vidrio" || mat == "concreto") && R() < 0.5f)
+            {
+                int side = rng.Next(4);
+                Vector3 n = Faces[side];
+                float faceW = side < 2 ? d : w;
+                float width = Mathf.Min(faceW * 0.65f, 14f);
+                Vector3 center = new Vector3(x, h - RR(4, 10), z) + n * ((side < 2 ? w : d) / 2 + 0.1f);
+                Neon(Pick(Brands), center, n, width, 2.4f, Pick(NeonHex));
+            }
+            // Tiras verticales de neón en dos aristas de las torres
+            if (h >= 45 && R() < 0.7f)
+            {
+                string hex = Pick(NeonHex);
+                var color = FGMaterials.Hex(hex);
+                var m = FGMaterials.Emissive("neon" + hex, color, 1.5f);
+                RegisterGlow(m, color, 1.4f, 4.5f);
+                var mb = B("neon" + hex, m);
+                float sx = R() < 0.5f ? 1 : -1;
+                mb.Solid(x + sx * (w / 2 + 0.12f), z + d / 2 + 0.12f, 8, 0.22f, h - 14, 0.22f);
+                mb.Solid(x - sx * (w / 2 + 0.12f), z - d / 2 - 0.12f, 8, 0.22f, h - 14, 0.22f);
+                neonSpots.Add(new NeonSpot { pos = new Vector3(x + sx * (w / 2 + 1.5f), 12, z + d / 2 + 1.5f), color = color });
+            }
+            // Holograma publicitario girando sobre la azotea
+            if (h >= 40 && R() < 0.35f) Hologram(new Vector3(x, h + 9, z), Pick(Brands), Pick(NeonHex), 6f);
+        }
+
+        /// <summary>Panel holográfico translúcido que gira y parpadea sobre una azotea.</summary>
+        void Hologram(Vector3 pos, string text, string hex, float size)
+        {
+            var color = FGMaterials.Hex(hex);
+            var go = new GameObject("Holograma " + text);
+            go.transform.SetParent(transform, false);
+            go.transform.position = pos;
+            go.transform.rotation = Quaternion.Euler(0, R() * 360, 0);
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            Destroy(quad.GetComponent<UnityEngine.Collider>());
+            quad.name = "Panel";
+            quad.transform.SetParent(go.transform, false);
+            quad.transform.localScale = new Vector3(size * 2.2f, size, 1);
+            var mat = FGMaterials.Instance(FGMaterials.Transparent("holo" + hex, new Color(color.r, color.g, color.b, 0.3f)));
+            var mr = quad.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = mat;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            Sign(text, Vector3.zero, 0.5f, color, new Color(0, 0, 0, 0), new Vector2(size * 2.2f, size), Vector3.back, go.transform);
+            go.AddComponent<Hologram>().Init(mat, color);
+            neonSpots.Add(new NeonSpot { pos = pos, color = color });
+        }
+
+        // Drones fumigadores de AgroCorp patrullando con reflectores sobre los barrios
+        void BuildDrones()
+        {
+            int[][] routes = { new[] { 1, 2 }, new[] { 2, 8 }, new[] { 4, 4 }, new[] { 7, 9 }, new[] { 9, 2 }, new[] { 10, 7 } };
+            for (int i = 0; i < routes.Length; i++)
+            {
+                Vector3 c = CellCenter(routes[i][0], routes[i][1]);
+                Drone.Create(transform, c, RR(45, 80), RR(38, 60), RR(6, 10), R() * Mathf.PI * 2);
+            }
         }
 
         // ---------- Calles ----------

@@ -112,16 +112,26 @@ namespace FloatGardens
         public static Material Lit(string key, Color color, Texture2D tex = null, float smooth = 0.15f, float metallic = 0f, bool pbrMask = true)
         {
             if (cache.TryGetValue(key, out var m) && m != null) return m;
-            m = New("FG_Lit", key);
+            var emission = FGTextures.EmissionOf(tex);
+            m = New(emission != null ? "FG_LitEmissive" : "FG_Lit", key);
             m.color = color;
-            if (tex != null) m.mainTexture = tex;
+            if (tex != null) { m.mainTexture = tex; m.mainTextureScale = FGTextures.TilesOf(tex); }
             m.SetFloat("_Smoothness", smooth);
             m.SetFloat("_Glossiness", smooth);
             m.SetFloat("_Metallic", metallic);
             ApplyMaps(m, tex, pbrMask);
+            if (emission != null)
+            {
+                // Ventanas encendidas: apagadas de día; Atmosphere sube la intensidad de noche
+                m.SetTexture("_EmissionMap", emission);
+                m.SetColor("_EmissionColor", Color.black);
+            }
             cache[key] = m;
             return m;
         }
+
+        /// <summary>¿El material tiene mapa de ventanas encendidas?</summary>
+        public static bool HasWindows(Material m) => m != null && m.HasProperty("_EmissionMap") && m.GetTexture("_EmissionMap") != null;
 
         /// <summary>Relieve (normal map) y máscara de metal/brillo, con los nombres de URP Lit y de Standard.</summary>
         static void ApplyMaps(Material m, Texture2D tex, bool pbrMask)

@@ -68,6 +68,12 @@ Funciona con el **Input System** nuevo (el que trae Unity 6 por defecto) y tambi
 - Calles con postes de luz, postes de concreto con cables colgando (bien bogotano) y carros parqueados con pintura
   brillante, muchos de ellos taxis amarillos.
 
+**Bogotá agro-punk de noche:** el día dura 14 minutos. Al caer la noche se encienden las ventanas (cada fachada trae
+un mapa de luz), los neones de las agrocorporaciones (AGROCORP, SEMILLAS Ω, HIDRO·PONIA, DRON·FUMIGA...), las tiras de
+neón de las torres, los hologramas que giran sobre las azoteas y los LEDs rosados de los invernaderos hidropónicos.
+Los postes y los neones iluminan de verdad: un grupo de 24 luces se va moviendo a los más cercanos a la cámara
+(URP en Forward+). Drones fumigadores patrullan los barrios con reflectores. La luna sale por el lado contrario al sol.
+
 **Personajes de verdad con Mixamo (unos minutos y un clic):**
 1. En [Mixamo](https://www.mixamo.com) (gratis) descarga un personaje en **FBX for Unity, With Skin**.
 2. Descarga también sus animaciones en **FBX for Unity, Without Skin** (marca *In Place* en las de caminar y correr):
@@ -92,7 +98,19 @@ Otras ideas de calidad:
 - TextMeshPro para textos más nítidos.
 - Audio real grabado en Bogotá.
 
-## 5. Estructura
+## 5. Hoja de ruta hacia un AAA (agro-punk colombiano)
+
+La referencia es Cyberpunk 2077, pero en una Colombia donde las agrocorporaciones controlan semillas, agua y tierra,
+y Float Gardens es la resistencia hidropónica. Lo que da el código y lo que necesita arte:
+
+| Etapa | Qué | Cómo |
+| --- | --- | --- |
+| 1. El look (hecho) | Noche de neón, día/noche, luces reales, invernaderos, drones, texturas PBR, posprocesado de cine | Código |
+| 2. Moverse | Moto y carro manejables, mapa más grande (Corabastos como mercado ciber, cerros con invernaderos verticales), metro elevado | Código |
+| 3. RPG | Diálogos con NPCs, misiones, árbol de habilidades, "injertos" (mejoras biológicas en vez de implantes), inventario, reputación por barrio | Código |
+| 4. Arte | Personajes de Mixamo, paquetes de ciudad (Synty, Kenney), música, voces, cinemáticas | Assets + artistas |
+
+## 6. Estructura
 
 ```
 Assets/FloatGardens/
@@ -103,19 +121,20 @@ Assets/FloatGardens/
   Scripts/Core/SFX.cs           efectos de sonido sintetizados
   Scripts/World/City.cs         generación de Bogotá, colisiones, minimapa
   Scripts/World/Bus.cs          buses articulados de la Av. Caracas
+  Scripts/World/Drone.cs        drones fumigadores con reflector y hologramas publicitarios
   Scripts/World/FGTextures.cs   texturas procedurales (ladrillo, colonial, vidrio...)
   Scripts/World/FGMaterials.cs  materiales URP (Lit, emisivos, transparentes)
   Scripts/World/MeshBuilder.cs  mallas combinadas para pocas llamadas de dibujo
   Scripts/Actors/               jugador, cámara, enemigos y jefe, peatones, cultivos, botín, zonas, efectos
   Scripts/Game/GameManager.cs   estados, zonas, oleadas, economía, jefe final
-  Scripts/Game/Atmosphere.cs    sol, cielo, niebla, posprocesado y lluvia
+  Scripts/Game/Atmosphere.cs    ciclo día/noche, sol y luna, cielo, niebla, luces de calle, posprocesado y lluvia
   Scripts/UI/                   HUD, menús y controles táctiles (uGUI por código)
   Editor/FGSetup.cs             menú "Float Gardens" del editor
   Editor/FGCharacters.cs        menú "Float Gardens > Personajes" (Mixamo a personaje del juego)
   package.json, *.asmdef, *.meta  permiten instalarlo como paquete desde una URL de Git
 ```
 
-## 6. Puntos Float y café gratis
+## 7. Puntos Float y café gratis
 
 Igual que en la web: se ganan cosechando, vendiendo, derrotando enemigos, capturando zonas y venciendo al jefe.
 Con 1.500 puntos se genera un cupón `FG-XXX-XXX-XX` con dígito de control (mismo formato que la web). El progreso

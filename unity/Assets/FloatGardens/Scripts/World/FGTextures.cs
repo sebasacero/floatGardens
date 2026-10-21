@@ -16,11 +16,17 @@ namespace FloatGardens
         public static Texture2D[] Murals;
         static readonly Dictionary<Texture2D, Texture2D> normals = new Dictionary<Texture2D, Texture2D>();
         static readonly Dictionary<Texture2D, Texture2D> masks = new Dictionary<Texture2D, Texture2D>();
+        static readonly Dictionary<Texture2D, Texture2D> emissions = new Dictionary<Texture2D, Texture2D>();
+        static readonly Dictionary<Texture2D, Vector2> tiling = new Dictionary<Texture2D, Vector2>();
 
         /// <summary>Mapa de relieve de una textura de color (o null si no tiene).</summary>
         public static Texture2D NormalOf(Texture2D albedo) => albedo != null && normals.TryGetValue(albedo, out var t) ? t : null;
         /// <summary>Mapa de metal (R) y brillo (A) de una textura de color (o null si no tiene).</summary>
         public static Texture2D MaskOf(Texture2D albedo) => albedo != null && masks.TryGetValue(albedo, out var t) ? t : null;
+        /// <summary>Mapa de luz propia (ventanas encendidas de noche) o null si no tiene.</summary>
+        public static Texture2D EmissionOf(Texture2D albedo) => albedo != null && emissions.TryGetValue(albedo, out var t) ? t : null;
+        /// <summary>Escala de repetición del material: las fachadas traen dos módulos por textura.</summary>
+        public static Vector2 TilesOf(Texture2D albedo) => albedo != null && tiling.TryGetValue(albedo, out var v) ? v : Vector2.one;
 
         class Painter
         {
@@ -30,6 +36,7 @@ namespace FloatGardens
             readonly float k; // escala: las coordenadas de dibujo son de la textura base (p. ej. 128 x 96)
             public readonly Color[] px;
             readonly float[] hgt, smooth, metal;
+            Color[] emit; // luz propia (solo si alguien llama Glow)
             // "Pincel" de material: lo que escriben Rect, Circle y Gradient además del color
             public float H = 0.5f, S = 0.1f, M = 0f;
 
@@ -49,6 +56,17 @@ namespace FloatGardens
             void Put(int i, Color c)
             {
                 px[i] = c; hgt[i] = H; smooth[i] = S; metal[i] = M;
+            }
+
+            /// <summary>Zona que emite luz propia (vidrio de ventanas encendidas). Se ve de noche.</summary>
+            public void Glow(float x, float y, float rw, float rh, Color c)
+            {
+                if (emit == null) emit = new Color[px.Length];
+                x *= k; y *= k; rw *= k; rh *= k;
+                int x0 = Mathf.Max(0, Mathf.FloorToInt(x)), x1 = Mathf.Min(w, Mathf.CeilToInt(x + rw));
+                int y0 = Mathf.Max(0, Mathf.FloorToInt(y)), y1 = Mathf.Min(h, Mathf.CeilToInt(y + rh));
+                for (int yy = y0; yy < y1; yy++)
+                    for (int xx = x0; xx < x1; xx++) emit[Idx(xx, yy)] = c;
             }
 
             // (x, y) desde la esquina superior izquierda, como en un canvas
@@ -178,7 +196,7 @@ namespace FloatGardens
             }
 
             // Resultado de Bake: listo para subir a la GPU
-            Color32[] albedo32, normal32, mask32;
+            Color32[] albedo32, normal32, mask32, emit32;
             bool repeat;
 
             /// <summary>Calcula los tres mapas (sin tocar la API de Unity: se puede llamar desde otro hilo).</summary>
@@ -187,6 +205,11 @@ namespace FloatGardens
                 this.repeat = repeat;
                 albedo32 = new Color32[px.Length];
                 for (int i = 0; i < px.Length; i++) albedo32[i] = To32(px[i]);
+                if (emit != null)
+                {
+                    emit32 = new Color32[px.Length];
+                    for (int i = 0; i < px.Length; i++) emit32[i] = To32(emit[i]);
+                }
                 if (!pbr) return;
 
                 // Relieve: derivadas del mapa de altura (con wrap si la textura se repite)
@@ -229,6 +252,7 @@ namespace FloatGardens
                     normals[t] = NewTex(name + "_N", true, normal32);
                     masks[t] = NewTex(name + "_M", true, mask32);
                 }
+                if (emit32 != null) emissions[t] = NewTex(name + "_E", false, emit32);
                 return t;
             }
 
@@ -276,9 +300,10 @@ namespace FloatGardens
             return new Color(((v >> 16) & 255) / 255f, ((v >> 8) & 255) / 255f, (v & 255) / 255f, 1f);
         }
 
-        /// <summary>Ventana con marco en relieve, vidrio hundido y brillante, y repisa.</summary>
-        static void Window(Painter p, float x, float y, float w, float h, Color frame, string g0, string g1, float frameMetal = 0)
+        /// <summary>Ventana con marco en relieve, vidrio hundido y brillante, y repisa. lit: cuánto se enciende de noche.</summary>
+        static void Window(Painter p, float x, float y, float w, float h, Color frame, string g0, string g1, float frameMetal = 0, float lit = 0, string litHex = "#ffd08a")
         {
+            if (lit > 0) p.Glow(x, y, w, h, C(litHex) * lit);
             // Repisa (sobresale) y vano (hundido)
             p.H = 0.85f; p.S = 0.25f; p.M = 0;
             p.Rect(x - 6, y + h + 3, w + 12, 4, Color.Lerp(frame, Color.white, 0.3f));
@@ -305,6 +330,7 @@ namespace FloatGardens
             public System.Func<Painter> paint;
             public bool repeat = true, pbr = true;
             public float bump = 4f;
+            public int tiles = 1; // módulos de 4 m por textura (las fachadas traen 2 para variar las ventanas)
             public Painter result;
         }
 
@@ -313,19 +339,19 @@ namespace FloatGardens
             if (Brick != null) return;
             const int F = 4; // fachadas: 512 x 384 por módulo de 4 x 3 m
             var jobs = new List<Job>();
-            void Add(string name, float bump, System.Func<Painter> paint, bool repeat = true, bool pbr = true) =>
-                jobs.Add(new Job { name = name, bump = bump, paint = paint, repeat = repeat, pbr = pbr });
+            void Add(string name, float bump, System.Func<Painter> paint, bool repeat = true, bool pbr = true, int tiles = 1) =>
+                jobs.Add(new Job { name = name, bump = bump, paint = paint, repeat = repeat, pbr = pbr, tiles = tiles });
 
             // Ladrillo bogotano: piezas con bisel, pega hundida, color variable y humedad
             Add("Ladrillo", 3.5f, () =>
             {
-                var p = new Painter(1, 128 * F, 96 * F, C("#8a8074"), F);
+                var p = new Painter(1, 256 * F, 96 * F, C("#8a8074"), F);
                 p.H = 0.35f; p.S = 0.05f;
-                p.Rect(0, 0, 128, 96, C("#8a8074"));
+                p.Rect(0, 0, 256, 96, C("#8a8074"));
                 for (int y = 0; y < 96; y += 8)
                 {
                     int off = (y / 8) % 2 == 1 ? 8 : 0;
-                    for (int x = -off; x < 128; x += 16)
+                    for (int x = -off; x < 256; x += 16)
                     {
                         float s = 0.82f + p.R() * 0.32f;
                         var col = new Color(0.6f * s, 0.29f * s * (0.92f + p.R() * 0.16f), 0.19f * s);
@@ -335,42 +361,55 @@ namespace FloatGardens
                 }
                 p.Grime(6, 0.18f, 0.04f, 0.05f, 1);
                 p.Grain(700, 0.07f, 0.02f);
-                p.Streaks(10, 0.25f);
-                Window(p, 34, 22, 60, 50, C("#e8e2d6"), "#1e2a36", "#4f6478");
+                p.Streaks(16, 0.25f);
+                Window(p, 34, 22, 60, 50, C("#e8e2d6"), "#1e2a36", "#4f6478", 0, 0.9f);
+                Window(p, 162, 22, 60, 50, C("#e8e2d6"), "#1e2a36", "#4f6478", 0, 0.25f);
                 return p;
-            });
+            }, tiles: 2);
 
             // Colonial de La Candelaria: pañete con textura, marcos y balcón de madera
             Add("Colonial", 4f, () =>
             {
-                var p = new Painter(2, 128 * F, 96 * F, C("#f4f0e8"), F);
+                var p = new Painter(2, 256 * F, 96 * F, C("#f4f0e8"), F);
                 p.H = 0.55f; p.S = 0.12f;
                 p.Grime(10, 0.12f, 0.12f, 0.04f, 2);
-                p.Grain(1200, 0.05f, 0.03f);
+                p.Grain(2400, 0.05f, 0.03f);
                 p.H = 0.7f; p.S = 0.1f;
-                p.Rect(0, 86, 128, 10, C("#d2c8b6"));
-                p.Streaks(8, 0.2f);
-                Window(p, 40, 18, 48, 54, C("#5a3a22"), "#2b241c", "#5f5141");
-                p.H = 0.9f; p.S = 0.35f;
-                p.Rect(30, 70, 68, 6, C("#4a2e1a"));
-                for (int x = 32; x < 98; x += 8) p.Rect(x, 58, 3, 12, C("#4a2e1a"));
+                p.Rect(0, 86, 256, 10, C("#d2c8b6"));
+                p.Streaks(14, 0.2f);
+                Window(p, 40, 18, 48, 54, C("#5a3a22"), "#2b241c", "#5f5141", 0, 0.8f, "#ffc777");
+                Window(p, 168, 18, 48, 54, C("#5a3a22"), "#2b241c", "#5f5141", 0, 0.3f, "#ffc777");
+                foreach (int ox in new[] { 0, 128 })
+                {
+                    p.H = 0.9f; p.S = 0.35f;
+                    p.Rect(ox + 30, 70, 68, 6, C("#4a2e1a"));
+                    for (int x = 32; x < 98; x += 8) p.Rect(ox + x, 58, 3, 12, C("#4a2e1a"));
+                }
                 return p;
-            });
+            }, tiles: 2);
 
             // Muro cortina: vidrio espejado con perfiles de aluminio
             Add("Vidrio", 4f, () =>
             {
-                var p = new Painter(3, 128 * F, 96 * F, C("#3d5d78"), F);
+                var p = new Painter(3, 256 * F, 96 * F, C("#3d5d78"), F);
                 p.H = 0.4f; p.S = 0.97f; p.M = 0.35f;
-                p.Gradient(0, 0, 128, 96, C("#2e4a63"), C("#7d9fbd"));
+                p.Gradient(0, 0, 256, 96, C("#2e4a63"), C("#7d9fbd"));
                 p.Grime(4, 0.08f, 0f, 0.03f, 3);
+                // oficinas encendidas detrás del vidrio: un módulo más que el otro
+                p.Glow(3, 5, 125, 90, C("#bfe3ff") * 0.75f);
+                p.Glow(131, 5, 125, 90, C("#bfe3ff") * 0.3f);
                 p.H = 0.8f; p.S = 0.6f; p.M = 0.9f;
-                p.Rect(0, 0, 128, 5, C("#b8c4cc"));
-                p.Rect(0, 0, 3, 96, C("#b8c4cc"));
-                p.Rect(64, 0, 2, 96, C("#b8c4cc"));
-                p.Rect(0, 60, 128, 2, C("#9aa6ae"));
+                p.Rect(0, 0, 256, 5, C("#b8c4cc"));
+                p.Glow(0, 0, 256, 5, Color.black);
+                foreach (int x in new[] { 0, 64, 128, 192 })
+                {
+                    p.Rect(x, 0, x % 128 == 0 ? 3 : 2, 96, C("#b8c4cc"));
+                    p.Glow(x, 0, 3, 96, Color.black);
+                }
+                p.Rect(0, 60, 256, 2, C("#9aa6ae"));
+                p.Glow(0, 60, 256, 2, Color.black);
                 return p;
-            });
+            }, tiles: 2);
 
             // Concreto liso (cornisas, balcones, postes): poros y manchas, sin ventana
             Add("ConcretoLiso", 4f, () =>
@@ -386,19 +425,21 @@ namespace FloatGardens
             // Concreto de oficinas: paneles con juntas y ventana con marco de aluminio
             Add("Concreto", 4f, () =>
             {
-                var p = new Painter(5, 128 * F, 96 * F, C("#b9b5ad"), F);
+                var p = new Painter(5, 256 * F, 96 * F, C("#b9b5ad"), F);
                 p.H = 0.6f; p.S = 0.08f;
                 p.Grime(8, 0.16f, 0.06f, 0.03f, 4);
-                p.Grain(2000, 0.07f, 0.03f);
+                p.Grain(4000, 0.07f, 0.03f);
                 p.H = 0.35f;
-                p.Rect(0, 0, 128, 3, C("#8f8a82"));
+                p.Rect(0, 0, 256, 3, C("#8f8a82"));
                 p.Rect(0, 0, 2, 96, C("#8f8a82"));
+                p.Rect(128, 0, 2, 96, C("#8f8a82"));
                 p.H = 0.8f; p.S = 0.1f;
-                p.Rect(0, 3, 128, 5, C("#a9a49b"));
-                p.Streaks(12, 0.3f);
-                Window(p, 22, 22, 84, 46, C("#6d6a64"), "#1c2630", "#4d6274", 0.6f);
+                p.Rect(0, 3, 256, 5, C("#a9a49b"));
+                p.Streaks(20, 0.3f);
+                Window(p, 22, 22, 84, 46, C("#6d6a64"), "#1c2630", "#4d6274", 0.6f, 0.85f, "#dff1ff");
+                Window(p, 150, 22, 84, 46, C("#6d6a64"), "#1c2630", "#4d6274", 0.6f, 0.2f, "#dff1ff");
                 return p;
-            });
+            }, tiles: 2);
 
             // Bodega: lámina corrugada metálica
             Add("Bodega", 3f, () =>
@@ -544,7 +585,11 @@ namespace FloatGardens
             else Parallel.ForEach(jobs, run);
 
             var tex = new Dictionary<string, Texture2D>();
-            foreach (var j in jobs) tex[j.name] = j.result.ToTextures(j.name);
+            foreach (var j in jobs)
+            {
+                tex[j.name] = j.result.ToTextures(j.name);
+                if (j.tiles > 1) tiling[tex[j.name]] = new Vector2(1f / j.tiles, 1f);
+            }
             Brick = tex["Ladrillo"]; Stucco = tex["Colonial"]; Glass = tex["Vidrio"];
             ConcreteBare = tex["ConcretoLiso"]; Concrete = tex["Concreto"]; Warehouse = tex["Bodega"];
             Roof = tex["Techo"]; Asphalt = tex["Asfalto"]; Sidewalk = tex["Anden"]; Cobble = tex["Empedrado"];

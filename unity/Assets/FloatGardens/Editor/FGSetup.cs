@@ -87,8 +87,10 @@ namespace FloatGardens.EditorTools
             asset.shadowCascadeCount = 4;
             asset.mainLightShadowmapResolution = 4096;
             asset.colorGradingMode = ColorGradingMode.HighDynamicRange;
+            asset.maxAdditionalLightsCount = 8;
             // Ajustes sin propiedad pública
             var so = new SerializedObject(asset);
+            SetInt(so, "m_AdditionalLightsRenderingMode", 1); // PerPixel: postes y neones iluminan de verdad
             SetBool(so, "m_MainLightShadowsSupported", true);
             SetBool(so, "m_SoftShadowsSupported", true);
             SetInt(so, "m_SoftShadowQuality", 3); // High
@@ -102,6 +104,7 @@ namespace FloatGardens.EditorTools
                 ? list.GetArrayElementAtIndex(0).objectReferenceValue as UniversalRendererData
                 : null;
             if (renderer == null) return;
+            renderer.renderingMode = RenderingMode.ForwardPlus; // muchas luces en pantalla (noche con neones)
             if (renderer.postProcessData == null)
                 renderer.postProcessData = AssetDatabase.LoadAssetAtPath<PostProcessData>(PostProcessDataPath);
             if (!renderer.rendererFeatures.Exists(f => f is ScreenSpaceAmbientOcclusion))
