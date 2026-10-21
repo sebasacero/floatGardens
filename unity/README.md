@@ -102,3 +102,42 @@ se guarda en el dispositivo y no se comparte con la versión web. Para regalar c
 que registre cada cupón y lo marque como usado.
 
 > Juego de ficción y parodia. No está afiliado ni respaldado por ninguna organización cafetera real.
+
+## 7. Modo historia: Float Gardens — Tierra de Café
+
+Un segundo juego dentro del mismo proyecto, en [`Assets/FloatGardens/Historia/`](Assets/FloatGardens/Historia/). Un joven barista
+de Bogotá con una **AeroPress** y un **PC** sueña con ser un referente mundial del café. En Bogotá (2.600 m, ~14 °C) el café no crece al
+aire libre, así que con **Float Gardens** lo cultiva dentro de una bodega de Puente Aranda, en **balsas hidropónicas flotantes** bajo luces LED.
+Desde ahí recorre las regiones cafeteras de Colombia, aprende de mentores, compite y llega al Mundial.
+
+**Abrirlo:** después del paso 1, en la barra de menús: **Float Gardens → Historia: crear escena Tierra de Café** y dale Play ▶.
+La escena queda de primera en el build (el shooter sigue disponible en `Scenes/Bogota.unity`).
+
+### Qué se juega
+- **La bodega (Bogotá):** huerta flotante con clima controlado (temperatura, luz, humedad, pH y nutrientes), beneficio, tostadora,
+  barra de AeroPress, PC y cama. Cada estación es un panel táctil.
+- **Cultivo:** semilla → fosforito → chapola → almácigo → floración → cereza. Hay roya y broca, y solo las cerezas maduras dan buena taza.
+- **Beneficio:** lavado, honey, natural o anaeróbico. Se elige la fermentación y el secado, con un objetivo de 10–12 % de humedad.
+- **Tostión:** curva de temperatura en vivo, primer crack (~196 °C) y desarrollo del 15–25 %. La curva castiga quemar el grano (*scorching*) y que se desplome al final (*crash*).
+- **AeroPress:** dosis, agua, temperatura, molienda, tiempo, revueltas, método invertido y filtro. Se calcula la extracción (EY) y la
+  concentración (TDS) con la carta de control de la SCA. **En Bogotá el agua hierve a ~91 °C**; en el Mundial, a nivel del mar, a 100 °C,
+  así que la receta cambia.
+- **El PC:** el canal *acero-press* (meta: 50.000 tazas), la Wiki del Café, el correo, la tienda y el inventario de lotes.
+- **Mapa de Colombia en 3D:** 13 regiones (Cundinamarca, Eje Cafetero, Huila, Tolima, Cauca, Nariño, Antioquia, Santanderes y Sierra Nevada).
+  En cada una hay una finca, un mentor ficticio y un reto: recolección selectiva, plagas, beneficio, catación SCA, tostión, historia o AeroPress.
+  Cada reto superado da un sello del Pasaporte Cafetero, semillas y un lote de café de la región.
+- **Competencias:** Copa Bogotá → Campeonato Nacional → Mundial. Tres jueces señalan la mejor taza, al estilo de los campeonatos de AeroPress.
+- **Puntos Float:** los capítulos y trofeos suman Puntos Float al mismo saldo del mundo abierto, para canjear café gratis.
+
+Para cambiar el nombre, el saldo inicial o la meta de tazas, edita `Historia/Scripts/Core/HConfig.cs`. El contenido (variedades, regiones,
+Wiki, misiones, diálogos y preguntas) está en `Historia/Scripts/Data/`.
+
+```
+Historia/Scripts/Core/      HConfig (constantes), HData (tipos + catálogo), HState (guardado), CoffeeModel (la ciencia del café)
+Historia/Scripts/Data/      VarietyData, RegionData, LoreData (Wiki), GearData (tienda), StoryData (capítulos, misiones, diálogos)
+Historia/Scripts/Game/      StoryGame (lugares, tiempo, economía, misiones, competencias), HPanel (base de paneles)
+Historia/Scripts/World/     BodegaBuilder, ColombiaMap, FincaBuilder, StageBuilder, Interactable
+Historia/Scripts/Actors/    StoryPlayer (barista en tercera persona)
+Historia/Scripts/UI/        HUD, diálogos, menús y un panel por estación o reto
+Historia/Editor/            menú "Float Gardens → Historia"
+```
