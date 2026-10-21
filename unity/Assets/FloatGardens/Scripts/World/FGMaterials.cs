@@ -1,6 +1,7 @@
 // Materiales PBR de URP creados en código.
 // Se clonan de "plantillas" guardadas en Resources/FloatGardens (las crea el menú Float Gardens > Configurar proyecto),
 // así el build incluye los shaders y variantes necesarias. Si no existen, se crean al vuelo (sirve en el editor).
+// Si el proyecto no tiene URP activo se usan los shaders clásicos (Standard) para que nada se vea rosado.
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -21,8 +22,12 @@ namespace FloatGardens
             return c;
         }
 
+        /// <summary>¿Hay un render pipeline (URP) activo? Sin él, los shaders de URP se ven rosados.</summary>
+        public static bool Urp => GraphicsSettings.currentRenderPipeline != null;
+
         static Shader Find(params string[] names)
         {
+            if (!Urp && names.Length > 1) names = new[] { names[names.Length - 1] };
             foreach (var n in names)
             {
                 var s = Shader.Find(n);
@@ -70,6 +75,7 @@ namespace FloatGardens
 
         static void MakeTransparent(Material m)
         {
+            // URP
             m.SetFloat("_Surface", 1);
             m.SetFloat("_Blend", 0);
             m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
@@ -77,6 +83,9 @@ namespace FloatGardens
             m.SetFloat("_ZWrite", 0);
             m.SetFloat("_Cull", 0);
             m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            // Standard (sin URP): modo Fade
+            m.SetFloat("_Mode", 2);
+            m.EnableKeyword("_ALPHABLEND_ON");
             m.SetOverrideTag("RenderType", "Transparent");
             m.renderQueue = (int)RenderQueue.Transparent;
         }
@@ -84,7 +93,8 @@ namespace FloatGardens
         public static Material Template(string name)
         {
             if (templates.TryGetValue(name, out var t) && t != null) return t;
-            t = Resources.Load<Material>(ResourceFolder + "/" + name);
+            // las plantillas guardadas usan shaders de URP: sin URP se crean con los clásicos
+            if (Urp) t = Resources.Load<Material>(ResourceFolder + "/" + name);
             if (t == null) t = CreateTemplate(name);
             templates[name] = t;
             return t;

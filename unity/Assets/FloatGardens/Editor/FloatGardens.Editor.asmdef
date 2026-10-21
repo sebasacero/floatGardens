@@ -2,7 +2,9 @@
     "name": "FloatGardens.Editor",
     "rootNamespace": "FloatGardens.EditorTools",
     "references": [
-        "FloatGardens"
+        "FloatGardens",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [
         "Editor"

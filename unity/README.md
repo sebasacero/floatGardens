@@ -1,9 +1,11 @@
 # 🌱☕ Float Gardens: Bogotá — versión Unity
 
 Versión en **Unity 6 + URP** del shooter de mundo abierto en Bogotá. Tiene la misma lógica que la versión web
-(zonas, enemigos, economía, Puntos Float, jefe final), con la calidad gráfica que da Unity: sombras en tiempo real,
-materiales PBR (el agua y el asfalto mojado reflejan el cielo), neón con resplandor (bloom), cielo procedural,
-tonemapping ACES, lluvia con partículas, física real y sonido.
+(zonas, enemigos, economía, Puntos Float, jefe final), con look de cine: sol bajo con sombras largas y suaves,
+oclusión ambiental (SSAO), reflejos en tiempo real (el agua, el vidrio y el asfalto mojado reflejan la ciudad), bruma de
+montaña, etalonaje con tonos fríos en las sombras y cálidos en las luces, bloom y destellos de lente, grano de película,
+aberración cromática, profundidad de campo en la distancia, desenfoque de movimiento de cámara, tonemapping ACES,
+lluvia con partículas, física real y sonido.
 
 Todo se genera por código: la ciudad, los personajes, el HUD y los menús. No hay prefabs ni escenas hechas a mano.
 Así el proyecto es liviano en Git y fácil de modificar, y los modelos 3D se pueden ir cambiando por mejores poco a poco.
@@ -27,6 +29,9 @@ Así el proyecto es liviano en Git y fácil de modificar, y los modelos 3D se pu
 6. Dale **Play** ▶.
 
 El menú hace lo siguiente:
+- Si el proyecto no tiene URP activo (por ejemplo, si se creó con la plantilla 3D clásica y el juego se ve rosado), lo
+  activa con `Assets/FloatGardens/Render/FG_URP.asset`. Además ajusta el URP para calidad de cine: HDR, MSAA x4, sombras
+  suaves de 4096 px a 150 m, reflejos combinados y oclusión ambiental (SSAO).
 - Crea los materiales plantilla en `Assets/FloatGardens/Resources/FloatGardens/`, para que el build incluya los shaders.
 - Ajusta el nombre del producto y la orientación horizontal.
 - Crea la escena `Assets/FloatGardens/Scenes/Bogota.unity` y la agrega al build.
