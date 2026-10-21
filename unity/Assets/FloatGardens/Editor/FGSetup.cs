@@ -19,8 +19,12 @@ namespace FloatGardens.EditorTools
         {
             ConfigureProject();
             CreateScene();
+            string urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null
+                ? "\n\nOjo: este proyecto no tiene URP activo y el juego se verá rosado o sin efectos. " +
+                  "Crea un proyecto nuevo en Unity Hub con la plantilla 'Universal 3D' e instala ahí Float Gardens."
+                : "";
             EditorUtility.DisplayDialog("Float Gardens",
-                "Listo. La escena Bogota quedó abierta y agregada al build.\n\nDale Play para jugar.", "¡Vamos!");
+                "Listo. La escena Bogota quedó abierta y agregada al build.\n\nDale Play para jugar." + urp, "¡Vamos!");
         }
 
         [MenuItem("Float Gardens/1. Configurar proyecto", priority = 20)]

@@ -16,8 +16,13 @@ Así el proyecto es liviano en Git y fácil de modificar, y los modelos 3D se pu
 1. Instala **Unity Hub** y **Unity 6 LTS** (6000.0.x). Si vas a exportar a celular, agrega los módulos *Android Build Support*
    y/o *iOS Build Support*.
 2. En Unity Hub: **New project → Universal 3D** (la plantilla de URP). Ponle de nombre `FloatGardensBogota`.
-3. Copia la carpeta `unity/Assets/FloatGardens` de este repositorio dentro de la carpeta `Assets/` del proyecto nuevo.
-4. Vuelve a Unity y espera a que compile.
+3. Trae el juego al proyecto de una de estas dos formas (no las dos a la vez, porque se duplican las clases):
+   - **Desde Unity (Package Manager):** **Window → Package Manager → botón + → Install package from git URL…** y pega
+     `https://github.com/sebasacero/floatGardens.git?path=/unity/Assets/FloatGardens`.
+     Necesita Git instalado en el computador. Para actualizar, vuelve a pegar el link o usa **Update** en el Package Manager.
+   - **Copiando la carpeta:** copia `unity/Assets/FloatGardens` de este repositorio dentro de la carpeta `Assets/` del
+     proyecto. Puedes arrastrarla desde el Finder o el Explorador hasta **Assets** en el panel Project de Unity.
+4. Espera a que compile.
 5. En la barra de menús: **Float Gardens → Configurar todo y crear escena**.
 6. Dale **Play** ▶.
 
@@ -92,6 +97,7 @@ Assets/FloatGardens/
   Scripts/Game/Atmosphere.cs    sol, cielo, niebla, posprocesado y lluvia
   Scripts/UI/                   HUD, menús y controles táctiles (uGUI por código)
   Editor/FGSetup.cs             menú "Float Gardens" del editor
+  package.json, *.asmdef, *.meta  permiten instalarlo como paquete desde una URL de Git
 ```
 
 ## 6. Puntos Float y café gratis

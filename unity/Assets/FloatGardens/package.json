@@ -1,0 +1,13 @@
+{
+  "name": "com.floatgardens.bogota",
+  "displayName": "Float Gardens: Bogotá",
+  "version": "0.1.0",
+  "unity": "6000.0",
+  "description": "Shooter de mundo abierto en Bogotá: un barista con AeroPress cultiva café hidropónico y hace crecer Float Gardens. Todo se genera por código. Después de instalarlo usa el menú Float Gardens > Configurar todo y crear escena.",
+  "keywords": ["float gardens", "bogota", "cafe", "urp"],
+  "author": { "name": "Float Gardens" },
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "17.0.3",
+    "com.unity.ugui": "2.0.0"
+  }
+}
