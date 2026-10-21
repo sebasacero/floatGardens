@@ -105,8 +105,11 @@ namespace FloatGardens
             return new Material(Template(template)) { name = name };
         }
 
-        /// <summary>Material opaco PBR. smooth: 0 mate, 1 espejo.</summary>
-        public static Material Lit(string key, Color color, Texture2D tex = null, float smooth = 0.15f, float metallic = 0f)
+        /// <summary>
+        /// Material opaco PBR. smooth: 0 mate, 1 espejo. Si la textura trae mapas de FGTextures se usan su relieve y,
+        /// con pbrMask, su máscara de metal/brillo (entonces el brillo sale de la máscara y no de smooth).
+        /// </summary>
+        public static Material Lit(string key, Color color, Texture2D tex = null, float smooth = 0.15f, float metallic = 0f, bool pbrMask = true)
         {
             if (cache.TryGetValue(key, out var m) && m != null) return m;
             m = New("FG_Lit", key);
@@ -115,8 +118,30 @@ namespace FloatGardens
             m.SetFloat("_Smoothness", smooth);
             m.SetFloat("_Glossiness", smooth);
             m.SetFloat("_Metallic", metallic);
+            ApplyMaps(m, tex, pbrMask);
             cache[key] = m;
             return m;
+        }
+
+        /// <summary>Relieve (normal map) y máscara de metal/brillo, con los nombres de URP Lit y de Standard.</summary>
+        static void ApplyMaps(Material m, Texture2D tex, bool pbrMask)
+        {
+            var normal = FGTextures.NormalOf(tex);
+            if (normal != null)
+            {
+                m.SetTexture("_BumpMap", normal);
+                m.SetFloat("_BumpScale", 1f);
+                m.EnableKeyword("_NORMALMAP");
+            }
+            var mask = pbrMask ? FGTextures.MaskOf(tex) : null;
+            if (mask != null)
+            {
+                m.SetTexture("_MetallicGlossMap", mask);
+                m.SetFloat("_Smoothness", 1f);
+                m.SetFloat("_GlossMapScale", 1f);
+                m.EnableKeyword("_METALLICSPECGLOSSMAP"); // URP
+                m.EnableKeyword("_METALLICGLOSSMAP");     // Standard
+            }
         }
 
         public static Material Lit(string hex, float smooth = 0.15f) => Lit("c" + hex + smooth, Hex(hex), null, smooth);

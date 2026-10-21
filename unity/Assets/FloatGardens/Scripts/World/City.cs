@@ -96,7 +96,8 @@ namespace FloatGardens
             colliders.transform.SetParent(transform, false);
             colliders.isStatic = true;
 
-            asphaltMat = FGMaterials.Lit("asfalto", Color.white, FGTextures.Asphalt, 0.12f);
+            // sin máscara: la lluvia sube el brillo de todo el asfalto
+            asphaltMat = FGMaterials.Lit("asfalto", Color.white, FGTextures.Asphalt, 0.12f, 0f, false);
             var ground = new MeshBuilder();
             float g = Half + 260;
             ground.Quad(new Vector3(-g, 0, -g), new Vector3(g, 0, -g), new Vector3(g, 0, g), new Vector3(-g, 0, g), Vector3.up, new Vector2(-g / 6, -g / 6), new Vector2(g / 6, g / 6));
@@ -124,6 +125,7 @@ namespace FloatGardens
             var zone = ZoneAt(row, col);
 
             if (code == 'P') { ParkSlab(row, col, c); if (zone.HasValue) ZonePlaza(zone.Value, c, true); return; }
+            Dressing(row, col, code, c);
             if (code == 'B') { Slab(c, "empedrado"); PlazaBolivar(c); return; }
             if (code == 'F') { Slab(c, "anden"); Sede(c); return; }
             Slab(c, code == 'L' ? "empedrado" : "anden");
@@ -153,6 +155,7 @@ namespace FloatGardens
             B(mat + variant, m).Walls(x, z, 0.25f, w, h, d);
             B("techo", FGMaterials.Lit("techo", Color.white, FGTextures.Roof, 0.05f)).Top(x, z, h + 0.25f, w, d);
             Collider(new Vector3(x, (h + 0.25f) / 2f, z), new Vector3(w, h + 0.25f, d));
+            Details(mat, x, z, w, h, d);
 
             // Toldos de colores en algunos locales del primer piso
             if (h < 40 && R() < 0.35f)
@@ -177,6 +180,196 @@ namespace FloatGardens
                 Vector3 hx = right * mw / 2, hy = Vector3.up * mw / 4;
                 mb.Quad(center - hx - hy, center + hx - hy, center + hx + hy, center - hx + hy, n, Vector2.zero, Vector2.one);
             }
+        }
+
+        // ---------- Detalle arquitectónico ----------
+        // Cornisas, antepechos, franjas de entrepiso, balcones y cosas en la terraza: le dan sombra y silueta a cada edificio.
+        bool plainRoof;
+
+        void Details(string mat, float x, float z, float w, float h, float d)
+        {
+            if (mat == "colonial") return; // ya tiene su alero de teja
+            float roof = h + 0.25f;
+            var trim = B("cornisa", FGMaterials.Lit("cornisa", FGMaterials.Hex("#cfc8bb"), FGTextures.ConcreteBare, 0.1f));
+
+            // Cornisa que sobresale y antepecho alrededor de la terraza
+            trim.Solid(x, z, h - 0.4f, w + 0.5f, 0.4f, d + 0.5f);
+            trim.Solid(x, z + d / 2 - 0.15f, roof, w, 1f, 0.3f);
+            trim.Solid(x, z - d / 2 + 0.15f, roof, w, 1f, 0.3f);
+            trim.Solid(x + w / 2 - 0.15f, z, roof, 0.3f, 1f, d - 0.6f);
+            trim.Solid(x - w / 2 + 0.15f, z, roof, 0.3f, 1f, d - 0.6f);
+
+            // Franjas de entrepiso: aluminio en las torres de vidrio, concreto en los edificios de oficinas
+            if (mat == "vidrio" || mat == "concreto")
+            {
+                var band = mat == "vidrio"
+                    ? B("franjaMetal", FGMaterials.Lit("franjaMetal", FGMaterials.Hex("#a3adb4"), null, 0.65f, 0.85f))
+                    : B("franjaConcreto", FGMaterials.Lit("franjaConcreto", FGMaterials.Hex("#c2bcb2"), FGTextures.ConcreteBare, 0.1f));
+                for (float y = 3; y < h - 1; y += 3) band.Solid(x, z, y - 0.12f, w + 0.18f, 0.24f, d + 0.18f);
+            }
+
+            // Balcones de ladrillo en los edificios de vivienda (alineados con las ventanas del módulo de 4 m)
+            if (mat == "ladrillo" && h <= 30 && !plainRoof && R() < 0.55f)
+            {
+                var slab = B("balcon", FGMaterials.Lit("balcon", FGMaterials.Hex("#b9b2a6"), FGTextures.ConcreteBare, 0.1f));
+                var rail = B("baranda", FGMaterials.Lit("baranda", FGMaterials.Hex("#26282b"), null, 0.45f, 0.7f));
+                int side = rng.Next(4);
+                Vector3 n = side == 0 ? Vector3.right : side == 1 ? Vector3.left : side == 2 ? Vector3.forward : Vector3.back;
+                Vector3 right = Vector3.Cross(Vector3.up, -n);
+                float width = side < 2 ? d : w, depth = side < 2 ? w : d;
+                Vector3 left = new Vector3(x, 0, z) + n * depth / 2 - right * width / 2;
+                bool alongX = side >= 2;
+                for (float y = 3; y < h - 1; y += 3)
+                    for (int k = 0; 4 * k + 4 <= width; k += 2)
+                    {
+                        Vector3 p = left + right * (4 * k + 2);
+                        Vector3 sp = p + n * 0.55f, rp = p + n * 1.07f;
+                        float bw = alongX ? 2.6f : 1.1f, bd = alongX ? 1.1f : 2.6f;
+                        slab.Solid(sp.x, sp.z, y + 0.5f, bw, 0.15f, bd);
+                        rail.Solid(rp.x, rp.z, y + 0.65f, alongX ? 2.6f : 0.05f, 0.95f, alongX ? 0.05f : 2.6f);
+                    }
+            }
+
+            // Terraza: tanques de agua negros, aire acondicionado y antenas; las torres llevan cuarto de máquinas
+            if (plainRoof) return;
+            Mesh cyl = MeshBuilder.Primitive(PrimitiveType.Cylinder);
+            if (h >= 45)
+            {
+                trim.Solid(x + RR(-2, 2), z + RR(-2, 2), roof, w * 0.4f, 3.5f, d * 0.4f);
+                B("antena", FGMaterials.Lit("antena", FGMaterials.Hex("#8d9399"), null, 0.5f, 0.9f))
+                    .Add(cyl, Matrix4x4.TRS(new Vector3(x, roof + 3.5f + 4f, z), Quaternion.identity, new Vector3(0.12f, 4f, 0.12f)));
+                return;
+            }
+            var tank = B("tanque", FGMaterials.Lit("tanque", FGMaterials.Hex("#1c1e21"), null, 0.35f));
+            int tanks = R() < 0.75f ? 1 + rng.Next(2) : 0;
+            for (int i = 0; i < tanks; i++)
+            {
+                float tx = x + RR(-w / 2 + 2, w / 2 - 2), tz = z + RR(-d / 2 + 2, d / 2 - 2);
+                trim.Solid(tx, tz, roof, 1.9f, 0.6f, 1.9f);
+                tank.Add(cyl, Matrix4x4.TRS(new Vector3(tx, roof + 0.6f + 0.85f, tz), Quaternion.identity, new Vector3(1.7f, 0.85f, 1.7f)));
+            }
+            if (R() < 0.6f)
+            {
+                var ac = B("aire", FGMaterials.Lit("aire", FGMaterials.Hex("#b4b8bb"), FGTextures.Warehouse, 0.4f, 0.6f));
+                ac.Solid(x + RR(-w / 2 + 2, w / 2 - 2), z + RR(-d / 2 + 2, d / 2 - 2), roof, 1.3f, 0.9f, 0.9f);
+            }
+            if (R() < 0.35f)
+                B("antena", FGMaterials.Lit("antena", FGMaterials.Hex("#8d9399"), null, 0.5f, 0.9f))
+                    .Add(cyl, Matrix4x4.TRS(new Vector3(x + RR(-w / 3, w / 3), roof + 2f, z + RR(-d / 3, d / 3)), Quaternion.identity, new Vector3(0.07f, 2f, 0.07f)));
+        }
+
+        // ---------- Mobiliario urbano ----------
+        // Postes de luz, postes de concreto con el enredo de cables tan bogotano y carros parqueados (muchos taxis amarillos).
+        void Dressing(int row, int col, char code, Vector3 c)
+        {
+            Mesh cyl = MeshBuilder.Primitive(PrimitiveType.Cylinder);
+            Mesh cube = MeshBuilder.Primitive(PrimitiveType.Cube);
+            const float edge = Block / 2 - 0.6f;
+            var faces = new[] { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
+
+            // Postes de luz en la mitad de cada cuadra, con la lámpara hacia la calle
+            var pole = B("posteLuz", FGMaterials.Lit("posteLuz", FGMaterials.Hex("#3a3f44"), null, 0.5f, 0.8f));
+            var lamp = B("lampara", FGMaterials.Emissive("lampara", FGMaterials.Hex("#ffd59a"), 3f));
+            foreach (var n in faces)
+            {
+                Vector3 b = c + n * edge;
+                pole.Add(cyl, Matrix4x4.TRS(new Vector3(b.x, 0.25f + 3.75f, b.z), Quaternion.identity, new Vector3(0.18f, 3.75f, 0.18f)));
+                Vector3 arm = b + n * 0.9f;
+                pole.Solid(arm.x, arm.z, 7.4f, Mathf.Abs(n.x) > 0 ? 1.8f : 0.1f, 0.1f, Mathf.Abs(n.z) > 0 ? 1.8f : 0.1f);
+                Vector3 head = b + n * 1.7f;
+                lamp.Solid(head.x, head.z, 7.2f, Mathf.Abs(n.x) > 0 ? 0.7f : 0.35f, 0.2f, Mathf.Abs(n.z) > 0 ? 0.7f : 0.35f);
+                Collider(new Vector3(b.x, 3.5f, b.z), new Vector3(0.35f, 7f, 0.35f));
+            }
+
+            // Postes de concreto en las esquinas y cables colgando entre ellos
+            if (code != 'T' && code != 'I' && code != 'B' && code != 'F')
+            {
+                var concrete = B("posteConcreto", FGMaterials.Lit("posteConcreto", FGMaterials.Hex("#a7a39b"), FGTextures.ConcreteBare, 0.1f));
+                var wire = B("cable", FGMaterials.Lit("cable", FGMaterials.Hex("#111214"), null, 0.3f));
+                var corners = new[] { new Vector3(edge, 0, edge), new Vector3(-edge, 0, edge), new Vector3(-edge, 0, -edge), new Vector3(edge, 0, -edge) };
+                for (int i = 0; i < 4; i++)
+                {
+                    Vector3 p = c + corners[i];
+                    concrete.Add(cyl, Matrix4x4.TRS(new Vector3(p.x, 0.25f + 4.5f, p.z), Quaternion.identity, new Vector3(0.28f, 4.5f, 0.28f)));
+                    concrete.Solid(p.x, p.z, 8.4f, 1.6f, 0.15f, 0.15f);
+                    Collider(new Vector3(p.x, 4.5f, p.z), new Vector3(0.4f, 9f, 0.4f));
+                    Vector3 q = c + corners[(i + 1) % 4];
+                    int count = 2 + rng.Next(2);
+                    for (int k = 0; k < count; k++)
+                        Cable(wire, cube, new Vector3(p.x, 8.5f - k * 0.35f, p.z), new Vector3(q.x, 8.5f - k * 0.35f, q.z), RR(0.8f, 1.6f));
+                }
+                // Cruces de calle hacia la manzana vecina (no sobre la Caracas)
+                if (col + 1 < FGConfig.Grid && col != 5 && R() < 0.5f)
+                {
+                    Vector3 a = c + corners[0], b = CellCenter(row, col + 1) + corners[1];
+                    Cable(wire, cube, a + Vector3.up * 8.6f, b + Vector3.up * 8.6f, RR(0.6f, 1.2f));
+                }
+                if (row + 1 < FGConfig.Grid && R() < 0.5f)
+                {
+                    Vector3 a = c + corners[2], b = CellCenter(row + 1, col) + corners[1];
+                    Cable(wire, cube, a + Vector3.up * 8.6f, b + Vector3.up * 8.6f, RR(0.6f, 1.2f));
+                }
+            }
+
+            // Carros parqueados junto al andén (no en la Caracas ni frente a la Sede)
+            if (row == FGConfig.HQ.y && col == FGConfig.HQ.x) return;
+            for (int f = 0; f < 4; f++)
+            {
+                if ((f == 0 && col == 5) || (f == 1 && col == 6)) continue;
+                Vector3 n = faces[f];
+                Vector3 along = Vector3.Cross(Vector3.up, n);
+                for (float t = -16; t <= 16; t += 5.5f)
+                    if (R() < 0.2f) Car(c + n * (Block / 2 + 1.2f) + along * t, along);
+            }
+        }
+
+        /// <summary>Cable colgante: tramos delgados que siguen una parábola.</summary>
+        void Cable(MeshBuilder mb, Mesh cube, Vector3 a, Vector3 b, float sag)
+        {
+            const int segs = 6;
+            Vector3 prev = a;
+            for (int i = 1; i <= segs; i++)
+            {
+                float t = (float)i / segs;
+                Vector3 p = Vector3.Lerp(a, b, t) + Vector3.down * sag * 4 * t * (1 - t);
+                Vector3 dir = p - prev;
+                mb.Add(cube, Matrix4x4.TRS((p + prev) / 2, Quaternion.LookRotation(dir), new Vector3(0.035f, 0.035f, dir.magnitude)));
+                prev = p;
+            }
+        }
+
+        static readonly string[] CarColors = { "#f2c014", "#f2c014", "#f2c014", "#e9eaec", "#b6bcc2", "#8e1a1a", "#17191c", "#1f3d70", "#5b6168" };
+
+        /// <summary>Carro bajo-poligonal con pintura brillante (refleja la ciudad), vidrios oscuros y llantas.</summary>
+        void Car(Vector3 p, Vector3 dir)
+        {
+            string hex = Pick(CarColors);
+            var paint = B("auto" + hex, FGMaterials.Lit("auto" + hex, FGMaterials.Hex(hex), null, 0.82f, 0.45f));
+            var glass = B("autoVidrio", FGMaterials.Lit("autoVidrio", FGMaterials.Hex("#141a20"), null, 0.95f, 0.3f));
+            var tire = B("llanta", FGMaterials.Lit("llanta", FGMaterials.Hex("#121212"), null, 0.2f));
+            var lights = B("farolas", FGMaterials.Emissive("farolas", FGMaterials.Hex("#ffe9c4"), 1.5f));
+            bool alongZ = Mathf.Abs(dir.z) > 0.5f;
+            float L = 4.3f, W = 1.8f;
+            float sx = alongZ ? W : L, sz = alongZ ? L : W;
+            paint.Solid(p.x, p.z, 0.32f, sx, 0.72f, sz);
+            Vector3 cab = p - dir * 0.25f;
+            glass.Solid(cab.x, cab.z, 1.04f, alongZ ? 1.6f : 2.2f, 0.6f, alongZ ? 2.2f : 1.6f);
+            paint.Solid(cab.x, cab.z, 1.62f, alongZ ? 1.55f : 2.0f, 0.06f, alongZ ? 2.0f : 1.55f);
+            Vector3 front = p + dir * (L / 2 + 0.01f), side = Vector3.Cross(Vector3.up, dir);
+            foreach (float s2 in new[] { -0.6f, 0.6f })
+            {
+                Vector3 hl = front + side * s2;
+                lights.Solid(hl.x, hl.z, 0.75f, alongZ ? 0.35f : 0.04f, 0.14f, alongZ ? 0.04f : 0.35f);
+            }
+            Mesh cyl = MeshBuilder.Primitive(PrimitiveType.Cylinder);
+            Quaternion wheelRot = Quaternion.LookRotation(dir) * Quaternion.Euler(0, 0, 90);
+            foreach (float a in new[] { -1.35f, 1.35f })
+                foreach (float s2 in new[] { -0.82f, 0.82f })
+                {
+                    Vector3 wp = p + dir * a + side * s2;
+                    tire.Add(cyl, Matrix4x4.TRS(new Vector3(wp.x, 0.34f, wp.z), wheelRot, new Vector3(0.66f, 0.13f, 0.66f)));
+                }
+            Collider(new Vector3(p.x, 0.85f, p.z), new Vector3(sx + 0.1f, 1.7f, sz + 0.1f));
         }
 
         Material FacadeMaterial(string mat, int variant)
@@ -337,7 +530,9 @@ namespace FloatGardens
         {
             B("empedrado", FGMaterials.Lit("empedrado", Color.white, FGTextures.Cobble, 0.2f)).Top(c.x, c.z, 0.27f, Block - 4, Block - 4);
             // edificio de ladrillo con huerta en la azotea (lado norte)
+            plainRoof = true; // la azotea es la huerta y el letrero va en la fachada sur
             Building("ladrillo", 0, c.x, c.z + 12, 34, 15, 14);
+            plainRoof = false;
             var leaf = B("hojaHQ", FGMaterials.Lit("#2f8f45", 0.1f));
             for (int i = -3; i <= 3; i++) leaf.Box(c.x + i * 4.5f, c.z + 12, 15.25f, 3, 1.4f, 10);
             Sign("FLOAT GARDENS", new Vector3(c.x, 11, c.z + 4.9f), 0.55f, FGMaterials.Hex("#7dffb0"), FGMaterials.Hex("#0f3d2e"), new Vector2(20, 4));

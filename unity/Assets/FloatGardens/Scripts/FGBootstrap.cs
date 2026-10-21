@@ -21,11 +21,17 @@ namespace FloatGardens
         {
             if (FindObjectsByType<FGBootstrap>(FindObjectsSortMode.None).Length > 1) { Destroy(gameObject); return; }
             var gm = gameObject.AddComponent<GameManager>();
-            gm.playerModel = playerModel;
-            gm.enemyModel = enemyModel;
-            gm.bossModel = bossModel;
-            gm.pedestrianModel = pedestrianModel;
+            // Si los campos están vacíos se buscan en Resources/FloatGardens/Modelos (ahí los deja
+            // el menú Float Gardens > Personajes)
+            gm.playerModel = playerModel != null ? playerModel : LoadModel("Barista");
+            gm.enemyModel = enemyModel != null ? enemyModel : LoadModel("Enemigo");
+            gm.bossModel = bossModel != null ? bossModel : LoadModel("Jefe");
+            gm.pedestrianModel = pedestrianModel != null ? pedestrianModel : LoadModel("Peaton");
             gm.Init();
         }
+
+        public const string ModelsFolder = "FloatGardens/Modelos";
+
+        static GameObject LoadModel(string name) => Resources.Load<GameObject>(ModelsFolder + "/" + name);
     }
 }

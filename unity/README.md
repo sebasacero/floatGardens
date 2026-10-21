@@ -57,20 +57,29 @@ Funciona con el **Input System** nuevo (el que trae Unity 6 por defecto) y tambi
    sombras a 30–50 m y render scale de 0,8–0,9.
 4. **Build**. En Android sale un `.apk` o `.aab` para la Play Store. En iOS sale un proyecto de Xcode.
 
-## 4. Mejorar los gráficos (siguiente paso)
+## 4. Gráficos y personajes
 
-El código ya está listo para cambiar los personajes de cajas por modelos animados:
+**Lo que ya hace el código:**
+- Texturas PBR generadas al arrancar, a 128 px por metro en fachadas. Cada una trae color, relieve (normal map) y
+  máscara de metal/brillo: el ladrillo y la pega reciben la luz rasante, y el vidrio de las ventanas brilla y refleja
+  la ciudad mientras la pared queda mate. Se pintan en paralelo en hilos de fondo (menos de un segundo).
+- Edificios con cornisas, antepechos, franjas de entrepiso, balcones alineados con las ventanas, tanques de agua negros,
+  aires acondicionados, antenas y cuartos de máquinas en las torres.
+- Calles con postes de luz, postes de concreto con cables colgando (bien bogotano) y carros parqueados con pintura
+  brillante, muchos de ellos taxis amarillos.
 
-1. Descarga un personaje de [Mixamo](https://www.mixamo.com) (gratis) en formato FBX para Unity, con animaciones
-   *Idle*, *Run*, *Rifle Aiming Idle* y *Death*.
-2. En Unity, en el FBX: **Rig → Animation Type: Humanoid**.
-3. Crea un **Animator Controller** con tres parámetros:
-   - `Speed` (float de 0 a 1.2): mezcla entre Idle y Run.
-   - `Aiming` (bool): capa o estado de apuntar.
-   - `Dead` (bool): animación de caída.
-4. Crea un prefab con el modelo y su Animator.
-5. Selecciona el objeto **FloatGardens** en la escena y arrastra los prefabs a los campos *Player Model*,
-   *Enemy Model*, *Boss Model* y *Pedestrian Model* del componente `FGBootstrap`.
+**Personajes de verdad con Mixamo (unos minutos y un clic):**
+1. En [Mixamo](https://www.mixamo.com) (gratis) descarga un personaje en **FBX for Unity, With Skin**.
+2. Descarga también sus animaciones en **FBX for Unity, Without Skin** (marca *In Place* en las de caminar y correr):
+   *Idle*, *Walking*, *Running*, *Rifle Aiming Idle* y *Death*.
+3. Arrastra los archivos a cualquier carpeta de `Assets` en Unity.
+4. Selecciónalos todos en el panel Project y usa el menú **Float Gardens → Personajes → Crear Barista con lo seleccionado**
+   (o Enemigo, Jefe, Peatón).
+5. Dale **Play**: el juego carga solo el prefab desde `Assets/FloatGardens/Resources/FloatGardens/Modelos`.
+
+El menú pone el rig en Humanoid, arma el Animator Controller con los parámetros que usa el juego (`Speed`, `Aiming`,
+`Dead`) y reconoce cada animación por su nombre. También puedes arrastrar prefabs propios a los campos del componente
+`FGBootstrap` del objeto **FloatGardens**.
 
 Para los edificios, la ciudad está en `Scripts/World/City.cs`: cada barrio tiene su función (`Buildings`). Puedes
 reemplazar las cajas por modelos de paquetes gratuitos como [Kenney City Kit](https://kenney.nl/assets) o
@@ -102,6 +111,7 @@ Assets/FloatGardens/
   Scripts/Game/Atmosphere.cs    sol, cielo, niebla, posprocesado y lluvia
   Scripts/UI/                   HUD, menús y controles táctiles (uGUI por código)
   Editor/FGSetup.cs             menú "Float Gardens" del editor
+  Editor/FGCharacters.cs        menú "Float Gardens > Personajes" (Mixamo a personaje del juego)
   package.json, *.asmdef, *.meta  permiten instalarlo como paquete desde una URL de Git
 ```
 
