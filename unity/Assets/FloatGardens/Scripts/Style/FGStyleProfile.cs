@@ -133,12 +133,13 @@ namespace FloatGardens
             return p;
         }
 
-        // Móvil: MOBA estilo League of Legends. Cámara alta en diagonal, colores vivos pintados a mano, materiales mates,
-        // luz cálida y clara, interfaz dorada sobre azul noche. Sin grano ni aberración para rendir en celular.
+        // Móvil: estilo League of Legends. Fantasía estilizada pintada a mano: formas y siluetas claras, colores vivos
+        // pero controlados, materiales casi mates (el sombreado va "pintado", no brilla), sombras suaves y poco oscuras,
+        // luz cálida, cero neón y poco bloom. Cámara alta en diagonal e interfaz dorada sobre azul noche.
         static void MobileLook(FGStyleProfile p)
         {
             p.name = "FG_Style_Movil";
-            p.notes = "Móvil: MOBA/MMO estilo League of Legends (cámara isométrica, fantasía pintada y brillante).";
+            p.notes = "Móvil: estilo League of Legends (fantasía pintada a mano, cámara isométrica, sin neón).";
             var c = p.palette;
             c.primary = Hex("#f0c75e"); c.accent = Hex("#0ac8b9"); c.good = Hex("#4ec96b"); c.highlight = Hex("#5ee3ff");
             c.danger = Hex("#e84057"); c.ink = Hex("#010a13"); c.panel = new Color(0.004f, 0.04f, 0.075f, 0.88f); c.text = Hex("#f0e6d2");
@@ -146,19 +147,19 @@ namespace FloatGardens
             p.ui.textEffect = FGTextEffect.Outline;
             p.ui.textEffectColor = new Color(0.004f, 0.04f, 0.075f, 0.95f);
             p.ui.textEffectDistance = new Vector2(2f, -2f);
-            p.materials.saturation = 1.25f;
+            p.materials.saturation = 1.12f;
             p.materials.tint = new Color(1.02f, 1f, 0.97f);
-            p.materials.smoothnessScale = 0.5f;
-            p.materials.emissionScale = 1.3f;
+            p.materials.smoothnessScale = 0.2f;
+            p.materials.emissionScale = 0.5f;
             var l = p.lighting;
-            l.sunColor = Hex("#fff1d6"); l.sunIntensity = 1.45f; l.sunShadows = LightShadows.Soft; l.shadowStrength = 0.6f;
+            l.sunColor = Hex("#fff1d6"); l.sunIntensity = 1.35f; l.sunShadows = LightShadows.Soft; l.shadowStrength = 0.45f;
             l.ambientSky = Hex("#9fc8ff"); l.ambientEquator = Hex("#c9b48a"); l.ambientGround = Hex("#4f6a3a");
             l.skyTint = Hex("#7fb6ff"); l.skyGround = Hex("#3e4a36"); l.skyExposure = 1.2f; l.atmosphereThickness = 1.1f;
             l.fogDry = Hex("#a8d0e6"); l.fogWet = Hex("#7f97a8"); l.fogStart = 60; l.fogEnd = 520;
             var f = p.post;
-            f.bloomIntensity = 0.9f; f.bloomThreshold = 1f; f.bloomScatter = 0.7f; f.bloomTint = Hex("#fff0d0");
-            f.tonemapping = TonemappingMode.Neutral; f.postExposure = 0.3f; f.contrast = 14f; f.saturation = 22f;
-            f.vignette = 0.25f; f.vignetteColor = Hex("#01101c");
+            f.bloomIntensity = 0.45f; f.bloomThreshold = 1.2f; f.bloomScatter = 0.6f; f.bloomTint = Hex("#fff0d0");
+            f.tonemapping = TonemappingMode.Neutral; f.postExposure = 0.3f; f.contrast = 10f; f.saturation = 15f;
+            f.vignette = 0.2f; f.vignetteColor = Hex("#01101c");
             f.filmGrain = 0f; f.chromaticAberration = 0f;
             f.splitShadows = Hex("#2c4f8a"); f.splitHighlights = Hex("#f2c66d"); f.splitBalance = 0f;
             f.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
