@@ -161,11 +161,12 @@ namespace FloatGardens
         /// <summary>Diálogo de la campaña: el mundo se congela y al terminar vuelve a Playing (o sigue el callback).</summary>
         public void StartDialogue(Line[] lines, System.Action then)
         {
-            var before = State;
             State = GameState.Dialogue;
             FGInput.CursorLocked = false;
             touch.Show(false);
             SetMap(false);
+            // Si la misión se cumplió desde el laboratorio, el PC se cierra: al terminar el diálogo se vuelve a jugar
+            menus.Hide();
             dialogue.Play(lines, () =>
             {
                 if (State == GameState.Dialogue)

@@ -15,6 +15,7 @@ namespace FloatGardens
         int index;
         float shown;
         Action then;
+        int openedFrame;
         public bool Active { get; private set; }
         const float CharsPerSecond = 55f;
 
@@ -44,6 +45,7 @@ namespace FloatGardens
             this.lines = lines;
             this.then = then;
             index = 0;
+            openedFrame = Time.frameCount;
             Active = true;
             canvas.gameObject.SetActive(true);
             ShowLine();
@@ -82,6 +84,8 @@ namespace FloatGardens
                 shown = Mathf.Min(full.Length, shown + Time.deltaTime * CharsPerSecond);
                 body.text = full.Substring(0, (int)shown);
             }
+            // La misma E que abrió el diálogo no debe saltarse la primera línea
+            if (Time.frameCount == openedFrame) return;
             if (FGInput.Pressed(FGAction.Use) || FGInput.Pressed(FGAction.Fire) || FGInput.Pressed(FGAction.Jump)) Next();
         }
     }
