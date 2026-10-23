@@ -37,6 +37,9 @@ namespace FloatGardens.EditorTools
             }
             AssetDatabase.SaveAssets();
 
+            // Perfiles visuales por plataforma (móvil, web, consola)
+            FGStyleMenu.CreateProfiles();
+
             // Ajustes de jugador para celular
             PlayerSettings.productName = "Float Gardens Bogotá";
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;

@@ -23,6 +23,7 @@ Así el proyecto es liviano en Git y fácil de modificar, y los modelos 3D se pu
 
 El menú hace lo siguiente:
 - Crea los materiales plantilla en `Assets/FloatGardens/Resources/FloatGardens/`, para que el build incluya los shaders.
+- Crea los perfiles visuales de móvil, web y consola en esa misma carpeta.
 - Ajusta el nombre del producto y la orientación horizontal.
 - Crea la escena `Assets/FloatGardens/Scenes/Bogota.unity` y la agrega al build.
 
@@ -73,7 +74,13 @@ Otras ideas de calidad:
 - TextMeshPro para textos más nítidos.
 - Audio real grabado en Bogotá.
 
-## 5. Estructura
+## 5. Estilo visual por plataforma
+
+El juego cambia de look según la plataforma de compilación: **móvil** MOBA estilo League of Legends (cámara isométrica), **web** cómic/grafiti 2.5D y
+**consola** pintura. Los perfiles son ScriptableObjects editables en `Resources/FloatGardens/`. Detalles en
+[ESTILO_VISUAL.md](ESTILO_VISUAL.md).
+
+## 6. Estructura
 
 ```
 Assets/FloatGardens/
@@ -90,11 +97,13 @@ Assets/FloatGardens/
   Scripts/Actors/               jugador, cámara, enemigos y jefe, peatones, cultivos, botín, zonas, efectos
   Scripts/Game/GameManager.cs   estados, zonas, oleadas, economía, jefe final
   Scripts/Game/Atmosphere.cs    sol, cielo, niebla, posprocesado y lluvia
+  Scripts/Style/                perfiles visuales por plataforma (móvil, web, consola)
   Scripts/UI/                   HUD, menús y controles táctiles (uGUI por código)
   Editor/FGSetup.cs             menú "Float Gardens" del editor
+  Editor/FGStyleMenu.cs         perfiles visuales y vista previa por plataforma
 ```
 
-## 6. Puntos Float y café gratis
+## 7. Puntos Float y café gratis
 
 Igual que en la web: se ganan cosechando, vendiendo, derrotando enemigos, capturando zonas y venciendo al jefe.
 Con 1.500 puntos se genera un cupón `FG-XXX-XXX-XX` con dígito de control (mismo formato que la web). El progreso

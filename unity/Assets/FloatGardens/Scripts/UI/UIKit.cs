@@ -40,14 +40,16 @@ namespace FloatGardens
             }
         }
 
-        public static readonly Color Yellow = new Color32(0xff, 0xc2, 0x1a, 255);
-        public static readonly Color Orange = new Color32(0xff, 0x7a, 0x1a, 255);
-        public static readonly Color Green = new Color32(0x2f, 0xbf, 0x71, 255);
-        public static readonly Color Mint = new Color32(0x7d, 0xff, 0xb0, 255);
-        public static readonly Color Red = new Color32(0xff, 0x4b, 0x3a, 255);
-        public static readonly Color Ink = new Color32(0x0b, 0x1a, 0x14, 255);
-        public static readonly Color Panel = new Color(0.03f, 0.07f, 0.055f, 0.85f);
-        public static readonly Color Text = new Color32(0xf3, 0xf1, 0xea, 255);
+        // Colores con nombre histórico; salen de la paleta del perfil visual de la plataforma.
+        static FGStyleProfile.Palette P => FGStyle.Current.palette;
+        public static Color Yellow => P.primary;
+        public static Color Orange => P.accent;
+        public static Color Green => P.good;
+        public static Color Mint => P.highlight;
+        public static Color Red => P.danger;
+        public static Color Ink => P.ink;
+        public static Color Panel => P.panel;
+        public static Color Text => P.text;
 
         public static Canvas Canvas(string name, int order)
         {
@@ -102,16 +104,19 @@ namespace FloatGardens
             var t = rt.gameObject.AddComponent<Text>();
             t.font = Font;
             t.text = text;
-            t.fontSize = size;
+            var theme = FGStyle.Current.ui;
+            t.fontSize = Mathf.RoundToInt(size * theme.fontScale);
             t.color = color;
             t.alignment = align;
             t.fontStyle = style;
             t.raycastTarget = false;
             t.horizontalOverflow = HorizontalWrapMode.Wrap;
             t.verticalOverflow = VerticalWrapMode.Overflow;
-            var sh = rt.gameObject.AddComponent<Shadow>();
-            sh.effectColor = new Color(0, 0, 0, 0.75f);
-            sh.effectDistance = new Vector2(1.5f, -1.5f);
+            // Outline hereda de Shadow, así que GetComponent<Shadow>() encuentra cualquiera de los dos.
+            var sh = theme.textEffect == FGTextEffect.Outline ? rt.gameObject.AddComponent<Outline>() : rt.gameObject.AddComponent<Shadow>();
+            sh.effectColor = theme.textEffectColor;
+            sh.effectDistance = theme.textEffectDistance;
+            sh.enabled = theme.textEffect != FGTextEffect.None;
             return t;
         }
 
@@ -127,7 +132,7 @@ namespace FloatGardens
             b.colors = colors;
             b.onClick.AddListener(new UnityAction(onClick));
             var t = Label(img.transform, label, fontSize, fg, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, size - new Vector2(10, 4));
-            t.GetComponent<Shadow>().enabled = fg != Ink;
+            if (fg == Ink) t.GetComponent<Shadow>().enabled = false;
             return b;
         }
 

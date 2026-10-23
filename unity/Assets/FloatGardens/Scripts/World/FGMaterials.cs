@@ -1,4 +1,4 @@
-// Materiales PBR de URP creados en código.
+// Materiales PBR de URP creados en código. El color, el brillo y el neón pasan por el perfil visual (FGStyle).
 // Se clonan de "plantillas" guardadas en Resources/FloatGardens (las crea el menú Float Gardens > Configurar proyecto),
 // así el build incluye los shaders y variantes necesarias. Si no existen, se crean al vuelo (sirve en el editor).
 using System.Collections.Generic;
@@ -99,8 +99,10 @@ namespace FloatGardens
         public static Material Lit(string key, Color color, Texture2D tex = null, float smooth = 0.15f, float metallic = 0f)
         {
             if (cache.TryGetValue(key, out var m) && m != null) return m;
+            var style = FGStyle.Current;
+            smooth = Mathf.Clamp(smooth * style.materials.smoothnessScale, 0f, 0.92f);
             m = New("FG_Lit", key);
-            m.color = color;
+            m.color = style.Grade(color);
             if (tex != null) m.mainTexture = tex;
             m.SetFloat("_Smoothness", smooth);
             m.SetFloat("_Glossiness", smooth);
@@ -115,16 +117,19 @@ namespace FloatGardens
         public static Material Emissive(string key, Color color, float intensity = 2.5f)
         {
             if (cache.TryGetValue(key, out var m) && m != null) return m;
+            var style = FGStyle.Current;
+            color = style.Grade(color);
             m = New("FG_LitEmissive", key);
             m.color = color * 0.4f;
-            m.SetColor("_EmissionColor", color * intensity);
+            m.SetColor("_EmissionColor", color * intensity * style.materials.emissionScale);
             cache[key] = m;
             return m;
         }
 
         public static void SetEmission(Material m, Color color, float intensity)
         {
-            m.SetColor("_EmissionColor", color * intensity);
+            var style = FGStyle.Current;
+            m.SetColor("_EmissionColor", style.Grade(color) * intensity * style.materials.emissionScale);
         }
 
         /// <summary>Material transparente (anillos y columnas de luz de las zonas, vidrio de estaciones).</summary>
@@ -132,7 +137,7 @@ namespace FloatGardens
         {
             if (cache.TryGetValue(key, out var m) && m != null) return m;
             m = New(lit ? "FG_LitTransparent" : "FG_UnlitTransparent", key);
-            m.color = color;
+            m.color = FGStyle.Current.Grade(color);
             cache[key] = m;
             return m;
         }

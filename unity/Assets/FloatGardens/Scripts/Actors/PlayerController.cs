@@ -158,13 +158,20 @@ namespace FloatGardens
             SFX.Play("shot", 0.8f);
             flashTime = 0.05f;
 
+            // Con cámara isométrica (estilo MOBA) el disparo sale del pecho hacia donde mira el personaje.
             var cam = g.cam.transform;
-            Vector3 d = cam.forward + (cam.right * Random.Range(-1f, 1f) + cam.up * Random.Range(-1f, 1f)) * spread;
+            bool iso = FGStyle.Current.cameraLook.isometric;
+            Vector3 aim = iso ? Forward : cam.forward;
+            Vector3 up = iso ? Vector3.up : cam.up;
+            Vector3 right = iso ? Right : cam.right;
+            Vector3 from = iso ? transform.position + Vector3.up * 1.3f : cam.position;
+            Vector3 d = aim + (right * Random.Range(-1f, 1f) + up * Random.Range(-1f, 1f)) * spread;
             d.Normalize();
-            Vector3 hitPoint = cam.position + d * FGConfig.Range;
+            Vector3 origin = iso ? from : from + d * g.camRig.Distance;
+            Vector3 hitPoint = from + d * FGConfig.Range;
             Enemy target = null;
             bool head = false;
-            if (Phys.Raycast(cam.position + d * g.camRig.Distance, d, FGConfig.Range, cc, out RaycastHit hit))
+            if (Phys.Raycast(origin, d, FGConfig.Range, cc, out RaycastHit hit))
             {
                 hitPoint = hit.point;
                 target = hit.collider.GetComponentInParent<Enemy>();

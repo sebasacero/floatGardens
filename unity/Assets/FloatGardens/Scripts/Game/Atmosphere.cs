@@ -1,4 +1,5 @@
 // Atmósfera bogotana: cielo, sol con sombras, niebla, posprocesado URP y lluvia (con calles mojadas).
+// Los valores salen del perfil visual de la plataforma (FGStyle.Current).
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -13,21 +14,23 @@ namespace FloatGardens
         Material sky;
         float timer = 40;
         ColorAdjustments color;
-        static readonly Color DryFog = new Color32(0xa9, 0xbc, 0xcb, 255);
-        static readonly Color WetFog = new Color32(0x8e, 0x9b, 0xa6, 255);
+        FGStyleProfile style;
 
         public void Setup(Camera cam)
         {
+            style = FGStyle.Current;
+            var l = style.lighting;
+
             // Sol
             var sunGo = new GameObject("Sol");
             sunGo.transform.SetParent(transform, false);
             sunGo.transform.rotation = Quaternion.Euler(48, -35, 0);
             sun = sunGo.AddComponent<Light>();
             sun.type = LightType.Directional;
-            sun.color = new Color32(0xff, 0xf1, 0xdc, 255);
-            sun.intensity = 1.25f;
-            sun.shadows = LightShadows.Soft;
-            sun.shadowStrength = 0.75f;
+            sun.color = l.sunColor;
+            sun.intensity = l.sunIntensity;
+            sun.shadows = l.sunShadows;
+            sun.shadowStrength = l.shadowStrength;
             RenderSettings.sun = sun;
 
             // Cielo procedural (plantilla FG_Sky en Resources)
@@ -35,53 +38,76 @@ namespace FloatGardens
             if (sky.shader != null && sky.shader.name == "Skybox/Procedural")
             {
                 sky.SetFloat("_SunSize", 0.04f);
-                sky.SetFloat("_AtmosphereThickness", 1.15f);
-                sky.SetColor("_SkyTint", new Color32(0x9d, 0xb4, 0xc8, 255));
-                sky.SetColor("_GroundColor", new Color32(0x55, 0x5a, 0x55, 255));
-                sky.SetFloat("_Exposure", 1.15f);
+                sky.SetFloat("_AtmosphereThickness", l.atmosphereThickness);
+                sky.SetColor("_SkyTint", l.skyTint);
+                sky.SetColor("_GroundColor", l.skyGround);
+                sky.SetFloat("_Exposure", l.skyExposure);
                 RenderSettings.skybox = sky;
             }
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color32(0xc9, 0xd8, 0xe6, 255);
-            RenderSettings.ambientEquatorColor = new Color32(0x9a, 0xa6, 0xae, 255);
-            RenderSettings.ambientGroundColor = new Color32(0x4a, 0x4f, 0x45, 255);
+            RenderSettings.ambientSkyColor = l.ambientSky;
+            RenderSettings.ambientEquatorColor = l.ambientEquator;
+            RenderSettings.ambientGroundColor = l.ambientGround;
             RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogStartDistance = 40;
-            RenderSettings.fogEndDistance = 430;
-            RenderSettings.fogColor = DryFog;
+            RenderSettings.fogStartDistance = l.fogStart;
+            RenderSettings.fogEndDistance = l.fogEnd;
+            RenderSettings.fogColor = l.fogDry;
             DynamicGI.UpdateEnvironment();
 
-            // Posprocesado URP
+            // Posprocesado URP según el perfil de la plataforma
             var volGo = new GameObject("Posprocesado");
             volGo.transform.SetParent(transform, false);
             var volume = volGo.AddComponent<Volume>();
             volume.isGlobal = true;
             volume.priority = 10;
-            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
-            var bloom = profile.Add<Bloom>(true);
-            bloom.intensity.Override(0.8f);
-            bloom.threshold.Override(1.0f);
-            bloom.scatter.Override(0.65f);
-            var tone = profile.Add<Tonemapping>(true);
-            tone.mode.Override(TonemappingMode.ACES);
-            color = profile.Add<ColorAdjustments>(true);
-            color.postExposure.Override(0.25f);
-            color.contrast.Override(12f);
-            color.saturation.Override(10f);
-            var vignette = profile.Add<Vignette>(true);
-            vignette.intensity.Override(0.22f);
-            volume.profile = profile;
+            volume.profile = BuildPost(style.post);
 
             var data = cam.GetUniversalAdditionalCameraData();
             if (data != null)
             {
                 data.renderPostProcessing = true;
-                data.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
+                data.antialiasing = style.post.antialiasing;
             }
 
             BuildRain(cam.transform);
+        }
+
+        VolumeProfile BuildPost(FGStyleProfile.Post f)
+        {
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            var bloom = profile.Add<Bloom>(true);
+            bloom.intensity.Override(f.bloomIntensity);
+            bloom.threshold.Override(f.bloomThreshold);
+            bloom.scatter.Override(f.bloomScatter);
+            bloom.tint.Override(f.bloomTint);
+            var tone = profile.Add<Tonemapping>(true);
+            tone.mode.Override(f.tonemapping);
+            color = profile.Add<ColorAdjustments>(true);
+            color.postExposure.Override(f.postExposure);
+            color.contrast.Override(f.contrast);
+            color.saturation.Override(f.saturation);
+            color.colorFilter.Override(f.colorFilter);
+            var vignette = profile.Add<Vignette>(true);
+            vignette.intensity.Override(f.vignette);
+            vignette.color.Override(f.vignetteColor);
+            if (f.filmGrain > 0)
+            {
+                var grain = profile.Add<FilmGrain>(true);
+                grain.type.Override(FilmGrainLookup.Medium3);
+                grain.intensity.Override(f.filmGrain);
+            }
+            if (f.chromaticAberration > 0)
+                profile.Add<ChromaticAberration>(true).intensity.Override(f.chromaticAberration);
+            if (f.splitShadows != Color.gray || f.splitHighlights != Color.gray)
+            {
+                var split = profile.Add<SplitToning>(true);
+                split.shadows.Override(f.splitShadows);
+                split.highlights.Override(f.splitHighlights);
+                split.balance.Override(f.splitBalance);
+            }
+            return profile;
         }
 
         void BuildRain(Transform camT)
@@ -124,13 +150,15 @@ namespace FloatGardens
             Raining = !Raining;
             timer = Raining ? Random.Range(35f, 60f) : Random.Range(50f, 90f);
             if (Raining) rain.Play(); else rain.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-            RenderSettings.fogColor = Raining ? WetFog : DryFog;
-            RenderSettings.fogEndDistance = Raining ? 300 : 430;
-            sun.intensity = Raining ? 0.7f : 1.25f;
-            if (sky != null) sky.SetFloat("_Exposure", Raining ? 0.8f : 1.15f);
-            if (color != null) color.saturation.Override(Raining ? -5f : 10f);
+            var l = style.lighting;
+            RenderSettings.fogColor = Raining ? l.fogWet : l.fogDry;
+            RenderSettings.fogEndDistance = Raining ? l.fogEnd * 0.7f : l.fogEnd;
+            sun.intensity = Raining ? l.sunIntensity * 0.56f : l.sunIntensity;
+            if (sky != null) sky.SetFloat("_Exposure", Raining ? l.skyExposure * 0.7f : l.skyExposure);
+            if (color != null) color.saturation.Override(Raining ? style.post.saturation - 15f : style.post.saturation);
             // asfalto mojado: más brillante y reflectivo
-            if (City.I != null && City.I.asphaltMat != null) City.I.asphaltMat.SetFloat("_Smoothness", Raining ? 0.62f : 0.12f);
+            if (City.I != null && City.I.asphaltMat != null)
+                City.I.asphaltMat.SetFloat("_Smoothness", Mathf.Clamp01((Raining ? 0.62f : 0.12f) * style.materials.smoothnessScale));
             hud.Toast(Raining ? "Empezó a llover en Bogotá" : "Escampó");
         }
     }
