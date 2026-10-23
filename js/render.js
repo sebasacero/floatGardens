@@ -648,7 +648,7 @@
     ctx.font = 'bold 8px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('FED', 0, 0.5);
+    ctx.fillText('ARC', 0, 0.5);
     ctx.restore();
   }
 
@@ -736,7 +736,7 @@
     ctx.fillText('FLOAT GARDENS', bx, 11);
     ctx.textAlign = 'right';
     ctx.fillStyle = '#ff8a7a';
-    ctx.fillText('LA FEDERACIÓN', bx + bw, 11);
+    ctx.fillText('ARCADIA BEAN CORP.', bx + bw, 11);
     ctx.textAlign = 'left';
     roundRect(ctx, bx, by, bw, bh, 9);
     ctx.fillStyle = COLORS.fedRed;

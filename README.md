@@ -1,14 +1,14 @@
 # 🌱☕ Float Gardens: La Conquista del Café
 
 Videojuego de navegador sobre **Float Gardens**, un proyecto colaborativo de **café hidropónico** en Bogotá.
-Es un **shooter de mundo abierto en tercera persona** (al estilo de CoD Mobile o Free Fire) en una Bogotá
-estilizada: eres un barista con una **AeroPress** que dispara chorros de café a presión, cultiva café en balsas
-flotantes, lo vende en sus barrios y le arrebata la ciudad, zona por zona, a **la Federación**.
+Es un **shooter de mundo abierto en tercera persona** (al estilo de CoD Mobile o Free Fire) en la
+Neo-Bogotá de 2087: eres un barista con una **AeroPress** que dispara chorros de café a presión, cultiva café en balsas
+flotantes, lo vende en sus barrios y le arrebata la ciudad, zona por zona, a **Arcadia Bean Corp.**, el conglomerado que patentó el café colombiano.
 
 Mientras juegas **farmeas** (cosechas) café y ganas **Puntos Float**, que se canjean por **café gratis** en los
 puntos oficiales de Float Gardens.
 
-> Juego de ficción y parodia. No está afiliado ni respaldado por ninguna organización cafetera real.
+> Juego de ficción y parodia. Arcadia Bean Corp. es una corporación inventada. El juego no está afiliado ni respaldado por ninguna organización cafetera real.
 
 ## Cómo jugarlo
 
@@ -41,7 +41,7 @@ GPS en pantalla que dice en qué esquina estás. Barrios con estilo propio:
 - **Zona T**, **Teusaquillo**, **Puente Aranda** (bodegas con murales), el **Parque Simón Bolívar** con su lago.
 - **Av. Caracas** con carril rojo, estaciones y buses articulados en movimiento.
 - Los **cerros orientales** con **Monserrate**, su santuario y el teleférico.
-- La **Plaza de Bolívar** frente a la **Sede de la Federación**.
+- La **Plaza de Bolívar** frente a la **Torre Arcadia**.
 - Llueve de vez en cuando (y los peatones sacan sombrilla).
 
 ### El ciclo del juego
@@ -58,7 +58,7 @@ La vida se regenera si te cubres unos segundos. Si caes, vuelves al HQ y pierdes
 
 ## La historia y el diseño
 
-Un barista con una AeroPress y un PC contra **Coffee Land**, la corporación del sello oficial, en una Bogotá donde el
+Un barista con una AeroPress y un PC contra **Arcadia Bean Corp.**, la corporación que patentó el café colombiano, en una Neo-Bogotá (2087) donde el
 café solo crece adentro. Campaña por capítulos, Códice del Café con las historias reales (de Kaldi a la roya de 2008),
 mapa de expediciones por Colombia y laboratorio de recetas. Todo el diseño, personajes y referencias:
 [`docs/DISENO.md`](docs/DISENO.md).

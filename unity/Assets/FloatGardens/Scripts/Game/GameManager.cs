@@ -571,7 +571,7 @@ namespace FloatGardens
                 boss = Boss.SpawnBoss(city.bossArena + new Vector3(8, 0.3f, 10), actors);
                 enemies.Add(boss);
                 hud.Banner(FGConfig.BossName.ToUpperInvariant(), "El " + FGConfig.BossTitle + " sale de la torre", false);
-                Say(boss, "¡Nadie compite con Coffee Land!");
+                Say(boss, "¡Nadie compite con Arcadia!");
             }
         }
 

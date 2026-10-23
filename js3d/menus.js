@@ -45,9 +45,9 @@
         return `${this.topbar(s)}
           <div class="lobby">
             <div class="lobby-left">
-              <div class="mode-tag">MUNDO ABIERTO · BOGOTÁ</div>
+              <div class="mode-tag">MUNDO ABIERTO · NEO-BOGOTÁ 2087</div>
               <h1 class="title">LA CONQUISTA<br><span>DEL CAFÉ</span></h1>
-              <p class="pitch">Recorre Bogotá en tercera persona, farmea café hidropónico, véndelo en tus barrios y arrebátale la ciudad a la Federación con tu AeroPress.</p>
+              <p class="pitch">Recorre Neo-Bogotá en tercera persona, farmea café hidropónico, véndelo en tus barrios y arrebátale la ciudad a Arcadia Bean Corp. con tu AeroPress.</p>
               <div class="progress-card">
                 <div class="pc-row"><span>Zonas capturadas</span><b>${n}/${G.zones.length}</b></div>
                 <div class="pc-bar"><i style="width:${(n / G.zones.length) * 100}%"></i></div>
@@ -144,7 +144,7 @@
       dead(s, d) {
         return `<div class="panel narrow dead">
           <h2 class="big-red">¡TE SELLARON!</h2>
-          <p class="sub">La Federación te llenó de formularios. Perdiste ${d.lost} 🍒.</p>
+          <p class="sub">Arcadia te llenó de formularios. Perdiste ${d.lost} 🍒.</p>
           <div class="col"><button class="btn-y" data-a="respawn">Volver al HQ</button></div>
         </div>`;
       },
@@ -152,7 +152,7 @@
       victory(s) {
         return `<div class="panel">
           <h2 class="big-green">¡BOGOTÁ ES DE FLOAT GARDENS!</h2>
-          <p class="sub">Don Monopolio colgó el sombrero y la Federación... abrió su propio invernadero flotante. Todo empezó con una AeroPress y una idea compartida.</p>
+          <p class="sub">Don Monopolio colgó el sombrero y Arcadia... abrió su propio invernadero flotante. Todo empezó con una AeroPress y una idea compartida.</p>
           <div class="stats"><div><b>${s.world.kos}</b>derrotados</div><div><b>${s.world.sales}</b>cafés vendidos</div><div><b>★ ${s.puntosTotal}</b>Puntos Float totales</div></div>
           ${this.pointsMeter(s)}
           <div class="row"><button class="btn-y" data-a="resume">Seguir farmeando</button><button class="btn-g" data-a="rewards">🎟️ Canjear</button></div>

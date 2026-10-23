@@ -1,4 +1,4 @@
-// Lógica de una ciudad: cultivo, preparación, clientes y la Federación.
+// Lógica de una ciudad: cultivo, preparación, clientes y Arcadia.
 (function () {
   const C = FG.CONFIG;
   const R = FG.Render;
@@ -354,7 +354,7 @@
       this.reflowQueue();
     }
 
-    // ---------- la Federación ----------
+    // ---------- Arcadia ----------
     updateEnemies(dt) {
       this.enemyTimer -= dt;
       if (this.enemyTimer <= 0) {
@@ -450,7 +450,7 @@
       const hp = this.city.bossHp;
       this.boss = {
         x: C.WIDTH / 2, y: C.HEIGHT + 40, hp, maxHp: hp, speed: 42, walk: 0, facing: 'up',
-        hitFlash: 0, say: 3, line: '¡Nadie compite con la Federación!', attack: 2.5, kx: 0, ky: 0,
+        hitFlash: 0, say: 3, line: '¡Nadie compite con Arcadia!', attack: 2.5, kx: 0, ky: 0,
         target: null, retarget: 0,
       };
       this.showBanner(`¡Llegó ${this.city.boss}! Defiende tu café`, 3, 'rgba(160,30,25,0.92)');

@@ -1,6 +1,6 @@
 // El Códice del Café: lo que el barista va aprendiendo. Historia, Colombia, cultivo, proceso, preparación y cata.
 // Cada entrada se desbloquea con una misión, una expedición o una variedad bien preparada.
-// Las entradas sobre personas y hechos reales son divulgación; Coffee Land y sus personajes son ficción y parodia.
+// Las entradas sobre personas y hechos reales son divulgación; Arcadia y sus personajes son ficción y parodia.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,7 +14,7 @@ namespace FloatGardens
             public Entry(string id, string category, string title, string text) { this.id = id; this.category = category; this.title = title; this.text = text; }
         }
 
-        public static readonly string[] Categories = { "Historia", "Colombia", "Cultivo", "Proceso", "Preparación", "Cata", "Variedades", "Coffee Land" };
+        public static readonly string[] Categories = { "Historia", "Colombia", "Cultivo", "Proceso", "Preparación", "Cata", "Variedades", "Arcadia" };
 
         public static readonly Entry[] Entries =
         {
@@ -120,10 +120,10 @@ namespace FloatGardens
             new Entry("precio", "Cata", "El precio C y la prima colombiana",
                 "El café se negocia en la bolsa de Nueva York con el contrato C, en centavos de dólar por libra. El café colombiano se paga con una prima sobre ese precio por su calidad. Pero un café de especialidad sale de la bolsa: se vende por su nombre, su finca y su puntaje."),
 
-            // ---------- Coffee Land (ficción) ----------
-            new Entry("coffeeland", "Coffee Land", "Coffee Land S.A.",
-                "Coffee Land es la corporación que, en este Bogotá imaginario, decidió que el café bueno se produce en fincas certificadas por ella y se vende con su sello. Inspectores, formularios y multas por innovar. Su CEO, Don Monopolio, no ha probado un café que no haya firmado antes. Ficción y parodia: nada de esto existe."),
-            new Entry("floatgardens", "Coffee Land", "Float Gardens: la idea",
+            // ---------- Arcadia (ficción) ----------
+            new Entry("arcadia", "Arcadia", "Arcadia Bean Corp.",
+                "Arcadia Bean Corp. es el conglomerado que, en la Neo-Bogotá de 2087, patentó la genética de las variedades nativas y decidió que el café bueno se produce en fincas certificadas por ella y se vende con su sello. Inspectores, formularios y multas por innovar. Su CEO, Don Monopolio, no ha probado un café que no haya firmado antes. Ficción y parodia: nada de esto existe."),
+            new Entry("floatgardens", "Arcadia", "Float Gardens: la idea",
                 "Float Gardens empezó con una AeroPress, un computador y una pregunta: ¿por qué la ciudad que más tinto toma no cultiva ni una mata? La respuesta fue colaborativa: casas, bodegas y azoteas prestadas, raíces en el agua, datos compartidos en un PC y café gratis para quien ayude a farmear."),
         };
 
@@ -197,11 +197,11 @@ namespace FloatGardens
             new Region("cauca", "Cauca", "Cauca", 2.45f, -76.6f, "1.700-2.100 m", "Popayán, Inzá, Piendamó: meseta alta con mañanas frías. Floral, limpio, posgusto largo.", 3,
                 new[] { "wush" }, new[] { "mitaca", "natural" }, "Capítulo 3: Taza de Excelencia"),
             new Region("tolima", "Tolima", "Tolima", 3.6f, -75.6f, "1.500-2.000 m", "Planadas y Chaparral: el café de las zonas que dejaron atrás la guerra. Dulce, panela, frutos rojos.", 4,
-                new[] { "maragogipe" }, new[] { "lavado", "pergamino" }, "Capítulo 4: Coffee Land"),
+                new[] { "maragogipe" }, new[] { "lavado", "pergamino" }, "Capítulo 4: Arcadia"),
             new Region("antioquia", "Suroeste antioqueño", "Antioquia", 5.8f, -75.9f, "1.500-2.100 m", "Jardín, Ciudad Bolívar, Urrao: pueblos de balcones y fondas. Cuerpo, chocolate, naranja.", 4,
-                new[] { "bourbon", "castillo" }, new[] { "tueste", "tinto" }, "Capítulo 4: Coffee Land"),
+                new[] { "bourbon", "castillo" }, new[] { "tueste", "tinto" }, "Capítulo 4: Arcadia"),
             new Region("sierra", "Sierra Nevada de Santa Marta", "Magdalena y Cesar", 10.8f, -73.7f, "900-1.700 m", "Café orgánico bajo sombra de los pueblos arhuaco, kogui y wiwa, a la vista del mar. Cacao, nuez, suave.", 4,
-                new[] { "tipica" }, new[] { "sierra", "agua" }, "Capítulo 4: Coffee Land"),
+                new[] { "tipica" }, new[] { "sierra", "agua" }, "Capítulo 4: Arcadia"),
         };
 
         public static Region GetRegion(string id)

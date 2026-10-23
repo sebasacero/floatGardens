@@ -39,7 +39,7 @@ El menú hace lo siguiente:
 ## 2. La historia
 
 Un barista joven con una **AeroPress** y un **PC** quiere ser un referente mundial del café desde una ciudad donde el
-café solo crece adentro. **Coffee Land**, la corporación del sello oficial, no está de acuerdo. Cuatro capítulos en
+café solo crece adentro. **Arcadia Bean Corp.**, la corporación que patentó el café colombiano en la Neo-Bogotá de 2087, no está de acuerdo. Cuatro capítulos en
 Bogotá con seis mentores (la Abuela Rosa, el Profe Arango, Kaldi, el Padre Francisco, Catalina y Alanita), un
 **Códice del Café** con 50 entradas reales (historia, Colombia, cultivo, proceso, preparación, cata), un **mapa de
 expediciones por Colombia** con diez regiones y sus variedades, y el **Laboratorio AeroPress** en el PC del HQ,

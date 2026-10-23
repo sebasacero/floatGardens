@@ -80,7 +80,14 @@ namespace FloatGardens
             try
             {
                 string raw = PlayerPrefs.GetString(Key, "");
-                if (!string.IsNullOrEmpty(raw)) return JsonUtility.FromJson<SaveData>(raw) ?? new SaveData();
+                if (!string.IsNullOrEmpty(raw))
+                {
+                    var data = JsonUtility.FromJson<SaveData>(raw) ?? new SaveData();
+                    // Partidas anteriores al rebranding: la entrada "coffeeland" del Códice ahora es "arcadia".
+                    int old = data.codex.IndexOf("coffeeland");
+                    if (old >= 0) { if (data.codex.Contains("arcadia")) data.codex.RemoveAt(old); else data.codex[old] = "arcadia"; }
+                    return data;
+                }
             }
             catch (Exception e) { Debug.LogWarning("Float Gardens: no se pudo leer el guardado. " + e.Message); }
             return new SaveData();

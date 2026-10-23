@@ -48,7 +48,7 @@ FG.CONFIG = {
   BASE_PRICE: 6000,         // COP por taza
 };
 
-// Ruta de conquista: de Chapinero al mundo... y de vuelta a la sede de la Federación.
+// Ruta de conquista: de Chapinero al mundo... y de vuelta a la torre de Arcadia.
 FG.CITIES = [
   {
     id: 'bogota', name: 'Bogotá', district: 'Chapinero',
@@ -80,7 +80,7 @@ FG.CITIES = [
     priceMul: 1.6, customerEvery: 4.5, patience: 22,
     enemyEvery: 7.5, enemyFirst: 9, maxEnemies: 4, enemySpeed: 62, enemyHp: 4,
     boss: 'El Agregado Comercial', bossHp: 38,
-    intro: 'Primera sede internacional. La Federación tiene oficina aquí...',
+    intro: 'Primera sede internacional. Arcadia tiene oficina aquí...',
   },
   {
     id: 'paris', name: 'París', district: 'Le Marais',
@@ -99,12 +99,12 @@ FG.CITIES = [
     intro: 'Precisión japonesa. Cada segundo de extracción cuenta.',
   },
   {
-    id: 'sede', name: 'Bogotá', district: 'La Sede de la Federación',
+    id: 'sede', name: 'Bogotá', district: 'La Torre Arcadia',
     accent: '#d6423a', road: '#26282d', floor: '#a97c55',
     priceMul: 2.2, customerEvery: 3.5, patience: 18,
     enemyEvery: 5.5, enemyFirst: 6, maxEnemies: 6, enemySpeed: 74, enemyHp: 6,
     boss: 'Don Monopolio', bossHp: 70,
-    intro: 'La batalla final: de vuelta a casa, frente a la sede de la Federación.',
+    intro: 'La batalla final: de vuelta a casa, frente a la torre de Arcadia.',
   },
 ];
 
@@ -161,7 +161,7 @@ FG.INSPECTOR_LINES = [
   '¿Hidro-qué? ¡Eso no es tradición!',
   '¡Multa por innovar!',
   '¡Ese café no tiene permiso!',
-  '¡Aquí manda la Federación!',
+  '¡Aquí manda Arcadia!',
   'Mejor tómese un tinto federado.',
   '¡Formulario 27-B, por triplicado!',
 ];

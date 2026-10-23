@@ -256,7 +256,7 @@
       if (!this.currentDistrict || d.code !== this.currentDistrict.code) {
         if (this.currentDistrict) {
           const ours = this.ownedDistricts().has(d.code);
-          W.HUD.banner(d.name.toUpperCase(), ours ? 'Territorio Float Gardens' : 'Territorio de la Federación', ours ? 'ours' : 'theirs');
+          W.HUD.banner(d.name.toUpperCase(), ours ? 'Territorio Float Gardens' : 'Territorio de Arcadia', ours ? 'ours' : 'theirs');
         }
         this.currentDistrict = d;
       }
@@ -667,8 +667,8 @@
           this.boss = new Ent.Boss(a.x + 8, a.z - 10);
           this.scene.add(this.boss.mesh);
           this.enemies.push(this.boss);
-          W.HUD.banner(W.BOSS.name.toUpperCase(), 'El jefe de la Federación sale de la sede', 'theirs');
-          this.say(this.boss, '¡Nadie compite con la Federación!');
+          W.HUD.banner(W.BOSS.name.toUpperCase(), 'El jefe de Arcadia sale de la sede', 'theirs');
+          this.say(this.boss, '¡Nadie compite con Arcadia!');
         }
       }
     },

@@ -389,7 +389,7 @@
       ped.position.set(x, 16.25, z + 8.5);
       this.scene.add(ped);
       const frieze = new THREE.Mesh(new THREE.PlaneGeometry(26, 1.8),
-        new THREE.MeshBasicMaterial({ map: W.Tex.sign('LA FEDERACIÓN', '#8f1f1a', '#fff3dc', 512, 64) }));
+        new THREE.MeshBasicMaterial({ map: W.Tex.sign('ARCADIA BEAN CORP.', '#8f1f1a', '#fff3dc', 512, 64) }));
       frieze.position.set(x, 15.25, z + 13.55);
       this.scene.add(frieze);
       const banMat = new THREE.MeshLambertMaterial({ map: W.Tex.sign('★', '#c0392b', '#ffd34d', 128, 256, '900 120px system-ui'), side: THREE.DoubleSide });

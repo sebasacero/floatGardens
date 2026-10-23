@@ -1,4 +1,4 @@
-// Objetos del mundo: cultivos hidropónicos flotantes, cajas de café, zonas de captura y sellos de la Federación.
+// Objetos del mundo: cultivos hidropónicos flotantes, cajas de café, zonas de captura y sellos de Arcadia.
 using UnityEngine;
 
 namespace FloatGardens
