@@ -236,22 +236,23 @@ namespace FloatGardens
         {
             if (Finished) return;
             var m = Current;
-            if (!S.introSeen && m.intro.Length > 0)
+            if (AlreadyDone(m)) Complete();
+            else if (!S.introSeen && m.intro.Length > 0)
             {
                 S.introSeen = true;
                 Dialogue(m.intro, null);
             }
-            CheckInstant();
             RefreshMarkers();
         }
 
-        // Misiones que ya se cumplieron antes de activarse (zona capturada en una partida vieja, jefe vencido)
-        void CheckInstant()
+        // Misiones que ya se cumplieron antes de activarse (zona capturada fuera de orden o en una partida vieja,
+        // jefe vencido). Se cierran de una vez, sin mostrar una presentación que el diálogo final taparía.
+        bool AlreadyDone(Mission m)
         {
-            var m = Current;
-            if (m == null) return;
-            if (m.kind == MissionKind.Capture && S.captured.Contains(m.zone)) Complete();
-            else if (m.kind == MissionKind.Boss && S.bossDefeated) Complete();
+            if (m == null) return false;
+            if (m.kind == MissionKind.Capture) return S.captured.Contains(m.zone);
+            if (m.kind == MissionKind.Boss) return S.bossDefeated;
+            return false;
         }
 
         public void OnEvent(MissionKind kind, int n = 1, string id = null, float score = 0)
@@ -322,13 +323,13 @@ namespace FloatGardens
             if (!Finished)
             {
                 var next = Current;
-                if (next.intro.Length > 0 && g.State == GameManager.GameState.Playing)
+                if (AlreadyDone(next)) Complete();
+                else if (next.intro.Length > 0 && g.State == GameManager.GameState.Playing)
                 {
                     S.introSeen = true;
                     Dialogue(next.intro, null);
                 }
                 else g.hud.Toast("Nueva misión: " + next.title);
-                CheckInstant();
             }
             RefreshMarkers();
         }
