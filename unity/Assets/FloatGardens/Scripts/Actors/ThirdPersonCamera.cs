@@ -16,9 +16,10 @@ namespace FloatGardens
         public void Follow(float dt)
         {
             var p = target;
-            float targetFov = p.aiming ? 48 : p.sprinting ? 76 : 70;
+            var look = FGStyle.Current.cameraLook;
+            float targetFov = (p.aiming ? 48 : p.sprinting ? 76 : 70) * look.fovScale;
             cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, targetFov, Mathf.Min(1, dt * 10));
-            float dist = p.aiming ? 2.3f : 3.6f;
+            float dist = (p.aiming ? 2.3f : 3.6f) * look.distanceScale;
             float side = p.aiming ? 0.95f : 1.05f;
             Quaternion rot = Quaternion.Euler(-(p.pitch + p.recoil), p.yaw, 0);
             Vector3 right = Quaternion.Euler(0, p.yaw, 0) * Vector3.right;
@@ -45,7 +46,7 @@ namespace FloatGardens
             Vector3 pos = spawn + new Vector3(1.2f + Mathf.Sin(a) * 4.5f, 1.65f, -Mathf.Cos(a) * 4.5f);
             transform.position = pos;
             transform.LookAt(spawn + new Vector3(-1.6f, 1.5f, 0));
-            cam.fieldOfView = 55;
+            cam.fieldOfView = 55 * FGStyle.Current.cameraLook.fovScale;
         }
     }
 }
