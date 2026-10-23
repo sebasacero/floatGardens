@@ -76,7 +76,7 @@ Otras ideas de calidad:
 
 ## 5. Estilo visual por plataforma
 
-El juego cambia de look según la plataforma de compilación: **móvil** neón tipo juguete, **web** cómic/grafiti 2.5D y
+El juego cambia de look según la plataforma de compilación: **móvil** MOBA estilo League of Legends (cámara isométrica), **web** cómic/grafiti 2.5D y
 **consola** pintura. Los perfiles son ScriptableObjects editables en `Resources/FloatGardens/`. Detalles en
 [ESTILO_VISUAL.md](ESTILO_VISUAL.md).
 

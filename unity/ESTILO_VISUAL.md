@@ -4,7 +4,7 @@ Float Gardens se ve distinto en cada plataforma, con la misma escena y el mismo 
 
 | Plataforma | Estilo | Qué cambia |
 | --- | --- | --- |
-| **Móvil** (Android, iOS) | Neón tipo juguete | Colores muy saturados, materiales de plástico brillante, mucho bloom, niebla violeta, sin grano ni viñeta. Es el más liviano. |
+| **Móvil** (Android, iOS) | MOBA/MMO estilo League of Legends | Cámara alta en diagonal (isométrica) que sigue al personaje, colores vivos de fantasía pintada a mano, materiales mates, luz cálida y clara, tonos partidos azul/dorado e interfaz dorada sobre azul noche. Sin grano ni aberración para rendir en celular. |
 | **Web** (WebGL) | Cómic / grafiti 2.5D | Colores planos y mates, sombras duras como tinta, contraste alto, sin tonemapping, grano tipo papel, texto con borde negro grueso y una cámara de lente larga y más alejada que aplana la perspectiva. |
 | **Consola** (PlayStation, Xbox, Switch) | Pintura | Luz cálida, sombras suaves, tonos partidos ámbar y verde azulado, materiales mates, grano fino, un toque de aberración cromática y antialiasing SMAA. Es el más artístico. |
 
@@ -15,7 +15,7 @@ La versión de computador (Windows, Mac, Linux) usa el estilo de consola. Se cam
 - `Scripts/Style/FGStyleProfile.cs` es un **ScriptableObject** con todo el look de una plataforma: paleta de la
   interfaz, tema de texto (tamaño, sombra o borde), materiales (saturación, tinte, brillo, neón), luz y cielo,
   niebla, posprocesado URP (bloom, tonemapping, color, viñeta, grano, aberración, tonos partidos, antialiasing) y
-  cámara (campo de visión y distancia).
+  cámara (campo de visión y distancia, o modo isométrico con ángulo, distancia y lente).
 - `Scripts/Style/FGStyleSet.cs` dice qué perfil usa cada plataforma.
 - `Scripts/Style/FGStyle.cs` elige el perfil al arrancar. Usa los símbolos de compilación de Unity
   (`UNITY_ANDROID`, `UNITY_IOS`, `UNITY_WEBGL`, `UNITY_PS5`...), que cambian con la plataforma activa. Por eso la misma
@@ -42,7 +42,9 @@ completos. Para eso faltan shaders propios, que se pueden agregar después como 
 - **Web:** contornos de tinta (Renderer Feature de bordes por profundidad y normales), sombreado *toon* por bandas y
   tramado de puntos (halftone).
 - **Consola:** filtro de pinceladas (Kuwahara), texturas de lienzo y luz volumétrica.
-- **Móvil:** materiales *matcap* de juguete y modelos low-poly redondeados.
+- **Móvil:** texturas pintadas a mano, personajes de proporciones exageradas tipo LoL, indicadores de habilidad en
+  el suelo y, si se quiere el control MOBA completo, tocar para moverse y apuntado automático. Hoy el modo isométrico
+  conserva el joystick y dispara hacia donde mira el personaje.
 
 También conviene un URP Asset por plataforma (sombras, render scale, MSAA) en **Quality Settings**, para que móvil rinda
 y consola use la máxima calidad.

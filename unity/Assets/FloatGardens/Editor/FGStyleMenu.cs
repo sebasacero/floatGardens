@@ -51,7 +51,7 @@ namespace FloatGardens.EditorTools
 
         [MenuItem(MenuRoot + "Vista previa: según plataforma activa", priority = 50)]
         static void PreviewAuto() => SetPreview(-1);
-        [MenuItem(MenuRoot + "Vista previa: Móvil (neón juguete)", priority = 51)]
+        [MenuItem(MenuRoot + "Vista previa: Móvil (MOBA estilo LoL)", priority = 51)]
         static void PreviewMobile() => SetPreview((int)FGPlatform.Mobile);
         [MenuItem(MenuRoot + "Vista previa: Web (cómic/grafiti 2.5D)", priority = 52)]
         static void PreviewWeb() => SetPreview((int)FGPlatform.Web);
@@ -60,8 +60,8 @@ namespace FloatGardens.EditorTools
 
         [MenuItem(MenuRoot + "Vista previa: según plataforma activa", true)]
         static bool CheckAuto() => Check(-1, MenuRoot + "Vista previa: según plataforma activa");
-        [MenuItem(MenuRoot + "Vista previa: Móvil (neón juguete)", true)]
-        static bool CheckMobile() => Check((int)FGPlatform.Mobile, MenuRoot + "Vista previa: Móvil (neón juguete)");
+        [MenuItem(MenuRoot + "Vista previa: Móvil (MOBA estilo LoL)", true)]
+        static bool CheckMobile() => Check((int)FGPlatform.Mobile, MenuRoot + "Vista previa: Móvil (MOBA estilo LoL)");
         [MenuItem(MenuRoot + "Vista previa: Web (cómic/grafiti 2.5D)", true)]
         static bool CheckWeb() => Check((int)FGPlatform.Web, MenuRoot + "Vista previa: Web (cómic/grafiti 2.5D)");
         [MenuItem(MenuRoot + "Vista previa: Consola (pintura)", true)]

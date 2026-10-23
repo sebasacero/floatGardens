@@ -94,6 +94,11 @@ namespace FloatGardens
         {
             [Tooltip("Menos de 1 aplana la perspectiva (look 2.5D).")] [Range(0.4f, 1.3f)] public float fovScale = 1f;
             [Tooltip("Aleja la cámara del personaje.")] [Range(0.6f, 2.5f)] public float distanceScale = 1f;
+            [Tooltip("Cámara alta en diagonal, estilo MOBA (League of Legends). Disparos en la dirección del personaje.")]
+            public bool isometric;
+            [Range(30f, 80f)] public float isoPitch = 56f;
+            [Range(8f, 35f)] public float isoDistance = 18f;
+            [Range(20f, 70f)] public float isoFov = 38f;
         }
 
         public FGPlatform platform = FGPlatform.Console;
@@ -128,34 +133,41 @@ namespace FloatGardens
             return p;
         }
 
-        // Móvil: juguete de neón. Colores saturados, plástico brillante, mucho bloom y nada de grano. Barato de renderizar.
+        // Móvil: MOBA estilo League of Legends. Cámara alta en diagonal, colores vivos pintados a mano, materiales mates,
+        // luz cálida y clara, interfaz dorada sobre azul noche. Sin grano ni aberración para rendir en celular.
         static void MobileLook(FGStyleProfile p)
         {
             p.name = "FG_Style_Movil";
-            p.notes = "Móvil: neón tipo juguete (low-poly brillante, gestión y cultivo).";
+            p.notes = "Móvil: MOBA/MMO estilo League of Legends (cámara isométrica, fantasía pintada y brillante).";
             var c = p.palette;
-            c.primary = Hex("#ffe600"); c.accent = Hex("#ff3df2"); c.good = Hex("#39ff88"); c.highlight = Hex("#4df3ff");
-            c.danger = Hex("#ff2e63"); c.ink = Hex("#14002e"); c.panel = new Color(0.09f, 0.02f, 0.18f, 0.82f); c.text = Color.white;
+            c.primary = Hex("#f0c75e"); c.accent = Hex("#0ac8b9"); c.good = Hex("#4ec96b"); c.highlight = Hex("#5ee3ff");
+            c.danger = Hex("#e84057"); c.ink = Hex("#010a13"); c.panel = new Color(0.004f, 0.04f, 0.075f, 0.88f); c.text = Hex("#f0e6d2");
             p.ui.fontScale = 1.1f;
             p.ui.textEffect = FGTextEffect.Outline;
-            p.ui.textEffectColor = new Color(0.08f, 0f, 0.2f, 0.9f);
-            p.ui.textEffectDistance = new Vector2(1.5f, -1.5f);
-            p.materials.saturation = 1.4f;
-            p.materials.tint = new Color(1f, 0.97f, 1.03f);
-            p.materials.smoothnessScale = 2.2f;
-            p.materials.emissionScale = 1.7f;
+            p.ui.textEffectColor = new Color(0.004f, 0.04f, 0.075f, 0.95f);
+            p.ui.textEffectDistance = new Vector2(2f, -2f);
+            p.materials.saturation = 1.25f;
+            p.materials.tint = new Color(1.02f, 1f, 0.97f);
+            p.materials.smoothnessScale = 0.5f;
+            p.materials.emissionScale = 1.3f;
             var l = p.lighting;
-            l.sunColor = Hex("#fff0ff"); l.sunIntensity = 1.1f; l.sunShadows = LightShadows.Hard; l.shadowStrength = 0.55f;
-            l.ambientSky = Hex("#b9a6ff"); l.ambientEquator = Hex("#7fd6ff"); l.ambientGround = Hex("#5a2d7a");
-            l.skyTint = Hex("#9a7bff"); l.skyGround = Hex("#3a1d5c"); l.skyExposure = 1.05f; l.atmosphereThickness = 1.6f;
-            l.fogDry = Hex("#b48cff"); l.fogWet = Hex("#7c5cc4"); l.fogStart = 30; l.fogEnd = 320;
+            l.sunColor = Hex("#fff1d6"); l.sunIntensity = 1.45f; l.sunShadows = LightShadows.Soft; l.shadowStrength = 0.6f;
+            l.ambientSky = Hex("#9fc8ff"); l.ambientEquator = Hex("#c9b48a"); l.ambientGround = Hex("#4f6a3a");
+            l.skyTint = Hex("#7fb6ff"); l.skyGround = Hex("#3e4a36"); l.skyExposure = 1.2f; l.atmosphereThickness = 1.1f;
+            l.fogDry = Hex("#a8d0e6"); l.fogWet = Hex("#7f97a8"); l.fogStart = 60; l.fogEnd = 520;
             var f = p.post;
-            f.bloomIntensity = 1.6f; f.bloomThreshold = 0.8f; f.bloomScatter = 0.78f; f.bloomTint = Hex("#ffd6ff");
-            f.tonemapping = TonemappingMode.Neutral; f.postExposure = 0.2f; f.contrast = 6f; f.saturation = 28f;
-            f.vignette = 0f; f.filmGrain = 0f; f.chromaticAberration = 0f;
+            f.bloomIntensity = 0.9f; f.bloomThreshold = 1f; f.bloomScatter = 0.7f; f.bloomTint = Hex("#fff0d0");
+            f.tonemapping = TonemappingMode.Neutral; f.postExposure = 0.3f; f.contrast = 14f; f.saturation = 22f;
+            f.vignette = 0.25f; f.vignetteColor = Hex("#01101c");
+            f.filmGrain = 0f; f.chromaticAberration = 0f;
+            f.splitShadows = Hex("#2c4f8a"); f.splitHighlights = Hex("#f2c66d"); f.splitBalance = 0f;
             f.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
             p.cameraLook.fovScale = 1f;
-            p.cameraLook.distanceScale = 1.1f;
+            p.cameraLook.distanceScale = 1f;
+            p.cameraLook.isometric = true;
+            p.cameraLook.isoPitch = 56f;
+            p.cameraLook.isoDistance = 18f;
+            p.cameraLook.isoFov = 38f;
         }
 
         // Web: cómic y grafiti 2.5D. Colores planos y mates, sombras duras como tinta, contraste alto, bordes gruesos en
