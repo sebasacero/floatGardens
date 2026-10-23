@@ -36,7 +36,17 @@ El menú hace lo siguiente:
 - Ajusta el nombre del producto y la orientación horizontal.
 - Crea la escena `Assets/FloatGardens/Scenes/Bogota.unity` y la agrega al build.
 
-## 2. Controles
+## 2. La historia
+
+Un barista joven con una **AeroPress** y un **PC** quiere ser un referente mundial del café desde una ciudad donde el
+café solo crece adentro. **Coffee Land**, la corporación del sello oficial, no está de acuerdo. Cuatro capítulos en
+Bogotá con seis mentores (la Abuela Rosa, el Profe Arango, Kaldi, el Padre Francisco, Catalina y Alanita), un
+**Códice del Café** con 50 entradas reales (historia, Colombia, cultivo, proceso, preparación, cata), un **mapa de
+expediciones por Colombia** con diez regiones y sus variedades, y el **Laboratorio AeroPress** en el PC del HQ,
+donde se afinan recetas con proporción, molienda, temperatura, tiempo y método hasta llegar a una taza de 80+.
+El diseño completo está en [`docs/DISENO.md`](../docs/DISENO.md).
+
+## 3. Controles
 
 | Acción | Computador | Celular |
 | --- | --- | --- |
@@ -44,12 +54,12 @@ El menú hace lo siguiente:
 | Mirar | Mouse (clic en el juego para capturarlo) | Deslizar en la mitad derecha |
 | Disparar / apuntar | Clic / clic derecho | DISPARO (arrastra para apuntar) / APUNTAR |
 | Saltar / recargar | `Espacio` / `R` | SALTO / RECARGA |
-| Cosechar, vender, tienda | `E` | **E** |
+| Cosechar, vender, hablar, tienda, laboratorio | `E` | **E** |
 | Mapa / pausa | `M` / `Esc` | MAPA / II |
 
 Funciona con el **Input System** nuevo (el que trae Unity 6 por defecto) y también con el sistema clásico.
 
-## 3. Exportar a Android o iOS
+## 4. Exportar a Android o iOS
 
 1. **File → Build Profiles** (o *Build Settings*) → elige **Android** o **iOS** → *Switch Platform*.
 2. En **Player Settings** cambia el *Package Name* (por ejemplo `com.floatgardens.bogota`) y pon el ícono.
@@ -57,7 +67,7 @@ Funciona con el **Input System** nuevo (el que trae Unity 6 por defecto) y tambi
    sombras a 30–50 m y render scale de 0,8–0,9.
 4. **Build**. En Android sale un `.apk` o `.aab` para la Play Store. En iOS sale un proyecto de Xcode.
 
-## 4. Gráficos y personajes
+## 5. Gráficos y personajes
 
 **Lo que ya hace el código:**
 - Texturas PBR generadas al arrancar, a 128 px por metro en fachadas. Cada una trae color, relieve (normal map) y
@@ -98,7 +108,7 @@ Otras ideas de calidad:
 - TextMeshPro para textos más nítidos.
 - Audio real grabado en Bogotá.
 
-## 5. Hoja de ruta hacia un AAA (agro-punk colombiano)
+## 6. Hoja de ruta hacia un AAA (agro-punk colombiano)
 
 La referencia es Cyberpunk 2077, pero en una Colombia donde las agrocorporaciones controlan semillas, agua y tierra,
 y Float Gardens es la resistencia hidropónica. Lo que da el código y lo que necesita arte:
@@ -110,7 +120,7 @@ y Float Gardens es la resistencia hidropónica. Lo que da el código y lo que ne
 | 3. RPG | Diálogos con NPCs, misiones, árbol de habilidades, "injertos" (mejoras biológicas en vez de implantes), inventario, reputación por barrio | Código |
 | 4. Arte | Personajes de Mixamo, paquetes de ciudad (Synty, Kenney), música, voces, cinemáticas | Assets + artistas |
 
-## 6. Estructura
+## 7. Estructura
 
 ```
 Assets/FloatGardens/
@@ -125,16 +135,19 @@ Assets/FloatGardens/
   Scripts/World/FGTextures.cs   texturas procedurales (ladrillo, colonial, vidrio...)
   Scripts/World/FGMaterials.cs  materiales URP (Lit, emisivos, transparentes)
   Scripts/World/MeshBuilder.cs  mallas combinadas para pocas llamadas de dibujo
-  Scripts/Actors/               jugador, cámara, enemigos y jefe, peatones, cultivos, botín, zonas, efectos
+  Scripts/Actors/               jugador, cámara, enemigos y jefe, peatones, personajes de la historia, cultivos, botín, zonas, efectos
   Scripts/Game/GameManager.cs   estados, zonas, oleadas, economía, jefe final
+  Scripts/Game/Story.cs         campaña: capítulos, misiones, diálogos y personajes
+  Scripts/Core/Codex.cs         Códice del Café, variedades y regiones de Colombia
+  Scripts/Core/Brewing.cs       modelo de extracción y puntaje de cata del AeroPress
   Scripts/Game/Atmosphere.cs    ciclo día/noche, sol y luna, cielo, niebla, luces de calle, posprocesado y lluvia
-  Scripts/UI/                   HUD, menús y controles táctiles (uGUI por código)
+  Scripts/UI/                   HUD, menús, diálogo, Códice, mapa, laboratorio y controles táctiles (uGUI por código)
   Editor/FGSetup.cs             menú "Float Gardens" del editor
   Editor/FGCharacters.cs        menú "Float Gardens > Personajes" (Mixamo a personaje del juego)
   package.json, *.asmdef, *.meta  permiten instalarlo como paquete desde una URL de Git
 ```
 
-## 7. Puntos Float y café gratis
+## 8. Puntos Float y café gratis
 
 Igual que en la web: se ganan cosechando, vendiendo, derrotando enemigos, capturando zonas y venciendo al jefe.
 Con 1.500 puntos se genera un cupón `FG-XXX-XXX-XX` con dígito de control (mismo formato que la web). El progreso

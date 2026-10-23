@@ -1,4 +1,4 @@
-// Generación de Bogotá: manzanas por barrio, Av. Caracas, cerros con Monserrate, Plaza de Bolívar y la Sede.
+// Generación de Bogotá: manzanas por barrio, Av. Caracas, cerros con Monserrate, Plaza de Bolívar y la torre de Coffee Land.
 // De noche la ciudad se enciende sola: ventanas, neones de las agrocorporaciones, hologramas, LEDs de los
 // invernaderos en las azoteas y postes (Atmosphere llama SetNight con la hora del día).
 // Coordenadas: x = oriente, z = norte. La fila 0 del mapa es el norte.
@@ -26,7 +26,7 @@ namespace FloatGardens
         // Información pública para el resto del juego
         public readonly Dictionary<string, List<Vector3>> planterSpots = new Dictionary<string, List<Vector3>>();
         public readonly Dictionary<string, Vector3> zoneCenters = new Dictionary<string, Vector3>();
-        public Vector3 hqCenter, hqSpawn, hqShop, bossArena;
+        public Vector3 hqCenter, hqSpawn, hqShop, hqLab, bossArena;
         public readonly List<float> stationZ = new List<float>();
         public readonly List<Bus> buses = new List<Bus>();
         public Vector3 lakeCenter;
@@ -619,6 +619,19 @@ namespace FloatGardens
             Collider(new Vector3(c.x + 13, 0.9f, c.z - 7), new Vector3(6, 1.2f, 3));
             hqCenter = c;
             hqShop = new Vector3(c.x + 13, 0.27f, c.z - 10);
+            // El PC del barista: escritorio con monitor encendido, donde se afinan las recetas (Laboratorio AeroPress)
+            var desk = wood;
+            desk.Solid(c.x + 14, c.z - 15.5f, 0.3f, 2.6f, 0.08f, 1.2f);
+            desk.Solid(c.x + 12.9f, c.z - 15.5f, 0.3f, 0.1f, 0.78f, 1.1f);
+            desk.Solid(c.x + 15.1f, c.z - 15.5f, 0.3f, 0.1f, 0.78f, 1.1f);
+            desk.Solid(c.x + 14, c.z - 15.5f, 1.08f, 2.6f, 0.08f, 1.2f);
+            var screen = FGMaterials.Emissive("pantallaPC", FGMaterials.Hex("#7dffb0"), 1.4f);
+            RegisterGlow(screen, FGMaterials.Hex("#7dffb0"), 1.2f, 2.6f);
+            B("pantallaPC", screen).Solid(c.x + 14, c.z - 15.1f, 1.3f, 1.1f, 0.65f, 0.04f);
+            B("plasticoPC", FGMaterials.Lit("plasticoPC", FGMaterials.Hex("#1c1e22"), null, 0.4f)).Solid(c.x + 14, c.z - 15.05f, 1.16f, 0.3f, 0.14f, 0.2f);
+            Sign("FLOAT GARDENS · LAB", new Vector3(c.x + 14, 1.62f, c.z - 15.13f), 0.5f, FGMaterials.Hex("#0b1a14"), new Color(0, 0, 0, 0), new Vector2(1.1f, 0.3f));
+            Collider(new Vector3(c.x + 14, 0.6f, c.z - 15.5f), new Vector3(2.6f, 1.2f, 1.2f));
+            hqLab = new Vector3(c.x + 14, 0.27f, c.z - 17.3f);
             hqSpawn = new Vector3(c.x - 2, 0.3f, c.z - 16);
             treeSpots.Add(new Vector3(c.x - 17, 0.25f, c.z - 17));
         }
@@ -669,7 +682,8 @@ namespace FloatGardens
             Vector3 a2 = a + Vector3.forward * 5, b2 = bpt + Vector3.forward * 5, t2 = top + Vector3.forward * 5;
             ped.Quad(a, top, t2, a2, new Vector3(-0.3f, 1, 0).normalized, Vector2.zero, Vector2.one);
             ped.Quad(top, bpt, b2, t2, new Vector3(0.3f, 1, 0).normalized, Vector2.zero, Vector2.one);
-            Sign("LA FEDERACIÓN", new Vector3(c.x, 15.25f, c.z - 13.6f), 0.45f, FGMaterials.Hex("#fff3dc"), FGMaterials.Hex("#8f1f1a"), new Vector2(26, 1.8f));
+            Sign("COFFEE LAND S.A.", new Vector3(c.x, 15.25f, c.z - 13.6f), 0.45f, FGMaterials.Hex("#fff3dc"), FGMaterials.Hex("#8f1f1a"), new Vector2(26, 1.8f));
+            Neon("CAFÉ CERTIFICADO · SELLO OFICIAL", new Vector3(c.x, 19.6f, c.z - 9f), Vector3.back, 22, 1.4f, "#ff2bd6");
             var banner = FGMaterials.Lit("#c0392b", 0.3f);
             foreach (float bx in new[] { -16f, 16f }) B("banderas", banner).Box(c.x + bx, c.z - 9.2f, 5, 3, 8, 0.1f);
         }
