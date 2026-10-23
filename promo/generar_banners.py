@@ -80,7 +80,7 @@ st = f'''  <g font-family="{FONT}" text-anchor="middle">
     <text x="540" y="420" font-size="140" font-weight="900" fill="#fff3dc">¡FARMEA</text>
     <text x="540" y="560" font-size="140" font-weight="900" fill="#fff3dc">CAFÉ!</text>
     <text x="540" y="640" font-size="40" font-weight="600" fill="#fff3dc">Un barista, una AeroPress y un</text>
-    <text x="540" y="694" font-size="40" font-weight="600" fill="#fff3dc">invernadero flotante contra la Federación.</text>
+    <text x="540" y="694" font-size="40" font-weight="600" fill="#fff3dc">invernadero flotante contra Arcadia.</text>
   </g>
 {steps(230, 820, 310, 64)}
 {water(1080, 1380, 1920)}

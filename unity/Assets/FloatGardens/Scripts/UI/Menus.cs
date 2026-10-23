@@ -93,10 +93,10 @@ namespace FloatGardens
 
             var left = UIKit.At(root, "Izquierda", new Vector2(0, 0.5f), new Vector2(60, 0), new Vector2(520, 560));
             UIKit.Image(left, "Etiqueta", new Vector2(0.5f, 1), new Vector2(-150, -10), new Vector2(220, 30), UIKit.Green);
-            UIKit.Label(left, "MUNDO ABIERTO · BOGOTÁ", 15, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(-150, -10), new Vector2(220, 30)).GetComponent<Shadow>().enabled = false;
+            UIKit.Label(left, "MUNDO ABIERTO · NEO-BOGOTÁ 2087", 15, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(-150, -10), new Vector2(220, 30)).GetComponent<Shadow>().enabled = false;
             UIKit.Label(left, "LA CONQUISTA", 60, Color.white, TextAnchor.UpperLeft, new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(520, 70));
             UIKit.Label(left, "DEL CAFÉ", 60, UIKit.Yellow, TextAnchor.UpperLeft, new Vector2(0.5f, 1), new Vector2(0, -118), new Vector2(520, 70));
-            UIKit.Label(left, "Un barista, una AeroPress y un PC en una ciudad donde el café solo crece adentro. Cultiva, vende, aprende de los que saben y arrebátale Bogotá a Coffee Land.",
+            UIKit.Label(left, "Un barista, una AeroPress y un PC en una ciudad donde el café solo crece adentro. Cultiva, vende, aprende de los que saben y arrebátale Neo-Bogotá a Arcadia Bean Corp.",
                 18, Color.white, TextAnchor.UpperLeft, new Vector2(0.5f, 1), new Vector2(0, -200), new Vector2(520, 80), FontStyle.Normal);
             int n = g.CapturedCount;
             UIKit.Label(left, "Zonas capturadas: " + n + "/" + g.zones.Count + "     Derrotados: " + s.kos + "     Ventas: " + s.sales + "     Cerezas: " + g.cherries,
@@ -226,7 +226,7 @@ namespace FloatGardens
                 "CONQUISTA: entra a las zonas rojas, derrota las oleadas y quédate dentro hasta capturarlas. Cada zona abre un barrio nuevo.",
                 "HISTORIA: habla con los personajes con [!] (Abuela Rosa, el Profe, Kaldi...). Cada misión enseña algo real del café y abre regiones de Colombia.",
                 "LABORATORIO: en el PC del HQ afinas recetas de AeroPress: proporción, molienda, temperatura, tiempo y método. 80 puntos = especialidad.",
-                "JEFE FINAL: con las 6 zonas, ve a la Plaza de Bolívar y derrota a Don Monopolio, CEO de Coffee Land.",
+                "JEFE FINAL: con las 6 zonas, ve a la Plaza de Bolívar y derrota a Don Monopolio, CEO de Arcadia Bean Corp.",
                 "VIDA: se regenera si te cubres unos segundos. Si caes, vuelves al HQ y pierdes la mitad de tus cerezas.",
             };
             for (int i = 0; i < items.Length; i++)
@@ -246,7 +246,7 @@ namespace FloatGardens
         {
             var p = Panel(440, 260, "");
             UIKit.Label(p, "¡TE SELLARON!", 44, UIKit.Red, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -30), new Vector2(420, 56));
-            UIKit.Label(p, "Coffee Land te llenó de formularios. Perdiste " + g.lastLost + " cerezas.", 16, Color.white, TextAnchor.MiddleCenter,
+            UIKit.Label(p, "Arcadia te llenó de formularios. Perdiste " + g.lastLost + " cerezas.", 16, Color.white, TextAnchor.MiddleCenter,
                 new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(400, 50), FontStyle.Normal);
             Btn(p, "Volver al HQ", new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(300, 56), true, () => g.Respawn());
         }
@@ -256,7 +256,7 @@ namespace FloatGardens
             var s = g.save;
             var p = Panel(760, 460, "");
             UIKit.Label(p, "¡BOGOTÁ ES DE FLOAT GARDENS!", 36, UIKit.Mint, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -26), new Vector2(720, 50));
-            UIKit.Label(p, "Don Monopolio probó el café y Coffee Land... abrió su propio invernadero flotante. Todo empezó con una AeroPress, un PC y una idea compartida. Ahora: las expediciones por Colombia.",
+            UIKit.Label(p, "Don Monopolio probó el café y Arcadia... abrió su propio invernadero flotante. Todo empezó con una AeroPress, un PC y una idea compartida. Ahora: las expediciones por Colombia.",
                 17, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -96), new Vector2(680, 60), FontStyle.Normal);
             UIKit.Label(p, s.kos + " derrotados     " + s.sales + " cafés vendidos     ★ " + s.puntosTotal + " Puntos Float totales", 20, UIKit.Yellow,
                 TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -170), new Vector2(700, 30));

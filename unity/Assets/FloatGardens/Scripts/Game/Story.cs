@@ -1,5 +1,5 @@
 // La campaña: cuatro capítulos en Bogotá. Un barista con una AeroPress y un PC quiere ser un referente mundial del café
-// en una ciudad donde solo se puede cultivar adentro, mientras Coffee Land decide quién puede vender café.
+// en una ciudad donde solo se puede cultivar adentro, mientras Arcadia decide quién puede vender café.
 // Cada misión enseña algo real del café (el Códice) y abre regiones de Colombia (expediciones).
 using System;
 using System.Collections.Generic;
@@ -84,7 +84,7 @@ namespace FloatGardens
                 {
                     L("Abuela Rosa", "Ahí está mi barista. ¿Sabe cuántas matas de café hay sembradas en Bogotá? Ninguna que madure. Dos mil seiscientos metros, catorce grados... el cafeto se muere de frío."),
                     L(Yo, "Por eso las raíces van en el agua, abuela. Adentro, con luz LED, en la bodega que nos prestaron. Y en las azoteas."),
-                    L("Abuela Rosa", "Coffee Land dice que eso no es café, que el café de verdad lleva su sello. Yo recogí café cuarenta años en Chinchiná y nunca vi un sello madurar una cereza."),
+                    L("Abuela Rosa", "Arcadia dice que eso no es café, que el café de verdad lleva su sello. Yo recogí café cuarenta años en Chinchiná y nunca vi un sello madurar una cereza."),
                     L(Yo, "Voy a ser un referente del café, abuela. Desde aquí. Con esta AeroPress y ese computador."),
                     L("Abuela Rosa", "Entonces empiece por lo primero: cosechar. Las balsas de la piscina ya tienen cereza roja. Rojo como un corazón, ¿oyó? Verde no sirve."),
                 } },
@@ -96,7 +96,7 @@ namespace FloatGardens
                 } },
                 new Mission { id = "venta1", title = "Vende 3 cafés a los vecinos de Chapinero", kind = MissionKind.Sell, count = 3, reward = 60, codex = new[] { "tinto", "aeropress" }, intro = new[]
                 {
-                    L("Abuela Rosa", "Los vecinos con taza en la mano quieren tinto. Pero ojo: solo le compran en barrios donde Coffee Land no manda. Por ahora, Chapinero."),
+                    L("Abuela Rosa", "Los vecinos con taza en la mano quieren tinto. Pero ojo: solo le compran en barrios donde Arcadia no manda. Por ahora, Chapinero."),
                     L(Yo, "Dos cerezas, una AeroPress, treinta segundos de presión. Vamos."),
                 }, done = new[]
                 {
@@ -118,7 +118,7 @@ namespace FloatGardens
                     L("El Profe Arango", "¿Usted es el de las raíces en el agua? Siéntese. Primera lección: hay dos especies. Arábica, de altura, aromática. Robusta, de tierra caliente, amarga y con el doble de cafeína."),
                     L(Yo, "Colombia siembra solo arábica."),
                     L("El Profe Arango", "Y la siembra entre 1.200 y 2.000 metros porque arriba la cereza madura despacio y el grano sale denso, lleno de azúcares. Usted en Bogotá tiene la altura pero no la temperatura. Por eso sus LED."),
-                    L("El Profe Arango", "Ahora, los inspectores de Coffee Land me cerraron el vivero del parque. Si quiere la segunda lección, recupere este parque."),
+                    L("El Profe Arango", "Ahora, los inspectores de Arcadia me cerraron el vivero del parque. Si quiere la segunda lección, recupere este parque."),
                 } },
                 new Mission { id = "cap_teusaquillo", title = "Captura el Parque Teusaquillo", kind = MissionKind.Capture, zone = "teusaquillo", reward = 120, codex = new[] { "cenicafe", "roya", "paisaje", "chapoleras" }, done = new[]
                 {
@@ -132,7 +132,7 @@ namespace FloatGardens
                     L(Yo, "Etiopía. Después Yemen."),
                     L("Kaldi", "Los sufíes lo tostaron y lo bebieron para rezar despiertos. Por el puerto de Moca salió durante doscientos años, y Yemen no dejaba salir ni una semilla fértil. Hasta que Baba Budan escondió siete en su ropa."),
                     L("Kaldi", "Luego un marino francés, De Clieu, compartió su agua con una matica en medio del Atlántico. De esa planta descienden casi todos los cafetos de América. Incluido el suyo."),
-                    L("Kaldi", "Coffee Land cree que inventó el café. Nadie lo inventó: se compartió. Recupere este parque y le cuento lo que pasó en Europa."),
+                    L("Kaldi", "Arcadia cree que inventó el café. Nadie lo inventó: se compartió. Recupere este parque y le cuento lo que pasó en Europa."),
                 } },
                 new Mission { id = "cap_simon", title = "Captura el lago del Simón Bolívar", kind = MissionKind.Capture, zone = "simon", reward = 120, codex = new[] { "papa", "londres", "bach", "boston" }, done = new[]
                 {
@@ -146,12 +146,12 @@ namespace FloatGardens
                     L("Padre Francisco", "Los jesuitas trajeron el café a la Nueva Granada a comienzos del siglo XVIII. Pero sembrarlo era lento, y la gente perezosa. Así que en Salazar de las Palmas se me ocurrió algo."),
                     L(Yo, "La penitencia."),
                     L("Padre Francisco", "Tres o cuatro matas por pecado. Confesión a confesión se llenaron las montañas de Norte de Santander. En 1835 salieron por Cúcuta los primeros 2.500 sacos. Todo empezó con pecadores y semillas."),
-                    L("Padre Francisco", "Coffee Land puso una caseta de inspección frente a mi iglesia. Quítemela de encima y le cuento cómo se organizaron los caficultores."),
+                    L("Padre Francisco", "Arcadia puso una caseta de inspección frente a mi iglesia. Quítemela de encima y le cuento cómo se organizaron los caficultores."),
                 } },
                 new Mission { id = "cap_candelaria", title = "Captura el Chorro de Quevedo", kind = MissionKind.Capture, zone = "candelaria", reward = 120, codex = new[] { "fnc", "mitaca", "lavado" }, done = new[]
                 {
                     L("Padre Francisco", "En 1927 los caficultores se juntaron en Medellín y fundaron una federación para defender el precio e investigar. De ahí salió el laboratorio de Chinchiná y el arriero con la mula que el mundo conoce."),
-                    L(Yo, "Una federación de campesinos. Lo contrario de Coffee Land."),
+                    L(Yo, "Una federación de campesinos. Lo contrario de Arcadia."),
                     L("Padre Francisco", "Exacto, muchacho: la idea era buena, el problema es cuando alguien la convierte en sello y candado. Usted siga: dos cosechas al año, café lavado, recogido a mano. Eso es lo que defiende."),
                     L("Padre Francisco", "Para el siguiente paso necesita una lengua entrenada. En la Zona T hay una catadora que juzga campeonatos. No le va a gustar su café. Todavía."),
                 } },
@@ -176,7 +176,7 @@ namespace FloatGardens
                     L("Alanita", "El primer mundial de AeroPress fue en Oslo, 2008, con tres personas en una tostaduría. Hoy compiten decenas de países: ocho minutos, una taza, tres jueces que señalan la ganadora a la vez."),
                     L(Yo, "Quiero llegar ahí. Representando a Bogotá. Con café cultivado aquí."),
                     L("Alanita", "Entonces aprenda historia de métodos: Melitta y el filtro de papel en 1908, el espresso de Moriondo y Bezzera, la Chemex del 41. La AeroPress es la hija de todos. Invertida y con bloom, no me discuta."),
-                    L("Alanita", "Pero hay un problema: Coffee Land tiene la Zona T y el Centro sitiados. Sin esos barrios no hay público ni cafés donde servir. Libérelos y le entreno."),
+                    L("Alanita", "Pero hay un problema: Arcadia tiene la Zona T y el Centro sitiados. Sin esos barrios no hay público ni cafés donde servir. Libérelos y le entreno."),
                 } },
                 new Mission { id = "cap_zonat", title = "Captura la Zona T", kind = MissionKind.Capture, zone = "zonat", reward = 140, codex = new[] { "pergamino" }, done = new[]
                 {
@@ -186,19 +186,19 @@ namespace FloatGardens
                 {
                     L("Alanita", "Listo. Ahora sí: el tueste. Primer crack a 196 grados, segundo a 224. Usted quiere parar entre los dos, claro, para que la fruta siga ahí."),
                     L(Yo, "Y el precio lo pone la bolsa de Nueva York, en centavos por libra. Pero un café de especialidad se vende por su nombre."),
-                    L("Alanita", "Por su nombre y su puntaje. Coffee Land vive de la bolsa; usted va a vivir de la taza. Les queda Puente Aranda y la torre. Vaya a cerrar esto."),
+                    L("Alanita", "Por su nombre y su puntaje. Arcadia vive de la bolsa; usted va a vivir de la taza. Les queda Puente Aranda y la torre. Vaya a cerrar esto."),
                 } },
             } },
-            new Chapter { id = "c4", title = "Capítulo 4 · Coffee Land", place = "Puente Aranda y Plaza de Bolívar", missions = new[]
+            new Chapter { id = "c4", title = "Capítulo 4 · Arcadia", place = "Puente Aranda y Plaza de Bolívar", missions = new[]
             {
-                new Mission { id = "cap_aranda", title = "Captura Puente Aranda, el centro logístico de Coffee Land", kind = MissionKind.Capture, zone = "aranda", reward = 160, codex = new[] { "coffeeland", "huila" }, intro = new[]
+                new Mission { id = "cap_aranda", title = "Captura Puente Aranda, el centro logístico de Arcadia", kind = MissionKind.Capture, zone = "aranda", reward = 160, codex = new[] { "arcadia", "huila" }, intro = new[]
                 {
-                    L("Abuela Rosa", "Mijo, Coffee Land movió los camiones a Puente Aranda. Desde las bodegas controlan todo lo que entra y sale de la ciudad. Si recupera eso, Don Monopolio se queda sin sello que poner."),
+                    L("Abuela Rosa", "Mijo, Arcadia movió los camiones a Puente Aranda. Desde las bodegas controlan todo lo que entra y sale de la ciudad. Si recupera eso, Don Monopolio se queda sin sello que poner."),
                 }, done = new[]
                 {
                     L("Abuela Rosa", "Bodegas llenas de café de Huila, de Nariño, del Cauca... retenido por no tener sello. Repártalo, mijo. Ese café ya tenía nombre antes de que llegaran ellos."),
                 } },
-                new Mission { id = "boss", title = "Enfrenta a Don Monopolio, CEO de Coffee Land, en la Plaza de Bolívar", kind = MissionKind.Boss, reward = 300, codex = new[] { "narino", "sierra" }, intro = new[]
+                new Mission { id = "boss", title = "Enfrenta a Don Monopolio, CEO de Arcadia Bean Corp., en la Plaza de Bolívar", kind = MissionKind.Boss, reward = 300, codex = new[] { "narino", "sierra" }, intro = new[]
                 {
                     L("Catalina", "Don Monopolio salió de la torre. Dice que va a decomisar hasta la última AeroPress de la ciudad."),
                     L("Alanita", "Hoy es su final, barista. Ocho minutos. Una taza. Vaya."),

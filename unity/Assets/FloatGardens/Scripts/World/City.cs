@@ -1,4 +1,4 @@
-// Generación de Bogotá: manzanas por barrio, Av. Caracas, cerros con Monserrate, Plaza de Bolívar y la torre de Coffee Land.
+// Generación de Bogotá: manzanas por barrio, Av. Caracas, cerros con Monserrate, Plaza de Bolívar y la torre de Arcadia.
 // De noche la ciudad se enciende sola: ventanas, neones de las agrocorporaciones, hologramas, LEDs de los
 // invernaderos en las azoteas y postes (Atmosphere llama SetNight con la hora del día).
 // Coordenadas: x = oriente, z = norte. La fila 0 del mapa es el norte.
@@ -51,7 +51,7 @@ namespace FloatGardens
         static readonly string[] Brands =
         {
             "AGROCORP", "SEMILLAS Ω", "HIDRO·PONIA", "PANELA+", "CACAO.NET", "AGUA S.A.", "FINCA 2.0", "DRON·FUMIGA",
-            "TINTO EXPRESS", "FEDERACIÓN", "BIO·LAB", "ARROZ NORTE", "CAFÉ 24H", "MOTO·TAXI", "INVERNADERO", "ABONO MAX",
+            "TINTO EXPRESS", "ARCADIA", "BIO·LAB", "ARROZ NORTE", "CAFÉ 24H", "MOTO·TAXI", "INVERNADERO", "ABONO MAX",
         };
         static readonly string[] NeonHex = { "#ff2bd6", "#22e8ff", "#7dff3a", "#ff8a1f", "#a95bff", "#ffe600" };
 
@@ -682,7 +682,7 @@ namespace FloatGardens
             Vector3 a2 = a + Vector3.forward * 5, b2 = bpt + Vector3.forward * 5, t2 = top + Vector3.forward * 5;
             ped.Quad(a, top, t2, a2, new Vector3(-0.3f, 1, 0).normalized, Vector2.zero, Vector2.one);
             ped.Quad(top, bpt, b2, t2, new Vector3(0.3f, 1, 0).normalized, Vector2.zero, Vector2.one);
-            Sign("COFFEE LAND S.A.", new Vector3(c.x, 15.25f, c.z - 13.6f), 0.45f, FGMaterials.Hex("#fff3dc"), FGMaterials.Hex("#8f1f1a"), new Vector2(26, 1.8f));
+            Sign("ARCADIA BEAN CORP.", new Vector3(c.x, 15.25f, c.z - 13.6f), 0.45f, FGMaterials.Hex("#fff3dc"), FGMaterials.Hex("#8f1f1a"), new Vector2(26, 1.8f));
             Neon("CAFÉ CERTIFICADO · SELLO OFICIAL", new Vector3(c.x, 19.6f, c.z - 9f), Vector3.back, 22, 1.4f, "#ff2bd6");
             var banner = FGMaterials.Lit("#c0392b", 0.3f);
             foreach (float bx in new[] { -16f, 16f }) B("banderas", banner).Box(c.x + bx, c.z - 9.2f, 5, 3, 8, 0.1f);

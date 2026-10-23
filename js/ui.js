@@ -64,7 +64,7 @@
           <div class="story">
             <p>Un barista con su <b>AeroPress</b> tuvo una idea loca: cultivar <b>café hidropónico</b> en balsas flotantes, en plena ciudad, como un <b>proyecto colaborativo</b> con su comunidad.</p>
             <p>Así nació <b>Float Gardens</b>.</p>
-            <p>Pero <b class="fed">la Federación</b> no quiere competencia: sus inspectores vienen a decomisar plantas, espantar clientes y llenarlo todo de sellos.</p>
+            <p>Pero <b class="fed">Arcadia Bean Corp.</b> no quiere competencia: sus inspectores vienen a decomisar plantas, espantar clientes y llenarlo todo de sellos.</p>
             <p>Tu misión: cultivar, prensar, vender... y <b>conquistar el mundo del café</b>, ciudad por ciudad.</p>
           </div>
           <div class="buttons"><button class="btn primary" data-action="intro-done">¡Vamos! ☕</button></div>`;
@@ -77,7 +77,7 @@
             <div><span class="big">💧</span><b>2. Nutre</b><p>Recarga el tanque de nutrientes o las plantas dejan de crecer.</p></div>
             <div><span class="big">☕</span><b>3. Prensa</b><p>En la mesa de la AeroPress <b>mantén</b> <kbd>E</kbd>: 2 cerezas = 1 taza.</p></div>
             <div><span class="big">🧾</span><b>4. Vende</b><p>Sirve en la barra antes de que se acabe la paciencia del cliente. Rápido = propina.</p></div>
-            <div><span class="big">💥</span><b>5. Defiéndete</b><p>Dispara chorros de café a presión con <kbd>Espacio</kbd> para espantar a los inspectores de la Federación.</p></div>
+            <div><span class="big">💥</span><b>5. Defiéndete</b><p>Dispara chorros de café a presión con <kbd>Espacio</kbd> para espantar a los inspectores de Arcadia.</p></div>
             <div><span class="big">🌎</span><b>6. Conquista</b><p>Llena la barra de conquista, derrota al jefe y sigue a la próxima ciudad.</p></div>
           </div>
           <p class="controls">Moverse: <kbd>WASD</kbd>/<kbd>flechas</kbd> · Acción: <kbd>E</kbd>/<kbd>Enter</kbd> · Disparar: <kbd>Espacio</kbd> · Pausa: <kbd>P</kbd>/<kbd>Esc</kbd><br>En celular: joystick a la izquierda y botones a la derecha.</p>
@@ -164,7 +164,7 @@
 
       levelEnd(save, d) {
         const e = d.earned;
-        return `<h2>${d.won ? `🚩 ¡${d.city.name} conquistada!` : `☕ La Federación resistió en ${d.city.name}`}</h2>
+        return `<h2>${d.won ? `🚩 ¡${d.city.name} conquistada!` : `☕ Arcadia resistió en ${d.city.name}`}</h2>
           <p class="sub">${d.won ? 'Float Gardens abre sus puertas en ' + d.city.district + '.' : 'Se acabó el tiempo. Mejora tu negocio e inténtalo de nuevo.'}</p>
           <div class="stats">
             <div><span>${e.harvested}</span>cerezas farmeadas</div>
@@ -186,7 +186,7 @@
         return `${this.logo()}
           <h2>¡Conquistaste el mundo del café!</h2>
           <div class="story">
-            <p>De Chapinero a Shibuya, el café hidropónico flotante de Float Gardens llegó a cada esquina. Don Monopolio colgó el sombrero y la Federación... abrió su propio invernadero flotante.</p>
+            <p>De Chapinero a Shibuya, el café hidropónico flotante de Float Gardens llegó a cada esquina. Don Monopolio colgó el sombrero y Arcadia... abrió su propio invernadero flotante.</p>
             <p>Todo empezó con una AeroPress y una idea compartida. <b>Gracias por cultivar con nosotros.</b></p>
           </div>
           ${this.pointsBox(save)}

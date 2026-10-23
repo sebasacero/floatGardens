@@ -10,7 +10,7 @@ namespace FloatGardens
         [Header("Modelos opcionales (humanoides con Animator: Speed, Aiming, Dead)")]
         [Tooltip("Modelo del barista, p. ej. un personaje de Mixamo. Si está vacío se usa el personaje low-poly.")]
         public GameObject playerModel;
-        [Tooltip("Modelo de los inspectores y guardias de la Federación.")]
+        [Tooltip("Modelo de los inspectores y guardias de Arcadia.")]
         public GameObject enemyModel;
         [Tooltip("Modelo de Don Monopolio (se escala x2.6).")]
         public GameObject bossModel;

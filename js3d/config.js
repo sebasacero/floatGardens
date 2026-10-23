@@ -48,7 +48,7 @@ W.CONFIG = {
 
 // Mapa de barrios: fila 0 = norte, columna 0 = occidente. Al oriente están los cerros.
 // T Zona T · C Chapinero · U Teusaquillo · P Parque Simón Bolívar · I Centro Internacional
-// L La Candelaria · A Puente Aranda · R residencial · F Sede de la Federación · B Plaza de Bolívar
+// L La Candelaria · A Puente Aranda · R residencial · F Torre Arcadia · B Plaza de Bolívar
 W.DISTRICT_MAP = [
   'RRPPPRTTTTTT',
   'RPPPPRTTTTTT',
@@ -73,7 +73,7 @@ W.DISTRICTS = {
   L: { name: 'La Candelaria', style: 'colonial' },
   A: { name: 'Puente Aranda', style: 'warehouse' },
   R: { name: 'Barrios del occidente', style: 'mixed' },
-  F: { name: 'Sede de la Federación', style: 'sede' },
+  F: { name: 'Torre Arcadia', style: 'sede' },
   B: { name: 'Plaza de Bolívar', style: 'plaza' },
 };
 
@@ -86,7 +86,7 @@ W.CALLES = ['Calle 100', 'Calle 93', 'Calle 85', 'Calle 72', 'Calle 63', 'Calle 
 // Sede de Float Gardens (inicio, tienda y cultivo)
 W.HQ = { row: 4, col: 9, name: 'Float Gardens HQ', district: 'C' };
 
-// Zonas que hay que arrebatarle a la Federación
+// Zonas que hay que arrebatarle a Arcadia
 W.ZONES = [
   { id: 'teusaquillo', row: 5, col: 3, name: 'Parque Teusaquillo', district: 'U' },
   { id: 'simon', row: 2, col: 2, name: 'Lago del Simón Bolívar', district: 'P' },
@@ -113,4 +113,4 @@ W.UPGRADES = [
 ];
 
 W.KO_LINES = ['¡Me quemé con el café!', '¡Llamaré a mi supervisor!', '¡Esto no se queda así!', '¡Retirada!'];
-W.ENEMY_LINES = ['¡Café sin sello!', '¡Alto ahí, barista!', '¡Formulario 27-B!', '¡Multa por innovar!', '¡Aquí manda la Federación!'];
+W.ENEMY_LINES = ['¡Café sin sello!', '¡Alto ahí, barista!', '¡Formulario 27-B!', '¡Multa por innovar!', '¡Aquí manda Arcadia!'];

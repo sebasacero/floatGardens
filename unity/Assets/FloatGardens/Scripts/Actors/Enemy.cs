@@ -1,4 +1,4 @@
-// Agentes de Coffee Land: inspectores (cuerpo a cuerpo), guardias (lanzan sellos) y el jefe Don Monopolio.
+// Agentes de Arcadia: inspectores (cuerpo a cuerpo), guardias (lanzan sellos) y el jefe Don Monopolio.
 using UnityEngine;
 
 namespace FloatGardens

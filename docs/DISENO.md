@@ -1,28 +1,33 @@
-# Float Gardens: Bogotá — Documento de diseño
+# Float Gardens: Neo-Bogotá 2087 — Documento de diseño
 
-> Un barista, una AeroPress y un PC en una ciudad donde el café solo crece adentro.
+> Un barista, una AeroPress y un PC en una Neo-Bogotá donde el café solo se puede cultivar a escondidas.
 > Mundo abierto en tercera persona, campaña por capítulos, Colombia como mapa y el mundo como meta.
-> Ficción y parodia: Coffee Land, Don Monopolio y sus inspectores no existen. Los datos sobre café, su historia
+> Ficción: Arcadia Bean Corp., Don Monopolio y sus inspectores no existen; ningún personaje ni empresa del juego
+> representa a una organización cafetera real. Los datos sobre café, su historia
 > y su cultivo son reales y están en el Códice del juego.
 
 ## 1. Concepto
 
-**Premisa.** Bogotá está a 2.600 metros y a 14 grados: demasiado alta y fría para que un cafeto madure al aire libre.
-En la ciudad que más tinto toma del país no hay dónde sembrar café... salvo adentro. Casas, bodegas y azoteas con
-luz LED y raíces en el agua. Eso es Float Gardens: un proyecto colaborativo de café hidropónico.
+**Premisa.** Año 2087. El cambio climático subió la franja cafetera y el café colombiano es el recurso más valioso
+del hemisferio. Un conglomerado, **Arcadia Bean Corp.**, patentó la genética de las variedades nativas y controla
+cada grano desde una **Neo-Bogotá** vertical: sembrar sin su licencia es delito. En la ciudad que más tinto toma del
+país no hay dónde sembrar café libre... salvo a escondidas. Casas, bodegas, azoteas y balsas flotantes en los
+humedales, con luz LED y raíces en el agua. Eso es Float Gardens: una red clandestina de café hidropónico que
+devuelve el café a los barrios.
 
 **Protagonista.** Un barista joven (el jugador lo nombra) con dos herramientas: una **AeroPress** y un **PC**.
 Con la AeroPress prepara (y, en combate, dispara chorros de café a presión). Con el PC mide, anota y afina
 recetas: proporción, molienda, temperatura, tiempo, método. Su meta es ser un **referente mundial del café**
 desde Bogotá: llegar al Campeonato Mundial de AeroPress con café cultivado en la ciudad.
 
-**Antagonista.** **Coffee Land S.A.**, la corporación que decidió que el café bueno es el que lleva su sello.
+**Antagonista.** **Arcadia Bean Corp.** ("Arcadia" en la calle), el conglomerado que patentó el café colombiano y
+decidió que el café bueno es el que lleva su sello. Su sede es la **Torre Arcadia**, frente a la Plaza de Bolívar.
 Inspectores con fedora, guardias que lanzan sellos de caucho, formularios 27-B, multas por innovar. Su CEO,
-**Don Monopolio**, no ha probado un café que no haya firmado antes. Es la parodia del gremio convertido en
-candado; el juego distingue con cuidado entre la organización real de los caficultores (que aparece en el Códice
-como historia) y esta corporación de ficción.
+**Don Monopolio**, no ha probado un café que no haya firmado antes. Es la caricatura del
+monopolio corporativo, no de ninguna institución real: el juego distingue con cuidado entre la organización real de
+los caficultores (que aparece en el Códice como historia) y esta corporación de ficción.
 
-**Tono.** Agro-punk colombiano: la estética de *Cyberpunk 2077* (noche de neón, hologramas, drones, megacorporaciones)
+**Tono.** Cyberpunk con alma colombiana, no *Blade Runner* con arepas. Agro-punk: la estética de *Cyberpunk 2077* (noche de neón, hologramas, drones, megacorporaciones)
 pero el conflicto es por la comida y la tierra. Los neones anuncian AGROCORP, SEMILLAS Ω, HIDRO·PONIA y DRON·FUMIGA.
 Los invernaderos de las azoteas brillan rosado por los LED de cultivo. En vez de implantes, **injertos** (mejoras
 biológicas). Humor bogotano, cariño por el oficio, cero cinismo con el café.
@@ -30,15 +35,23 @@ biológicas). Humor bogotano, cariño por el oficio, cero cinismo con el café.
 **Pilares.**
 1. *El café es real.* Cada misión enseña algo cierto. Si el jugador termina el juego sabiendo qué es el TDS,
    quién fue Baba Budan y por qué Castillo salvó la cosecha, ganamos.
-2. *Bogotá de noche.* La ciudad es el espectáculo: lluvia, asfalto mojado, neón, bruma de los cerros.
+2. *Neo-Bogotá de noche.* La ciudad es el espectáculo: lluvia, asfalto mojado, neón, bruma de los cerros.
 3. *Farmear es compartir.* Los Puntos Float se canjean por café gratis en los puntos oficiales de Float Gardens.
    El juego y el proyecto real se alimentan.
 4. *Una taza se juzga a ciegas.* El laboratorio premia la receta, no el cuento.
 
+### Facciones
+| Facción | Rol | Estado |
+| --- | --- | --- |
+| **Float Gardens** | La red del jugador: cultivadores, baristas, hackers | Implementada |
+| **Arcadia Bean Corp.** | Antagonista: café patentado, inspectores, drones, Don Monopolio | Implementada |
+| **Los Arrieros** | Contrabandistas que mueven grano por los cerros en mulas mecánicas; homenaje a la arriería | Diseñada |
+| **Cooperativas del Eje** | Caficultores del campo, aliados que hay que ganarse | Diseñada |
+
 ## 2. Historia
 
 ### Sinopsis
-Capítulo a capítulo, el barista recupera los barrios de Bogotá que Coffee Land tiene sitiados, mientras seis
+Capítulo a capítulo, el barista recupera los barrios de Neo-Bogotá que Arcadia tiene sitiados, mientras seis
 mentores le enseñan el café desde el origen hasta la taza. Al final enfrenta a Don Monopolio en la Plaza de Bolívar,
 no con un disparo final sino con una taza: Don Monopolio la prueba y, por primera vez, no encuentra qué sellar.
 Bogotá queda cultivando su propio café y se abren las expediciones por Colombia; después, el mundo.
@@ -52,7 +65,7 @@ Bogotá queda cultivando su propio café y se abren las expediciones por Colombi
 | **Padre Francisco** | Cura de Salazar de las Palmas | Jesuitas, la penitencia de sembrar café, 1835, 1927 | Chorro de Quevedo |
 | **Catalina** | Catadora Q, jueza de campeonatos | La escala de 100 puntos, catación, rueda de sabores, agua | Zona T |
 | **Alanita** | Ingeniera, campeona de AeroPress | La AeroPress, el mundial de Oslo 2008, Melitta, espresso, Chemex, tueste | Centro Internacional |
-| **Don Monopolio** | CEO de Coffee Land | El antagonista; al final, el primer converso | Torre Coffee Land, Plaza de Bolívar |
+| **Don Monopolio** | CEO de Arcadia Bean Corp. | El antagonista; al final, el primer converso | Torre Arcadia, Plaza de Bolívar |
 
 ### Capítulos (implementados en `Scripts/Game/Story.cs`)
 1. **Una AeroPress y un PC** (Chapinero): hablar con Rosa, cosechar 8 cerezas, vender 3 cafés, preparar una taza
@@ -61,7 +74,7 @@ Bogotá queda cultivando su propio café y se abren las expediciones por Colombi
    la siguiente lección. Tres zonas capturadas, tres bloques de historia del café.
 3. **Taza de Excelencia** (Zona T, Centro Internacional): Catalina exige una taza de 84+; Alanita entrena para el
    mundial si se liberan la Zona T y el Centro.
-4. **Coffee Land** (Puente Aranda, Plaza de Bolívar): el centro logístico de la corporación y el enfrentamiento final.
+4. **Arcadia** (Puente Aranda, Plaza de Bolívar): el centro logístico de la corporación y el enfrentamiento final.
 
 ### Capítulos siguientes (diseñados, no implementados)
 5. **Expediciones** — Viajar a diez regiones cafeteras de Colombia (ya están en el mapa, con sus variedades y Códice).
@@ -71,11 +84,11 @@ Bogotá queda cultivando su propio café y se abren las expediciones por Colombi
 6. **El mundo** — Oslo (el primer mundial de AeroPress), Melbourne (la cultura del flat white), Tokio (el kissaten y
    el filtrado lento), Addis Abeba (la ceremonia del café, el origen). Cada ciudad, un campeonato.
 7. **El sello propio** — Final: el barista funda la certificación abierta de Float Gardens, con datos del PC
-   compartidos y cupones de café gratis para quien farmea. Coffee Land abre un invernadero.
+   compartidos y cupones de café gratis para quien farmea. Arcadia abre un invernadero.
 
 ## 3. Mundo
 
-### Bogotá (mundo abierto, 12 × 12 manzanas)
+### Neo-Bogotá (mundo abierto, 12 × 12 manzanas)
 Zona T, Chapinero (HQ), Teusaquillo, Parque Simón Bolívar con lago, Centro Internacional con la Torre, La Candelaria
 y el Chorro de Quevedo, Plaza de Bolívar, Puente Aranda industrial, Av. Caracas con buses articulados, cerros
 orientales con Monserrate y teleférico. Ciclo de día y noche de 14 minutos, lluvia, asfalto mojado, neones,

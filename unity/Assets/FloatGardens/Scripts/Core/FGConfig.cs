@@ -1,12 +1,12 @@
 // Float Gardens: Bogotá — configuración y balance (misma lógica que la versión web).
-// Coffee Land es la corporación cafetera enemiga: ficción y parodia, no existe.
+// Arcadia es la corporación cafetera enemiga: ficción y parodia, no existe.
 using UnityEngine;
 
 namespace FloatGardens
 {
     public static class FGConfig
     {
-        public const string Faction = "Coffee Land";
+        public const string Faction = "Arcadia";
 
         // Ciudad
         public const float Block = 40f;
@@ -57,7 +57,7 @@ namespace FloatGardens
 
         // Mapa de barrios: fila 0 = norte, columna 0 = occidente. Al oriente están los cerros.
         // T Zona T · C Chapinero · U Teusaquillo · P Parque Simón Bolívar · I Centro Internacional
-        // L La Candelaria · A Puente Aranda · R residencial · F Torre Coffee Land · B Plaza de Bolívar
+        // L La Candelaria · A Puente Aranda · R residencial · F Torre Arcadia · B Plaza de Bolívar
         public static readonly string[] DistrictMap =
         {
             "RRPPPRTTTTTT",
@@ -85,7 +85,7 @@ namespace FloatGardens
                 case 'I': return "Centro Internacional";
                 case 'L': return "La Candelaria";
                 case 'A': return "Puente Aranda";
-                case 'F': return "Torre Coffee Land";
+                case 'F': return "Torre Arcadia";
                 case 'B': return "Plaza de Bolívar";
                 default: return "Barrios del occidente";
             }
@@ -129,7 +129,7 @@ namespace FloatGardens
 
         public static readonly Vector2Int BossCell = new Vector2Int(9, 9);
         public const string BossName = "Don Monopolio";
-        public const string BossTitle = "CEO de Coffee Land";
+        public const string BossTitle = "CEO de Arcadia Bean Corp.";
         public const float BossHp = 3000f;
 
         public class EnemyType
@@ -142,7 +142,7 @@ namespace FloatGardens
 
         public static readonly EnemyType Inspector = new EnemyType
         {
-            name = "Inspector de Coffee Land", hp = 60, speed = 4.4f, melee = 10, color = new Color32(0x6d, 0x70, 0x78, 255), hat = "fedora",
+            name = "Inspector de Arcadia", hp = 60, speed = 4.4f, melee = 10, color = new Color32(0x6d, 0x70, 0x78, 255), hat = "fedora",
         };
 
         public static readonly EnemyType Guardia = new EnemyType
@@ -169,7 +169,7 @@ namespace FloatGardens
         public static readonly string[] OfficialPoints = { "Float Gardens — Punto oficial · Bogotá · Dirección por confirmar" };
 
         public static readonly string[] KOLines = { "¡Me quemé con el café!", "¡Llamaré a mi supervisor!", "¡Esto no se queda así!", "¡Retirada!" };
-        public static readonly string[] EnemyLines = { "¡Café sin sello!", "¡Alto ahí, barista!", "¡Formulario 27-B!", "¡Multa por innovar!", "¡Aquí manda Coffee Land!", "¡Eso no es café certificado!" };
+        public static readonly string[] EnemyLines = { "¡Café sin sello!", "¡Alto ahí, barista!", "¡Formulario 27-B!", "¡Multa por innovar!", "¡Aquí manda Arcadia!", "¡Eso no es café certificado!" };
         public static readonly string[] BossLines = { "¡Sellado y decomisado!", "¡Formulario rechazado!", "¡Nadie compite conmigo!" };
 
         public static string Money(int n)

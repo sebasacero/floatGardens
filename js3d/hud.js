@@ -222,7 +222,7 @@
       ctx.fillText('Float Gardens HQ', tx(hq.x), tz(hq.z) - 14);
       const bs = W.World.bossArena;
       ctx.fillStyle = G.allCaptured() ? '#ffd34d' : '#a33a30';
-      ctx.fillText(G.allCaptured() ? '☠ Sede de la Federación' : 'Sede de la Federación 🔒', tx(bs.x), tz(bs.z) - 30);
+      ctx.fillText(G.allCaptured() ? '☠ Torre Arcadia' : 'Torre Arcadia 🔒', tx(bs.x), tz(bs.z) - 30);
       ctx.fillStyle = 'rgba(255,255,255,0.7)';
       ctx.fillText('⛰ Cerros orientales · Monserrate ➜', S - 120, S / 2);
       // jugador
