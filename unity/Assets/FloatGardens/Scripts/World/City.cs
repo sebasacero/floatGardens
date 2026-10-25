@@ -15,6 +15,7 @@ namespace FloatGardens
         const float Half = FGConfig.Half;
         const float Block = FGConfig.Block;
         const float Lot = Block / 2f - 2f; // 2 m de andén
+        const float ChunkSize = Cell * 3f; // lado de cada sector de la ciudad (ver MeshBuilder.BuildChunked)
 
         System.Random rng;
         readonly Dictionary<string, MeshBuilder> builders = new Dictionary<string, MeshBuilder>();
@@ -150,7 +151,8 @@ namespace FloatGardens
             BuildBounds();
 
             BuildDrones();
-            foreach (var kv in builders) kv.Value.Build(kv.Key, builderMats[kv.Key], transform, !noShadow.Contains(kv.Key));
+            // Por sectores de 3x3 manzanas: lo que no ve la cámara ni cae en la distancia de sombras no se dibuja
+            foreach (var kv in builders) kv.Value.BuildChunked(kv.Key, builderMats[kv.Key], transform, ChunkSize, !noShadow.Contains(kv.Key));
             BuildMinimap();
         }
 
