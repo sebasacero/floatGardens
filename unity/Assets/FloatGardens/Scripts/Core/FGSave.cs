@@ -20,6 +20,13 @@ namespace FloatGardens
     }
 
     [Serializable]
+    public class BrewRecord
+    {
+        public string variety;
+        public float score;
+    }
+
+    [Serializable]
     public class SaveData
     {
         public int money;
@@ -33,6 +40,22 @@ namespace FloatGardens
         public List<string> captured = new List<string>();
         public List<UpgradeLevel> upgrades = new List<UpgradeLevel>();
         public List<Voucher> vouchers = new List<Voucher>();
+        // Campaña, Códice y expediciones
+        public int chapter, mission, missionProgress;
+        public bool introSeen;
+        public List<string> codex = new List<string>();
+        public List<string> regions = new List<string>();
+        public List<string> varieties = new List<string>();
+        public List<BrewRecord> brews = new List<BrewRecord>();
+        public int brewCount;
+        public float bestBrew;
+
+        public float BestBrew(string variety)
+        {
+            float best = 0;
+            foreach (var b in brews) if (b.variety == variety) best = Mathf.Max(best, b.score);
+            return best;
+        }
 
         public int Level(string id)
         {

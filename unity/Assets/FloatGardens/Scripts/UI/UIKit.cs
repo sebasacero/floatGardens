@@ -142,6 +142,48 @@ namespace FloatGardens
             return f;
         }
 
+        /// <summary>Deslizador horizontal con etiqueta de valor; onChange recibe el valor.</summary>
+        public static Slider Slider(Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, float min, float max, float value, bool whole, Action<float> onChange)
+        {
+            var bg = Image(parent, "Deslizador", anchor, pos, size, new Color(0, 0, 0, 0.5f));
+            bg.raycastTarget = true;
+            var s = bg.gameObject.AddComponent<Slider>();
+            var fillArea = Rect(bg.transform, "Area", Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            var fill = Image(fillArea, "Relleno", new Vector2(0, 0.5f), Vector2.zero, new Vector2(10, size.y), Yellow);
+            var fillRt = fill.rectTransform;
+            fillRt.anchorMin = new Vector2(0, 0); fillRt.anchorMax = new Vector2(0, 1); fillRt.pivot = new Vector2(0, 0.5f);
+            fillRt.anchoredPosition = Vector2.zero; fillRt.sizeDelta = new Vector2(0, 0);
+            var handleArea = Rect(bg.transform, "Mango", Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-16, 0));
+            var handle = Image(handleArea, "Boton", new Vector2(0, 0.5f), Vector2.zero, new Vector2(18, size.y + 8), Color.white, Circle);
+            handle.raycastTarget = true;
+            s.fillRect = fillRt;
+            s.handleRect = handle.rectTransform;
+            s.targetGraphic = handle;
+            s.direction = UnityEngine.UI.Slider.Direction.LeftToRight;
+            s.minValue = min;
+            s.maxValue = max;
+            s.wholeNumbers = whole;
+            s.value = value;
+            s.onValueChanged.AddListener(v => onChange(v));
+            return s;
+        }
+
+        /// <summary>Lista con scroll vertical; devuelve el contenido donde se agregan los elementos (ancla arriba).</summary>
+        public static RectTransform Scroll(Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, out ScrollRect scroll)
+        {
+            var view = Image(parent, "Lista", anchor, pos, size, new Color(0, 0, 0, 0.25f));
+            view.raycastTarget = true;
+            view.gameObject.AddComponent<RectMask2D>();
+            var content = Rect(view.transform, "Contenido", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), Vector2.zero, new Vector2(0, size.y));
+            scroll = view.gameObject.AddComponent<ScrollRect>();
+            scroll.content = content;
+            scroll.viewport = view.rectTransform;
+            scroll.horizontal = false;
+            scroll.movementType = UnityEngine.UI.ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 30;
+            return content;
+        }
+
         public static void EnsureEventSystem()
         {
             if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null) return;

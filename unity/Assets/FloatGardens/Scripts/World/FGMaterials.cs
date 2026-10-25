@@ -1,6 +1,7 @@
 // Materiales PBR de URP creados en código.
 // Se clonan de "plantillas" guardadas en Resources/FloatGardens (las crea el menú Float Gardens > Configurar proyecto),
 // así el build incluye los shaders y variantes necesarias. Si no existen, se crean al vuelo (sirve en el editor).
+// Si el proyecto no tiene URP activo se usan los shaders clásicos (Standard) para que nada se vea rosado.
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -21,8 +22,12 @@ namespace FloatGardens
             return c;
         }
 
+        /// <summary>¿Hay un render pipeline (URP) activo? Sin él, los shaders de URP se ven rosados.</summary>
+        public static bool Urp => GraphicsSettings.currentRenderPipeline != null;
+
         static Shader Find(params string[] names)
         {
+            if (!Urp && names.Length > 1) names = new[] { names[names.Length - 1] };
             foreach (var n in names)
             {
                 var s = Shader.Find(n);
@@ -70,6 +75,7 @@ namespace FloatGardens
 
         static void MakeTransparent(Material m)
         {
+            // URP
             m.SetFloat("_Surface", 1);
             m.SetFloat("_Blend", 0);
             m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
@@ -77,6 +83,9 @@ namespace FloatGardens
             m.SetFloat("_ZWrite", 0);
             m.SetFloat("_Cull", 0);
             m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            // Standard (sin URP): modo Fade
+            m.SetFloat("_Mode", 2);
+            m.EnableKeyword("_ALPHABLEND_ON");
             m.SetOverrideTag("RenderType", "Transparent");
             m.renderQueue = (int)RenderQueue.Transparent;
         }
@@ -84,7 +93,8 @@ namespace FloatGardens
         public static Material Template(string name)
         {
             if (templates.TryGetValue(name, out var t) && t != null) return t;
-            t = Resources.Load<Material>(ResourceFolder + "/" + name);
+            // las plantillas guardadas usan shaders de URP: sin URP se crean con los clásicos
+            if (Urp) t = Resources.Load<Material>(ResourceFolder + "/" + name);
             if (t == null) t = CreateTemplate(name);
             templates[name] = t;
             return t;
@@ -95,18 +105,53 @@ namespace FloatGardens
             return new Material(Template(template)) { name = name };
         }
 
-        /// <summary>Material opaco PBR. smooth: 0 mate, 1 espejo.</summary>
-        public static Material Lit(string key, Color color, Texture2D tex = null, float smooth = 0.15f, float metallic = 0f)
+        /// <summary>
+        /// Material opaco PBR. smooth: 0 mate, 1 espejo. Si la textura trae mapas de FGTextures se usan su relieve y,
+        /// con pbrMask, su máscara de metal/brillo (entonces el brillo sale de la máscara y no de smooth).
+        /// </summary>
+        public static Material Lit(string key, Color color, Texture2D tex = null, float smooth = 0.15f, float metallic = 0f, bool pbrMask = true)
         {
             if (cache.TryGetValue(key, out var m) && m != null) return m;
-            m = New("FG_Lit", key);
+            var emission = FGTextures.EmissionOf(tex);
+            m = New(emission != null ? "FG_LitEmissive" : "FG_Lit", key);
             m.color = color;
-            if (tex != null) m.mainTexture = tex;
+            if (tex != null) { m.mainTexture = tex; m.mainTextureScale = FGTextures.TilesOf(tex); }
             m.SetFloat("_Smoothness", smooth);
             m.SetFloat("_Glossiness", smooth);
             m.SetFloat("_Metallic", metallic);
+            ApplyMaps(m, tex, pbrMask);
+            if (emission != null)
+            {
+                // Ventanas encendidas: apagadas de día; Atmosphere sube la intensidad de noche
+                m.SetTexture("_EmissionMap", emission);
+                m.SetColor("_EmissionColor", Color.black);
+            }
             cache[key] = m;
             return m;
+        }
+
+        /// <summary>¿El material tiene mapa de ventanas encendidas?</summary>
+        public static bool HasWindows(Material m) => m != null && m.HasProperty("_EmissionMap") && m.GetTexture("_EmissionMap") != null;
+
+        /// <summary>Relieve (normal map) y máscara de metal/brillo, con los nombres de URP Lit y de Standard.</summary>
+        static void ApplyMaps(Material m, Texture2D tex, bool pbrMask)
+        {
+            var normal = FGTextures.NormalOf(tex);
+            if (normal != null)
+            {
+                m.SetTexture("_BumpMap", normal);
+                m.SetFloat("_BumpScale", 1f);
+                m.EnableKeyword("_NORMALMAP");
+            }
+            var mask = pbrMask ? FGTextures.MaskOf(tex) : null;
+            if (mask != null)
+            {
+                m.SetTexture("_MetallicGlossMap", mask);
+                m.SetFloat("_Smoothness", 1f);
+                m.SetFloat("_GlossMapScale", 1f);
+                m.EnableKeyword("_METALLICSPECGLOSSMAP"); // URP
+                m.EnableKeyword("_METALLICGLOSSMAP");     // Standard
+            }
         }
 
         public static Material Lit(string hex, float smooth = 0.15f) => Lit("c" + hex + smooth, Hex(hex), null, smooth);

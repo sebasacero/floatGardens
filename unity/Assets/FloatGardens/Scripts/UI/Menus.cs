@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace FloatGardens
 {
-    public class Menus : MonoBehaviour
+    public partial class Menus : MonoBehaviour
     {
         Canvas canvas;
         RectTransform root;
@@ -43,6 +43,9 @@ namespace FloatGardens
                 case "dead": Dead(); break;
                 case "victory": Victory(); break;
                 case "reset": ResetConfirm(); break;
+                case "codex": CodexScreen(); break;
+                case "mapa": MapScreen(); break;
+                case "lab": LabScreen(); break;
             }
         }
 
@@ -93,7 +96,7 @@ namespace FloatGardens
             UIKit.Label(left, "MUNDO ABIERTO · BOGOTÁ", 15, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(-150, -10), new Vector2(220, 30)).GetComponent<Shadow>().enabled = false;
             UIKit.Label(left, "LA CONQUISTA", 60, Color.white, TextAnchor.UpperLeft, new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(520, 70));
             UIKit.Label(left, "DEL CAFÉ", 60, UIKit.Yellow, TextAnchor.UpperLeft, new Vector2(0.5f, 1), new Vector2(0, -118), new Vector2(520, 70));
-            UIKit.Label(left, "Recorre Bogotá en tercera persona, farmea café hidropónico, véndelo en tus barrios y arrebátale la ciudad a la Federación con tu AeroPress.",
+            UIKit.Label(left, "Un barista, una AeroPress y un PC en una ciudad donde el café solo crece adentro. Cultiva, vende, aprende de los que saben y arrebátale Bogotá a Coffee Land.",
                 18, Color.white, TextAnchor.UpperLeft, new Vector2(0.5f, 1), new Vector2(0, -200), new Vector2(520, 80), FontStyle.Normal);
             int n = g.CapturedCount;
             UIKit.Label(left, "Zonas capturadas: " + n + "/" + g.zones.Count + "     Derrotados: " + s.kos + "     Ventas: " + s.sales + "     Cerezas: " + g.cherries,
@@ -115,19 +118,27 @@ namespace FloatGardens
                 g.Persist();
                 Show("lobby");
             });
-            Btn(right, "Reiniciar mundo", new Vector2(0.5f, 1), new Vector2(0, -228), new Vector2(380, 40), false, () => Go("reset"), 16);
+            Btn(right, "Códice del Café", new Vector2(0, 1), new Vector2(0, -228), new Vector2(184, 48), false, () => Go("codex"));
+            Btn(right, "Mapa de Colombia", new Vector2(1, 1), new Vector2(0, -228), new Vector2(184, 48), false, () => Go("mapa"));
+            Btn(right, "Reiniciar mundo", new Vector2(0.5f, 1), new Vector2(0, -284), new Vector2(380, 40), false, () => Go("reset"), 16);
+            if (g.story != null && !g.story.Finished)
+                UIKit.Label(left, g.story.CurrentChapter.title + "   →   " + g.story.Current.title, 15, UIKit.Mint, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(0, -420), new Vector2(520, 40), FontStyle.Normal);
             UIKit.Label(root, "Juego de ficción y parodia · no afiliado a ninguna organización real", 14, new Color(1, 1, 1, 0.65f), TextAnchor.MiddleCenter,
                 new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(900, 22), FontStyle.Normal);
         }
 
         void Pause()
         {
-            var p = Panel(420, 420, "PAUSA");
+            var p = Panel(420, 500, "PAUSA");
             Btn(p, "Seguir jugando", new Vector2(0.5f, 1), new Vector2(0, -80), new Vector2(340, 56), true, () => g.Play());
-            Btn(p, "Mejoras", new Vector2(0.5f, 1), new Vector2(0, -148), new Vector2(340, 50), false, () => Go("shop"));
-            Btn(p, "Puntos Float", new Vector2(0.5f, 1), new Vector2(0, -208), new Vector2(340, 50), false, () => Go("rewards"));
+            Btn(p, "Mejoras", new Vector2(0, 1), new Vector2(40, -148), new Vector2(165, 50), false, () => Go("shop"), 18);
+            Btn(p, "Puntos Float", new Vector2(1, 1), new Vector2(-40, -148), new Vector2(165, 50), false, () => Go("rewards"), 18);
+            Btn(p, "Códice del Café", new Vector2(0, 1), new Vector2(40, -208), new Vector2(165, 50), false, () => Go("codex"), 18);
+            Btn(p, "Mapa de Colombia", new Vector2(1, 1), new Vector2(-40, -208), new Vector2(165, 50), false, () => Go("mapa"), 18);
             Btn(p, "Cómo jugar", new Vector2(0.5f, 1), new Vector2(0, -268), new Vector2(340, 50), false, () => Go("howto"));
             Btn(p, "Volver al lobby", new Vector2(0.5f, 1), new Vector2(0, -328), new Vector2(340, 50), false, () => g.ToLobby());
+            if (g.story != null && !g.story.Finished)
+                UIKit.Label(p, g.story.Current.title, 14, UIKit.Mint, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -400), new Vector2(380, 60), FontStyle.Normal);
         }
 
         void Shop()
@@ -206,21 +217,23 @@ namespace FloatGardens
 
         void HowTo()
         {
-            var p = Panel(860, 600, "CÓMO JUGAR");
+            var p = Panel(900, 640, "CÓMO JUGAR");
             string[] items =
             {
                 "FARMEA: cosecha las plantas flotantes del HQ en Chapinero y abre cajas de café por la ciudad. Cada cereza suma Puntos Float.",
                 "DISPARA: tu AeroPress dispara chorros de café a presión. Recargar gasta 1 cereza. Apunta a la cabeza para más daño.",
                 "VENDE: los peatones con taza quieren café, pero solo te compran en barrios de Float Gardens. 2 cerezas = $8.000.",
                 "CONQUISTA: entra a las zonas rojas, derrota las oleadas y quédate dentro hasta capturarlas. Cada zona abre un barrio nuevo.",
-                "JEFE FINAL: con las 6 zonas, ve a la Plaza de Bolívar y derrota a Don Monopolio.",
+                "HISTORIA: habla con los personajes con [!] (Abuela Rosa, el Profe, Kaldi...). Cada misión enseña algo real del café y abre regiones de Colombia.",
+                "LABORATORIO: en el PC del HQ afinas recetas de AeroPress: proporción, molienda, temperatura, tiempo y método. 80 puntos = especialidad.",
+                "JEFE FINAL: con las 6 zonas, ve a la Plaza de Bolívar y derrota a Don Monopolio, CEO de Coffee Land.",
                 "VIDA: se regenera si te cubres unos segundos. Si caes, vuelves al HQ y pierdes la mitad de tus cerezas.",
             };
             for (int i = 0; i < items.Length; i++)
             {
-                float x = i % 2 == 0 ? -210 : 210, y = -78 - (i / 2) * 116;
-                var card = UIKit.Image(p, "Paso", new Vector2(0.5f, 1), new Vector2(x, y), new Vector2(400, 104), new Color(0, 0, 0, 0.3f));
-                UIKit.Label(card.transform, items[i], 15, Color.white, TextAnchor.UpperLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(376, 90), FontStyle.Normal);
+                float x = i % 2 == 0 ? -220 : 220, y = -70 - (i / 2) * 118;
+                var card = UIKit.Image(p, "Paso", new Vector2(0.5f, 1), new Vector2(x, y), new Vector2(420, 108), new Color(0, 0, 0, 0.3f));
+                UIKit.Label(card.transform, items[i], 14, Color.white, TextAnchor.UpperLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(396, 96), FontStyle.Normal);
             }
             string keys = FGInput.IsTouchDevice
                 ? "Joystick: moverte (al fondo = correr) · Desliza a la derecha: mirar · DISPARO (arrastra para apuntar) · APUNTAR · SALTO · RECARGA · E acción · MAPA"
@@ -233,7 +246,7 @@ namespace FloatGardens
         {
             var p = Panel(440, 260, "");
             UIKit.Label(p, "¡TE SELLARON!", 44, UIKit.Red, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -30), new Vector2(420, 56));
-            UIKit.Label(p, "La Federación te llenó de formularios. Perdiste " + g.lastLost + " cerezas.", 16, Color.white, TextAnchor.MiddleCenter,
+            UIKit.Label(p, "Coffee Land te llenó de formularios. Perdiste " + g.lastLost + " cerezas.", 16, Color.white, TextAnchor.MiddleCenter,
                 new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(400, 50), FontStyle.Normal);
             Btn(p, "Volver al HQ", new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(300, 56), true, () => g.Respawn());
         }
@@ -243,7 +256,7 @@ namespace FloatGardens
             var s = g.save;
             var p = Panel(760, 460, "");
             UIKit.Label(p, "¡BOGOTÁ ES DE FLOAT GARDENS!", 36, UIKit.Mint, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -26), new Vector2(720, 50));
-            UIKit.Label(p, "Don Monopolio colgó el sombrero y la Federación... abrió su propio invernadero flotante. Todo empezó con una AeroPress y una idea compartida.",
+            UIKit.Label(p, "Don Monopolio probó el café y Coffee Land... abrió su propio invernadero flotante. Todo empezó con una AeroPress, un PC y una idea compartida. Ahora: las expediciones por Colombia.",
                 17, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -96), new Vector2(680, 60), FontStyle.Normal);
             UIKit.Label(p, s.kos + " derrotados     " + s.sales + " cafés vendidos     ★ " + s.puntosTotal + " Puntos Float totales", 20, UIKit.Yellow,
                 TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -170), new Vector2(700, 30));
