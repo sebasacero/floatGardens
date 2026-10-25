@@ -118,6 +118,70 @@ namespace FloatGardens
             return go;
         }
 
+        /// <summary>
+        /// Como Build, pero parte la geometría en sectores cuadrados de chunk metros (según el centro de cada triángulo).
+        /// Una sola malla para toda la ciudad nunca se descarta: la GPU procesa todos sus vértices en cada cuadro y en
+        /// cada cascada de sombras aunque solo se vea una esquina. Por sectores, lo que queda fuera de la cámara (o de
+        /// la distancia de sombras) se descarta entero.
+        /// </summary>
+        public void BuildChunked(string name, Material mat, Transform parent, float chunk, bool castShadows = true)
+        {
+            if (tris.Count == 0) return;
+            var buckets = new Dictionary<Vector2Int, List<int>>();
+            for (int k = 0; k < tris.Count; k += 3)
+            {
+                Vector3 c = (verts[tris[k]] + verts[tris[k + 1]] + verts[tris[k + 2]]) / 3f;
+                var key = new Vector2Int(Mathf.FloorToInt(c.x / chunk), Mathf.FloorToInt(c.z / chunk));
+                if (!buckets.TryGetValue(key, out var list)) buckets[key] = list = new List<int>();
+                list.Add(k);
+            }
+            if (buckets.Count == 1) { Build(name, mat, parent, castShadows); return; }
+
+            var remap = new int[verts.Count];
+            var v = new List<Vector3>();
+            var n = new List<Vector3>();
+            var uv = new List<Vector2>();
+            var t = new List<int>();
+            foreach (var kv in buckets)
+            {
+                for (int i = 0; i < remap.Length; i++) remap[i] = -1;
+                v.Clear(); n.Clear(); uv.Clear(); t.Clear();
+                foreach (int k in kv.Value)
+                    for (int j = 0; j < 3; j++)
+                    {
+                        int src = tris[k + j];
+                        if (remap[src] < 0)
+                        {
+                            remap[src] = v.Count;
+                            v.Add(verts[src]); n.Add(normals[src]); uv.Add(uvs[src]);
+                        }
+                        t.Add(remap[src]);
+                    }
+                MakeObject(name + " " + kv.Key.x + "," + kv.Key.y, v, n, uv, t, mat, parent, castShadows);
+            }
+        }
+
+        static GameObject MakeObject(string name, List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t, Material mat, Transform parent, bool castShadows)
+        {
+            var mesh = new Mesh { name = name };
+            if (v.Count > 65000) mesh.indexFormat = IndexFormat.UInt32;
+            mesh.SetVertices(v);
+            mesh.SetNormals(n);
+            mesh.SetUVs(0, uv);
+            mesh.SetTriangles(t, 0);
+            mesh.RecalculateTangents(); // los normal maps los necesitan
+            mesh.RecalculateBounds();
+            mesh.UploadMeshData(true); // la ciudad no cambia: liberamos la copia en la memoria de la CPU
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = castShadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
+            go.isStatic = true;
+            return go;
+        }
+
         // ---------- Mallas primitivas útiles ----------
         static readonly Dictionary<PrimitiveType, Mesh> prims = new Dictionary<PrimitiveType, Mesh>();
 
