@@ -82,6 +82,7 @@
   }
 
   const col = (hex) => new THREE.Color(hex);
+  const WHITE = new THREE.Color('#ffffff');
   const tint = (hex, amt) => {
     const c = new THREE.Color(hex);
     const k = 1 + (rnd() - 0.5) * (amt || 0.15);
@@ -139,6 +140,7 @@
       const geo = {};
       for (const k in mats) geo[k] = new Geo();
       this.geo = geo;
+      this.muralGeo = T.murals.map(() => new Geo());
 
       // Suelo de asfalto
       const ground = new THREE.Mesh(
@@ -159,6 +161,10 @@
       this.buildTrees();
 
       for (const k in geo) if (geo[k].pos.length) scene.add(geo[k].mesh(mats[k]));
+      this.muralGeo.forEach((g, i) => { if (g.pos.length) scene.add(g.mesh(new THREE.MeshLambertMaterial({ map: T.murals[i] }))); });
+      // la ciudad no se mueve: fijamos sus matrices para no recalcularlas en cada cuadro
+      const moving = new Set([...this.buses.map((b) => b.mesh), this.cabin]);
+      for (const o of scene.children) if (!moving.has(o)) W.Geom.freeze(o);
       this.buildMinimap();
     },
 
@@ -210,16 +216,18 @@
       }
       // Murales
       if (h >= 6 && rnd() < 0.08 && (mat === 'brick' || mat === 'warehouse' || mat === 'concrete')) {
-        const tex = pickR(W.Tex.murals);
+        const ti = Math.floor(rnd() * W.Tex.murals.length);
         const mw = Math.min(10, Math.max(w, d) * 0.7);
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(mw, mw / 2), new THREE.MeshLambertMaterial({ map: tex }));
         const side = Math.floor(rnd() * 4);
         const y = 1.2 + mw / 4;
-        if (side === 0) { m.position.set(x + w / 2 + 0.05, y, z); m.rotation.y = Math.PI / 2; }
-        if (side === 1) { m.position.set(x - w / 2 - 0.05, y, z); m.rotation.y = -Math.PI / 2; }
-        if (side === 2) { m.position.set(x, y, z + d / 2 + 0.05); }
-        if (side === 3) { m.position.set(x, y, z - d / 2 - 0.05); m.rotation.y = Math.PI; }
-        this.scene.add(m);
+        // todos los murales con la misma textura van en una sola malla: [normal, derecha, centro]
+        const [n, r, cx, cz] = [
+          [[1, 0, 0], [0, 0, -1], x + w / 2 + 0.05, z], [[-1, 0, 0], [0, 0, 1], x - w / 2 - 0.05, z],
+          [[0, 0, 1], [1, 0, 0], x, z + d / 2 + 0.05], [[0, 0, -1], [-1, 0, 0], x, z - d / 2 - 0.05],
+        ][side];
+        const hw = mw / 2, y0 = y - mw / 4, y1 = y + mw / 4;
+        const bl = [cx - r[0] * hw, y0, cz - r[2] * hw], br = [cx + r[0] * hw, y0, cz + r[2] * hw];
+        this.muralGeo[ti].quad(bl, br, [br[0], y1, br[2]], [bl[0], y1, bl[2]], n, 0, 0, 1, 1, WHITE);
       }
     },
 
@@ -374,30 +382,26 @@
       g.roof.top(x, z - 4, 18.25, 36, 26, col('#ffffff'));
       addCollider(x - 18, x + 18, z - 17, z + 9, 18.25, 'sede');
       // columnas y frontón
+      // columnas y frontón: una sola malla
       const colGeo = new THREE.CylinderGeometry(0.9, 1, 14, 10);
-      const colMat = new THREE.MeshLambertMaterial({ color: '#e8e3d8' });
+      const portico = [];
       for (let i = 0; i < 8; i++) {
-        const cm = new THREE.Mesh(colGeo, colMat);
-        cm.position.set(x - 14 + i * 4, 7.25, z + 12);
-        this.scene.add(cm);
-        addCollider(cm.position.x - 1, cm.position.x + 1, z + 11, z + 13, 14, 'column');
+        const cx = x - 14 + i * 4;
+        portico.push({ geo: colGeo, matrix: W.Geom.matrix(cx, 7.25, z + 12), color: '#e8e3d8' });
+        addCollider(cx - 1, cx + 1, z + 11, z + 13, 14, 'column');
       }
       g.plain.box(x, z + 11, 14.25, 34, 2, 5, col('#ddd6c8'));
       const shape = new THREE.Shape();
       shape.moveTo(-17, 0); shape.lineTo(17, 0); shape.lineTo(0, 5); shape.lineTo(-17, 0);
-      const ped = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 5, bevelEnabled: false }), colMat);
-      ped.position.set(x, 16.25, z + 8.5);
-      this.scene.add(ped);
+      portico.push({ geo: new THREE.ExtrudeGeometry(shape, { depth: 5, bevelEnabled: false }), matrix: W.Geom.matrix(x, 16.25, z + 8.5), color: '#e8e3d8' });
+      this.scene.add(new THREE.Mesh(W.Geom.merge(portico), W.Geom.vcMat()));
       const frieze = new THREE.Mesh(new THREE.PlaneGeometry(26, 1.8),
         new THREE.MeshBasicMaterial({ map: W.Tex.sign('LA FEDERACIÓN', '#8f1f1a', '#fff3dc', 512, 64) }));
       frieze.position.set(x, 15.25, z + 13.55);
       this.scene.add(frieze);
       const banMat = new THREE.MeshLambertMaterial({ map: W.Tex.sign('★', '#c0392b', '#ffd34d', 128, 256, '900 120px system-ui'), side: THREE.DoubleSide });
-      for (const bx of [-16, 16]) {
-        const ban = new THREE.Mesh(new THREE.PlaneGeometry(3, 8), banMat);
-        ban.position.set(x + bx, 9, z + 9.1);
-        this.scene.add(ban);
-      }
+      const banGeo = new THREE.PlaneGeometry(3, 8);
+      this.scene.add(new THREE.Mesh(W.Geom.merge([-16, 16].map((bx) => ({ geo: banGeo, matrix: W.Geom.matrix(x + bx, 9, z + 9.1) }))), banMat));
       this.sedeSpot = { x, z: z + 16 };
     },
 
@@ -435,32 +439,28 @@
       g.top(x - 4.6, 0, 0.04, 0.3, HALF * 2, col('#f0f0f0'));
       g.top(x + 4.6, 0, 0.04, 0.3, HALF * 2, col('#f0f0f0'));
       this.stations = [];
+      const glassBox = new THREE.BoxGeometry(2.2, 2.8, 25);
+      const glassParts = [];
       for (const row of [1, 4, 7, 10]) {
         const z = cellCenter(row, 6).z;
         g.box(x, z, 0, 2.4, 0.4, 26, col('#9a9a9a'));
         g.box(x, z, 3.2, 2.8, 0.3, 26, col('#c0392b'));
-        const glassMat = new THREE.MeshLambertMaterial({ color: '#9fd0e8', transparent: true, opacity: 0.45 });
-        const gm = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.8, 25), glassMat);
-        gm.position.set(x, 1.8, z);
-        this.scene.add(gm);
+        glassParts.push({ geo: glassBox, matrix: W.Geom.matrix(x, 1.8, z) });
         addCollider(x - 1.2, x + 1.2, z - 13, z + 13, 3.5, 'station');
         this.stations.push(z);
       }
-      const busMat = new THREE.MeshLambertMaterial({ color: '#c62828' });
-      const winMat = new THREE.MeshLambertMaterial({ color: '#1d2b36' });
-      const joint = new THREE.MeshLambertMaterial({ color: '#333' });
+      // vidrios de las 4 estaciones en una malla
+      this.scene.add(new THREE.Mesh(W.Geom.merge(glassParts), new THREE.MeshLambertMaterial({ color: '#9fd0e8', transparent: true, opacity: 0.45 })));
+      // bus articulado: carrocería, ventanas y fuelle en una sola geometría compartida por los 4 buses
+      const M = W.Geom.matrix;
+      const busParts = [{ geo: new THREE.BoxGeometry(2.3, 2.6, 1), matrix: M(0, 1.8, 0), color: '#333' }];
+      for (const off of [-5.2, 5.2]) {
+        busParts.push({ geo: new THREE.BoxGeometry(2.5, 3, 9.6), matrix: M(0, 1.9, off), color: '#c62828' });
+        busParts.push({ geo: new THREE.BoxGeometry(2.56, 1, 8.6), matrix: M(0, 2.3, off), color: '#1d2b36' });
+      }
+      const busGeo = W.Geom.merge(busParts);
       for (let i = 0; i < 4; i++) {
-        const bus = new THREE.Group();
-        for (const off of [-5.2, 5.2]) {
-          const body = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3, 9.6), busMat);
-          body.position.set(0, 1.9, off);
-          const win = new THREE.Mesh(new THREE.BoxGeometry(2.56, 1, 8.6), winMat);
-          win.position.set(0, 2.3, off);
-          bus.add(body, win);
-        }
-        const j = new THREE.Mesh(new THREE.BoxGeometry(2.3, 2.6, 1), joint);
-        j.position.y = 1.8;
-        bus.add(j);
+        const bus = new THREE.Mesh(busGeo, W.Geom.vcMat());
         const dir = i % 2 ? 1 : -1;
         const lane = x + (dir > 0 ? 2.6 : -2.6);
         bus.position.set(lane, 0, -HALF + ((i * 0.27) % 1) * HALF * 2);
@@ -478,20 +478,18 @@
         [430, -380, 130, 150], [470, -260, 150, 190], [440, -120, 120, 160], [455, 20, 140, 185],
         [440, 150, 130, 210], [470, 300, 150, 180], [430, 430, 120, 140], [560, -200, 160, 230], [580, 150, 170, 240],
       ];
+      // un cerro por material en lugar de una malla por pico
+      const byMat = [[], []];
       peaks.forEach(([px, pz, r, h], i) => {
-        const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), i % 2 ? mat : mat2);
-        m.position.set(px, h / 2 - 2, pz);
-        m.rotation.y = i;
-        this.scene.add(m);
+        byMat[i % 2].push({ geo: new THREE.ConeGeometry(r, h, 7), matrix: W.Geom.matrix(px, h / 2 - 2, pz, 0, i, 0) });
       });
+      this.scene.add(new THREE.Mesh(W.Geom.merge(byMat[1]), mat), new THREE.Mesh(W.Geom.merge(byMat[0]), mat2));
       // Monserrate (pico de 210 m en z=150)
       const white = new THREE.MeshLambertMaterial({ color: '#f5f5f0' });
-      const church = new THREE.Group();
-      const nave = new THREE.Mesh(new THREE.BoxGeometry(14, 8, 8), white);
-      nave.position.y = 4;
-      const tower = new THREE.Mesh(new THREE.BoxGeometry(4, 16, 4), white);
-      tower.position.set(-6, 8, 0);
-      church.add(nave, tower);
+      const church = new THREE.Mesh(W.Geom.merge([
+        { geo: new THREE.BoxGeometry(14, 8, 8), matrix: W.Geom.matrix(0, 4, 0) },
+        { geo: new THREE.BoxGeometry(4, 16, 4), matrix: W.Geom.matrix(-6, 8, 0) },
+      ]), white);
       church.position.set(440, 198, 150);
       this.scene.add(church);
       // teleférico
@@ -574,6 +572,10 @@
     },
 
     // ---------- Consultas ----------
+    districtCodeAt(x, z) {
+      const { row, col: c } = cellOf(x, z);
+      return districtCode(row, c);
+    },
     districtAt(x, z) {
       const { row, col: c } = cellOf(x, z);
       const code = districtCode(row, c);
