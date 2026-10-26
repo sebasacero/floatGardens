@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Float Gardens: Terrazas de Kennedy</title>
+  <meta name="description" content="Plataformas 2.5D: salta por las terrazas de Kennedy, recoge cerezas de café y llega a la torre hidropónica de Float Gardens antes de que te alcance la tormenta.">
+  <meta name="theme-color" content="#0d1020">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍒</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Baloo+2:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="css/terrazas.css">
+</head>
+<body>
+  <canvas id="c" aria-label="Float Gardens: Terrazas de Kennedy"></canvas>
+
+  <div id="hud" hidden>
+    <div class="h-tl">
+      <div class="pill cher"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="7" cy="13" r="4.5" fill="#e0262f"/><circle cx="13.5" cy="12" r="4" fill="#c81e28"/><path d="M7 9 C8 5 10 3 12 2 M13 8 C13 5 12.5 3.5 12 2" stroke="#3d7a2a" stroke-width="1.4" fill="none"/></svg><b id="hCherries">0</b></div>
+      <div id="hStorm" class="pill storm" hidden></div>
+    </div>
+    <div class="h-tc">
+      <div class="letters"><span id="LF">F</span><span id="LL">L</span><span id="LO">O</span><span id="LA">A</span><span id="LT">T</span></div>
+      <div class="prog"><i></i><em id="hProg"></em></div>
+      <div class="time" id="hTime">0:00</div>
+    </div>
+    <div class="h-tr">
+      <div class="pill"><span aria-hidden="true">☕</span><b>×<span id="hLives">4</span></b></div>
+      <div class="hp" id="hHp"></div>
+      <button id="tPause" class="pause" aria-label="Pausa">❚❚</button>
+    </div>
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <div id="touch" aria-hidden="true">
+    <div class="pad-l"><button id="tLeft">◀</button><button id="tRight">▶</button></div>
+    <div class="pad-r"><button id="tRoll" class="roll">Rodar</button><button id="tJump" class="jump">Saltar</button></div>
+  </div>
+
+  <div id="menu" class="screen">
+    <div class="card">
+      <div class="kicker">Float Gardens presenta</div>
+      <h1>Terrazas <b>de Kennedy</b></h1>
+      <p>Corre y salta por las terrazas del barrio, recoge cerezas de café, espanta palomas y drones de Arcadia, dispárate en los tanques de agua y llega a la torre hidropónica antes de que te alcance la tormenta.</p>
+      <button id="btnPlay" class="big">Jugar</button>
+      <div class="rotate">Se juega mejor con el celular en horizontal.</div>
+      <table class="ctrl">
+        <tr><th></th><th>Teclado</th><th>Control</th></tr>
+        <tr><td>Moverse</td><td>← → · A D</td><td>Stick / cruceta</td></tr>
+        <tr><td>Saltar (mantén = más alto)</td><td>Espacio · W</td><td>A</td></tr>
+        <tr><td>Rodar</td><td>Shift · X</td><td>X / B</td></tr>
+        <tr><td>Pausa</td><td>Esc · P</td><td>Start</td></tr>
+      </table>
+      <div class="foot"><a href="index.html">Mundo abierto 3D</a> · <a href="clasico.html">Clásico 2D</a> · <button id="btnSound" class="link">Sonido: sí</button></div>
+    </div>
+  </div>
+
+  <div id="pause" class="screen" hidden>
+    <div class="card small"><h2>Pausa</h2><button id="btnResume" class="big">Seguir</button></div>
+  </div>
+
+  <div id="end" class="screen" hidden>
+    <div class="card">
+      <h2 id="endTitle"></h2>
+      <p id="endText"></p>
+      <div class="stats" id="endStats"></div>
+      <p class="free">Cada 100 cerezas suman Puntos Float para café gratis en los puntos de Float Gardens.</p>
+      <button id="btnAgain" class="big">Jugar otra vez</button>
+    </div>
+  </div>
+
+  <div id="loading">Cargando Kennedy…</div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="terrazas/base.js"></script>
+  <script src="terrazas/nivel.js"></script>
+  <script src="terrazas/mundo.js"></script>
+  <script src="terrazas/personajes.js"></script>
+  <script src="terrazas/juego.js"></script>
+  <script>
+    if (!window.WebGLRenderingContext) document.getElementById('loading').textContent = 'Tu navegador no soporta WebGL.';
+  </script>
+</body>
+</html>

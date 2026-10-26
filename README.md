@@ -18,6 +18,8 @@ incluido en `vendor/` (licencia MIT).
 - **En línea:** https://sebasacero.github.io/floatGardens/ (GitHub Pages: *Settings → Pages → Deploy from a branch → `main` / `(root)`*).
 - **Local:** sirve la carpeta con `python3 -m http.server` y entra a `http://localhost:8000` (también abre con doble clic en `index.html`).
 - **Modo clásico 2D:** `clasico.html` (la primera versión del juego, desde arriba).
+- **Terrazas de Kennedy (plataformas 2.5D):** `terrazas.html`. Corre y salta por las terrazas de Kennedy con cámara
+  lateral, al estilo de *Donkey Kong Country*. Detalles y cómo pasarlo a Unity en [`terrazas/README.md`](terrazas/README.md).
 
 ### Controles
 
