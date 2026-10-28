@@ -16,6 +16,9 @@ namespace FloatGardens
         public float Hour = 17.3f;
         /// <summary>0 = pleno día, 1 = noche cerrada.</summary>
         public float Night { get; private set; }
+        /// <summary>0-1: cuánto sol rasante hay (amanecer y atardecer tiñen las nubes).</summary>
+        public float Dusk { get; private set; }
+        Scenery scenery;
         const float HoursPerSecond = 24f / 840f;
 
         ParticleSystem rain;
@@ -48,7 +51,8 @@ namespace FloatGardens
         static readonly Color SplitDay = new Color(0.36f, 0.52f, 0.58f);
         static readonly Color SplitNight = new Color(0.42f, 0.32f, 0.64f);
         static readonly Color LampColor = new Color(1f, 0.82f, 0.58f);
-        const float DryFogDensity = 0.0042f, WetFogDensity = 0.0068f, NightFogDensity = 0.0052f;
+        // Bruma más ligera que antes: los cerros y las nubes del horizonte se ven desde la ciudad en vez de borrarse
+        const float DryFogDensity = 0.0026f, WetFogDensity = 0.0046f, NightFogDensity = 0.0036f;
         const float DrySaturation = 8f, WetSaturation = -12f, NightSaturation = 16f;
 
         // Luces reales de la calle: un grupo de luces puntuales que se van moviendo a los postes y neones
@@ -105,6 +109,8 @@ namespace FloatGardens
                                   "Corre el menú Float Gardens > Configurar todo y crear escena.");
 
             BuildRain(cam.transform);
+            scenery = gameObject.AddComponent<Scenery>();
+            scenery.Setup(cam, City.I);
             UpdateDaylight();
             wasNight = Night > 0.5f;
         }
@@ -342,6 +348,7 @@ namespace FloatGardens
             bool moon = elev < 0;
             sun.transform.rotation = Quaternion.Euler(moon ? angle + 180f : angle, -40f, 0);
             float rainK = Raining ? 0.5f : 1f;
+            Dusk = moon ? 0f : (1 - Mathf.Clamp01(elev / 0.3f)) * (1 - night);
             if (!moon)
             {
                 float strength = Mathf.Clamp01(elev / 0.35f);
@@ -393,6 +400,7 @@ namespace FloatGardens
             if (rain != null) rain.transform.position = cam.transform.position + Vector3.up * 22;
             UpdateReflections(dt, cam);
             UpdateStreetLights(dt, cam);
+            if (scenery != null) scenery.Tick(dt, Night, Dusk, Raining, cam);
 
             Hour = Mathf.Repeat(Hour + dt * HoursPerSecond, 24f);
             // Un día dura 14 minutos: el sol avanza 0,04° en una décima de segundo. Recalcular cielo, niebla, luz
