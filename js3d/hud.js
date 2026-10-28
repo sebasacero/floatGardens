@@ -112,7 +112,7 @@
       ctx.save();
       ctx.clearRect(0, 0, S, S);
       ctx.beginPath();
-      ctx.arc(R, R, R - 2, 0, TWO_PI);
+      ctx.rect(0, 0, S, S);
       ctx.clip();
       ctx.fillStyle = '#20242a';
       ctx.fillRect(0, 0, S, S);
@@ -141,7 +141,7 @@
       for (const e of G.enemies) if (!e.dead && (e.alerted || Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 45)) dot(e.pos.x, e.pos.z, '#ff4b3a', e.boss ? 6 : 3);
       ctx.restore();
       // jugador (siempre mirando hacia arriba)
-      ctx.fillStyle = '#ffd34d';
+      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.moveTo(R, R - 8); ctx.lineTo(R + 6, R + 6); ctx.lineTo(R, R + 3); ctx.lineTo(R - 6, R + 6);
       ctx.closePath();
@@ -169,10 +169,10 @@
         if (Math.abs(diff) > 62) continue;
         const x = Wd / 2 + diff * pxDeg;
         const alpha = 1 - Math.abs(diff) / 70;
-        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.fillStyle = `rgba(44,48,46,${alpha})`;
         if (labels[b] !== undefined) {
-          ctx.font = `bold ${b % 90 === 0 ? 15 : 12}px system-ui, sans-serif`;
-          ctx.fillStyle = b === 0 ? `rgba(255,211,77,${alpha})` : `rgba(255,255,255,${alpha})`;
+          ctx.font = `${b % 90 === 0 ? 600 : 500} ${b % 90 === 0 ? 14 : 11}px Manrope, system-ui, sans-serif`;
+          ctx.fillStyle = b === 0 ? `rgba(79,143,44,${alpha})` : `rgba(44,48,46,${alpha})`;
           ctx.fillText(labels[b], x, H / 2 - 2);
         } else {
           ctx.fillRect(x - 1, H / 2 - 4, 2, 8);
@@ -187,12 +187,12 @@
         ctx.beginPath();
         ctx.moveTo(x, H - 2); ctx.lineTo(x - 6, H - 10); ctx.lineTo(x + 6, H - 10);
         ctx.fill();
-        if (label) { ctx.font = 'bold 10px system-ui'; ctx.fillText(label, x, 7); }
+        if (label) { ctx.font = '500 10px Manrope, system-ui'; ctx.fillText(label, x, 7); }
       };
       const obj = G.objective();
-      if (obj.target) marker(obj.target.x, obj.target.z, '#ffd34d');
-      marker(440, 150, 'rgba(255,255,255,0.6)', 'Monserrate');
-      ctx.fillStyle = '#ffd34d';
+      if (obj.target) marker(obj.target.x, obj.target.z, '#4f8f2c');
+      marker(440, 150, 'rgba(44,48,46,0.45)', 'Monserrate');
+      ctx.fillStyle = '#2a22f5';
       ctx.fillRect(Wd / 2 - 1, 0, 2, 6);
     },
 
