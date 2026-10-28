@@ -60,9 +60,9 @@ namespace FloatGardens
         RectTransform Panel(float w, float h, string title)
         {
             var dim = UIKit.Stretch(root, "Fondo").gameObject.AddComponent<Image>();
-            dim.color = new Color(0.02f, 0.05f, 0.04f, 0.72f);
+            dim.color = UIKit.Veil;
             var p = UIKit.Image(root, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(w, h), UIKit.Panel);
-            UIKit.Image(p.transform, "Linea", new Vector2(0.5f, 1), Vector2.zero, new Vector2(w, 4), UIKit.Yellow);
+            UIKit.Image(p.transform, "Linea", new Vector2(0.5f, 1), Vector2.zero, new Vector2(w, 2), UIKit.Leaf2);
             UIKit.Label(p.transform, title, 32, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -16), new Vector2(w - 40, 44));
             return p.rectTransform;
         }
@@ -87,7 +87,7 @@ namespace FloatGardens
         {
             var s = g.save;
             var shade = UIKit.Stretch(root, "Degradado").gameObject.AddComponent<Image>();
-            shade.color = new Color(0.02f, 0.05f, 0.04f, 0.45f);
+            shade.color = new Color(UIKit.Veil.r, UIKit.Veil.g, UIKit.Veil.b, 0.45f);
             UIKit.Label(root, "FLOAT GARDENS", 22, UIKit.Mint, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(24, -18), new Vector2(400, 30));
             UIKit.Label(root, FGConfig.Money(s.money) + "    ★ " + s.puntos, 22, UIKit.Yellow, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(-24, -18), new Vector2(400, 30));
 

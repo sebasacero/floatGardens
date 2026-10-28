@@ -1,4 +1,5 @@
 // Objetos del mundo: cultivos hidropónicos flotantes, cajas de café, zonas de captura y sellos de la Federación.
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace FloatGardens
@@ -21,20 +22,23 @@ namespace FloatGardens
             p.baseY = pos.y;
             p.bob = Random.value * 6;
             p.growth = Random.value * 0.6f;
-            Part(go.transform, PrimitiveType.Cylinder, new Vector3(0, 0.12f, 0), new Vector3(2.2f, 0.12f, 2.2f), FGMaterials.Lit("#f2f2ee", 0.3f));
-            Part(go.transform, PrimitiveType.Cylinder, new Vector3(0, 0.3f, 0), new Vector3(0.7f, 0.15f, 0.7f), FGMaterials.Lit("#2d2d2d", 0.4f));
-            p.plant = new GameObject("Planta").transform;
-            p.plant.SetParent(go.transform, false);
-            p.plant.localPosition = Vector3.up * 0.4f;
-            Part(p.plant, PrimitiveType.Cube, new Vector3(0, 0.5f, 0), new Vector3(0.08f, 1, 0.08f), FGMaterials.Lit("#2a7a41", 0.1f));
+            // Base, planta y cerezas: tres mallas compartidas por todos los cultivos (antes eran 16 objetos sueltos)
+            FGMesh.Bake(go.transform, "Balsa", new[]
+            {
+                FGMesh.P(PrimitiveType.Cylinder, new Vector3(0, 0.12f, 0), new Vector3(2.2f, 0.12f, 2.2f), FGMaterials.Lit("#f2f2ee", 0.3f)),
+                FGMesh.P(PrimitiveType.Cylinder, new Vector3(0, 0.3f, 0), new Vector3(0.7f, 0.15f, 0.7f), FGMaterials.Lit("#2d2d2d", 0.4f)),
+            }, "cultivoBalsa");
+            var plant = new List<FGMesh.Part> { FGMesh.P(PrimitiveType.Cube, new Vector3(0, 0.5f, 0), new Vector3(0.08f, 1, 0.08f), FGMaterials.Lit("#2a7a41", 0.1f)) };
             for (int i = 0; i < 4; i++)
-                Part(p.plant, PrimitiveType.Sphere, new Vector3(Mathf.Cos(i * 1.6f) * 0.3f, 0.6f + i * 0.15f, Mathf.Sin(i * 1.6f) * 0.3f),
-                    new Vector3(0.9f, 0.6f, 0.9f), FGMaterials.Lit(i % 2 == 1 ? "#3fa35b" : "#2a7a41", 0.1f));
-            p.cherries = new GameObject("Cerezas").transform;
-            p.cherries.SetParent(p.plant, false);
+                plant.Add(FGMesh.P(PrimitiveType.Sphere, new Vector3(Mathf.Cos(i * 1.6f) * 0.3f, 0.6f + i * 0.15f, Mathf.Sin(i * 1.6f) * 0.3f),
+                    new Vector3(0.9f, 0.6f, 0.9f), FGMaterials.Lit(i % 2 == 1 ? "#3fa35b" : "#2a7a41", 0.1f)));
+            p.plant = FGMesh.Bake(go.transform, "Planta", plant, "cultivoPlanta").transform;
+            p.plant.localPosition = Vector3.up * 0.4f;
             var red = FGMaterials.Lit("cereza", FGMaterials.Hex("#d6423a"), null, 0.7f);
+            var cherries = new List<FGMesh.Part>();
             for (int i = 0; i < 9; i++)
-                Part(p.cherries, PrimitiveType.Sphere, new Vector3(Mathf.Cos(i * 2.1f) * 0.45f, 0.55f + (i % 3) * 0.22f, Mathf.Sin(i * 2.1f) * 0.45f), Vector3.one * 0.18f, red);
+                cherries.Add(FGMesh.P(PrimitiveType.Sphere, new Vector3(Mathf.Cos(i * 2.1f) * 0.45f, 0.55f + (i % 3) * 0.22f, Mathf.Sin(i * 2.1f) * 0.45f), Vector3.one * 0.18f, red));
+            p.cherries = FGMesh.Bake(p.plant, "Cerezas", cherries, "cultivoCerezas").transform;
             return p;
         }
 
@@ -52,7 +56,7 @@ namespace FloatGardens
         {
             if (growth < 1) growth = Mathf.Min(1, growth + dt / FGConfig.RegrowTime * rate);
             plant.localScale = Vector3.one * (0.35f + growth * 0.65f);
-            cherries.gameObject.SetActive(Ripe);
+            if (cherries.gameObject.activeSelf != Ripe) cherries.gameObject.SetActive(Ripe);
             if (onWater)
             {
                 var p = transform.position;
@@ -81,14 +85,16 @@ namespace FloatGardens
             l.amount = amount;
             l.crate = crate;
             l.t = Random.value * 6;
-            l.body = new GameObject("Cuerpo").transform;
-            l.body.SetParent(go.transform, false);
-            if (crate)
-            {
-                Planter.Part(l.body, PrimitiveType.Cube, Vector3.zero, new Vector3(0.8f, 0.6f, 0.8f), FGMaterials.Lit("#8b5a2b", 0.2f));
-                Planter.Part(l.body, PrimitiveType.Cube, new Vector3(0, 0.15f, 0), new Vector3(0.82f, 0.12f, 0.82f), FGMaterials.Lit("#2fbf71", 0.4f));
-            }
-            else Planter.Part(l.body, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.44f, FGMaterials.Emissive("orbeCereza", FGMaterials.Hex("#e0413a"), 1.5f));
+            l.body = (crate
+                ? FGMesh.Bake(go.transform, "Cuerpo", new[]
+                {
+                    FGMesh.P(PrimitiveType.Cube, Vector3.zero, new Vector3(0.8f, 0.6f, 0.8f), FGMaterials.Lit("#8b5a2b", 0.2f)),
+                    FGMesh.P(PrimitiveType.Cube, new Vector3(0, 0.15f, 0), new Vector3(0.82f, 0.12f, 0.82f), FGMaterials.Lit("#2fbf71", 0.4f)),
+                }, "cajaCafe")
+                : FGMesh.Bake(go.transform, "Cuerpo", new[]
+                {
+                    FGMesh.P(PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.44f, FGMaterials.Emissive("orbeCereza", FGMaterials.Hex("#e0413a"), 1.5f)),
+                }, "orbeCereza")).transform;
             l.ringMat = FGMaterials.Instance(FGMaterials.Transparent(crate ? "anilloCaja" : "anilloCereza", crate ? new Color(1, 0.83f, 0.3f, 0.7f) : new Color(1, 0.42f, 0.36f, 0.7f)));
             var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             Object.Destroy(ring.GetComponent<Collider>());
@@ -130,12 +136,14 @@ namespace FloatGardens
             var z = go.AddComponent<CaptureZone>();
             z.def = def;
             var t = go.transform;
-            Planter.Part(t, PrimitiveType.Cube, new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1.4f), FGMaterials.Lit("#5a3a24", 0.2f));
+            // Mostrador, postes y asta: una malla compartida por todas las zonas
+            var stall = new List<FGMesh.Part> { FGMesh.P(PrimitiveType.Cube, new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1.4f), FGMaterials.Lit("#5a3a24", 0.2f)) };
+            foreach (var p in new[] { new Vector2(-1.8f, -1.1f), new Vector2(1.8f, -1.1f), new Vector2(-1.8f, 1.1f), new Vector2(1.8f, 1.1f) })
+                stall.Add(FGMesh.P(PrimitiveType.Cube, new Vector3(p.x, 1.3f, p.y), new Vector3(0.1f, 2.5f, 0.1f), FGMaterials.Lit("#cccccc", 0.6f)));
+            stall.Add(FGMesh.P(PrimitiveType.Cylinder, new Vector3(2.6f, 3.5f, 0), new Vector3(0.12f, 3.5f, 0.12f), FGMaterials.Lit("#dddddd", 0.6f)));
+            FGMesh.Bake(t, "Kiosco", stall, "kioscoZona");
             z.canopyMat = FGMaterials.Instance(FGMaterials.Lit("toldoZona", Fed, null, 0.3f));
             Planter.Part(t, PrimitiveType.Cube, new Vector3(0, 2.6f, 0), new Vector3(3.8f, 0.25f, 2.4f), z.canopyMat);
-            foreach (var p in new[] { new Vector2(-1.8f, -1.1f), new Vector2(1.8f, -1.1f), new Vector2(-1.8f, 1.1f), new Vector2(1.8f, 1.1f) })
-                Planter.Part(t, PrimitiveType.Cube, new Vector3(p.x, 1.3f, p.y), new Vector3(0.1f, 2.5f, 0.1f), FGMaterials.Lit("#cccccc", 0.6f));
-            Planter.Part(t, PrimitiveType.Cylinder, new Vector3(2.6f, 3.5f, 0), new Vector3(0.12f, 3.5f, 0.12f), FGMaterials.Lit("#dddddd", 0.6f));
             z.flagMat = FGMaterials.Instance(FGMaterials.Lit("banderaZona", Fed, null, 0.3f));
             var flagGo = GameObject.CreatePrimitive(PrimitiveType.Cube);
             Object.Destroy(flagGo.GetComponent<Collider>());

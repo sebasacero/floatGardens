@@ -1,0 +1,109 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script></head><body>
+<script type="module">
+import * as THREE from 'three';
+const P=new URLSearchParams(location.search);
+const W=+P.get('w')||1920,H=+P.get('h')||1080,MODE=P.get('mode')||'house';
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:MODE==='cherry',preserveDrawingBuffer:true});
+renderer.setSize(W,H);renderer.setPixelRatio(1);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=+P.get('exp')||1.05;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
+const R=(a,b)=>a+(b-a)*rnd();
+const C=c=>new THREE.Color(c);
+// --- simple merger with vertex colors
+class Merge{constructor(){this.p=[];this.n=[];this.c=[]}
+  add(g,m,col){g=g.index?g.toNonIndexed():g.clone();g.applyMatrix4(m);if(!g.attributes.normal)g.computeVertexNormals();
+    const a=g.attributes.position.array,nn=g.attributes.normal.array;for(let i=0;i<a.length;i++){this.p.push(a[i]);this.n.push(nn[i])}
+    for(let i=0;i<a.length/3;i++){const v=col.clone().multiplyScalar(R(.92,1.06));this.c.push(v.r,v.g,v.b)}}
+  geo(){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(this.p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(this.n,3));g.setAttribute('color',new THREE.Float32BufferAttribute(this.c,3));return g}}
+const M4=(x,y,z,ry=0,sx=1,sy=1,sz=1,rx=0,rz=0)=>new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,rz,'YXZ')),new THREE.Vector3(sx,sy,sz));
+// coffee leaf: elongated, glossy, wavy
+const leaf=(()=>{const g=new THREE.PlaneGeometry(1,1,2,6);const p=g.attributes.position;
+  for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i)+.5;const wd=Math.sin(Math.min(y,1)*Math.PI)**.8*(y<.1?.5:1);x*=wd;p.setXYZ(i,x*.4,y,Math.abs(x)*.22-y*y*.25)}
+  g.computeVertexNormals();return g})();
+const cherryG=new THREE.IcosahedronGeometry(1,2);
+function coffeePlant(M,H,cherries){
+  M.add(new THREE.CylinderGeometry(.018,.03,H,6),M4(0,H/2,0),C('#6b4a2e'));
+  const tiers=Math.round(H/.11);
+  for(let t=1;t<=tiers;t++){const y=t*(H/(tiers+1)),k=t/tiers,len=(1-k*.65)*R(.5,.7)*H/1.3;
+    for(const side of [0,1]){const a=t*2.1+side*Math.PI+R(-.35,.35);const dx=Math.cos(a),dz=Math.sin(a);
+      M.add(new THREE.CylinderGeometry(.006,.01,len,4),M4(dx*len/2,y-len*.08,dz*len/2,-a,1,1,1,0,Math.PI/2-.15),C('#5d4a2e'));
+      const nl=Math.max(2,Math.round(len/.075));
+      for(let l=1;l<=nl;l++){const f=l/nl,bx=dx*len*f,bz=dz*len*f,by=y-len*f*.18;
+        for(const s of [-1,1]){const sz=R(.17,.24)*(1-f*.25)*Math.min(1,H/.9);
+          const m=new THREE.Matrix4().makeTranslation(bx,by,bz).multiply(new THREE.Matrix4().makeRotationY(-a)).multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(R(-.4,-.1),s*R(.9,1.3),Math.PI/2-R(.6,1.0)*s,'XYZ'))).multiply(new THREE.Matrix4().makeScale(sz,sz,sz));
+          const pal=k>.82?['#79b83c','#8cc84a']:['#1f5f27','#2c7a2f','#357f30','#24682a'];M.add(leaf,m,C(pal[Math.floor(rnd()*pal.length)]))}
+        if(cherries&&f<.8&&k<.85&&rnd()<.42){const n=2+Math.floor(rnd()*4);for(let c=0;c<n;c++){const q=rnd();const cc=q<.55?C('#b3121a'):q<.75?C('#e0471c'):q<.88?C('#e8a31f'):C('#7aa63a');
+          M.add(cherryG,M4(bx+R(-.03,.03),by-.03+R(-.025,.02),bz+R(-.03,.03),0,.021,.025,.021),cc)}}
+      }}}
+  for(let i=0;i<4;i++){const sz=R(.1,.13);M.add(leaf,new THREE.Matrix4().makeTranslation(0,H,0).multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(R(-.3,.3),i*1.57,R(-.3,.3)))).multiply(new THREE.Matrix4().makeScale(sz,sz,sz)),C('#8cc84a'))}
+}
+const scene=new THREE.Scene();
+const plantMat=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.42,metalness:0});
+if(MODE==='cherry'){
+  // close-up cluster of ripe cherries on a branch, transparent background
+  const M=new Merge();
+  M.add(new THREE.CylinderGeometry(.012,.016,.6,8),M4(0,0,0,0,1,1,1,0,Math.PI/2-.25),C('#6b4a2e'));
+  for(const [cx,n] of [[-.13,9],[.04,11],[.2,7]]){for(let c=0;c<n;c++){const q=rnd();const cc=q<.6?C('#b80f18'):q<.8?C('#d9301a'):q<.9?C('#e8861f'):C('#88b23e');
+    const ang=rnd()*6.28,rr=R(.015,.05);M.add(cherryG,M4(cx+Math.cos(ang)*rr,-.02+cx*.25+R(-.04,.02),Math.sin(ang)*rr+.02,0,.032,.037,.032),cc)}}
+  for(const [x,a,s] of [[-.22,2.3,.36],[-.05,.7,.32],[.14,2.6,.3],[.28,.4,.34],[.02,-1.2,.28]]){M.add(leaf,new THREE.Matrix4().makeTranslation(x,.02+x*.25,-.02).multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(-.5,0,a))).multiply(new THREE.Matrix4().makeScale(s,s,s)),C(rnd()<.5?'#2c7a2f':'#3a8c34'))}
+  const mesh=new THREE.Mesh(M.geo(),new THREE.MeshPhysicalMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.25,clearcoat:.8,clearcoatRoughness:.2}));mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);
+  scene.add(new THREE.HemisphereLight('#ffffff','#5a7a40',1.6));const d=new THREE.DirectionalLight('#fff6e6',3);d.position.set(1,2,2);scene.add(d);
+  const d2=new THREE.DirectionalLight('#dff0ff',1.2);d2.position.set(-2,.5,1);scene.add(d2);
+  const cam=new THREE.PerspectiveCamera(30,W/H,.01,10);cam.position.set(0,.05,1.25);cam.lookAt(0,0,0);
+  renderer.setClearColor(0,0);renderer.render(scene,cam);window.DONE=true;
+} else {
+const BG=C('#e7ecec');scene.background=BG;scene.fog=new THREE.Fog(BG,14,75);
+const hemi=new THREE.HemisphereLight('#f4f8ff','#b7c2a8',1.7);scene.add(hemi);
+const sun=new THREE.DirectionalLight('#fffaf0',2.6);sun.position.set(9,22,6);sun.castShadow=true;
+sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-14,right:14,top:30,bottom:-30,near:1,far:80});sun.shadow.bias=-.0004;sun.shadow.radius=4;
+sun.target.position.set(0,0,-22);scene.add(sun,sun.target);
+const std=(c,r=.6,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const add=(g,m,x,y,z,sh=true)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=sh;o.receiveShadow=true;scene.add(o);return o};
+// floor
+add(new THREE.PlaneGeometry(80,140),std('#d9dbd6',.95),0,0,-60,false).rotation.x=-Math.PI/2;
+add(new THREE.PlaneGeometry(1.8,140),std('#eef0ec',.8),0,.005,-60,false).rotation.x=-Math.PI/2;
+// plant variants
+const variants=[];for(let v=0;v<5;v++){const M=new Merge();coffeePlant(M,R(1.05,1.35),true);variants.push(M.geo())}
+const L=90,step=.42,rowsX=[];for(let s of [-1,1])for(let i=0;i<9;i++)rowsX.push(s*(1.35+i*1.25));
+const white=std('#f4f6f5',.45,.1),steel=std('#f0f2f2',.35,.4);
+const counts=variants.map(()=>0),mats=variants.map(()=>[]);
+for(const x of rowsX){
+  // hydroponic gutter on stands
+  add(new THREE.BoxGeometry(.32,.16,L),white,x,.62,-L/2-1);
+  add(new THREE.BoxGeometry(.04,.03,L),std('#6fae3a',.5),x+.17*Math.sign(-x),.66,-L/2-1,false);
+  for(let z=-1;z>-L;z-=3){add(new THREE.BoxGeometry(.05,.55,.05),steel,x,.27,z)}
+  for(let z=-1.5;z>-L;z-=step){const v=Math.floor(rnd()*variants.length);
+    mats[v].push(new THREE.Matrix4().compose(new THREE.Vector3(x+R(-.05,.05),.7,z+R(-.06,.06)),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rnd()*6.28,0)),new THREE.Vector3(1,R(.9,1.1),1).multiplyScalar(R(.92,1.08))))}
+  // vertical support wires
+  for(let z=-1.3;z>-L;z-=1.2)add(new THREE.CylinderGeometry(.004,.004,4.3,3),std('#ffffff',.3),x,2.85+.7,z,false);
+}
+variants.forEach((g,i)=>{const im=new THREE.InstancedMesh(g,plantMat,mats[i].length);mats[i].forEach((m,j)=>im.setMatrixAt(j,m));im.castShadow=im.receiveShadow=true;scene.add(im)});
+// structure: venlo bays 4m wide, gable roofs
+const bay=4,eave=5.2,ridge=6.4;
+for(let bx=-26;bx<=26;bx+=bay){
+  for(let z=0;z>-L-5;z-=5){add(new THREE.BoxGeometry(.12,eave,.12),steel,bx,eave/2,z)}
+  add(new THREE.BoxGeometry(.18,.1,L+10),steel,bx,eave,-L/2);// gutter
+  if(bx<26){// ridge + glazing bars
+    const cx=bx+bay/2;add(new THREE.BoxGeometry(.08,.08,L+10),steel,cx,ridge,-L/2);
+    const sl=Math.hypot(bay/2,ridge-eave),ang=Math.atan2(ridge-eave,bay/2);
+    for(let z=0;z>-L-5;z-=1.25){for(const s of [-1,1]){const o=add(new THREE.BoxGeometry(sl,.035,.035),steel,cx+s*bay/4,(eave+ridge)/2,z,false);o.rotation.z=s*-ang}}
+    const gl=new THREE.MeshStandardMaterial({color:'#ffffff',transparent:true,opacity:.18,roughness:.1,depthWrite:false});
+    for(const s of [-1,1]){const o=add(new THREE.PlaneGeometry(sl,L+10),gl,cx+s*bay/4,(eave+ridge)/2,-L/2,false);o.rotation.set(-Math.PI/2,s*ang,0,'YXZ');o.castShadow=false}
+  }}
+// trusses across every 5m
+for(let z=0;z>-L-5;z-=5){add(new THREE.BoxGeometry(50,.1,.1),steel,0,eave-.05,z);add(new THREE.BoxGeometry(50,.05,.05),steel,0,eave-.6,z,false);
+  for(let x=-24;x<24;x+=1){const o=add(new THREE.BoxGeometry(.03,.75,.03),steel,x+.5,eave-.33,z,false);o.rotation.z=(Math.round(x)%2?1:-1)*.7}}
+// grow-light bars and heating pipes
+for(const x of rowsX){add(new THREE.BoxGeometry(.1,.05,L),std('#dfe3e3',.4,.3),x,3.9,-L/2-1,false)}
+for(const x of rowsX)for(const o of [-.25,.25])add(new THREE.CylinderGeometry(.025,.025,L,8),std('#e9ecec',.2,.6),x+o,.1,-L/2-1).rotation.x=Math.PI/2;
+// end wall glow
+add(new THREE.PlaneGeometry(60,8),new THREE.MeshBasicMaterial({color:'#f3f6f6'}),0,4,-L-3,false);
+const cam=new THREE.PerspectiveCamera(+P.get('fov')||50,W/H,.1,200);
+cam.position.set(+P.get('cx')||0,+P.get('cy')||1.55,+P.get('cz')||2.2);cam.lookAt(+P.get('tx')||0,+P.get('ty')||1.9,-30);
+renderer.render(scene,cam);window.DONE=true;
+}
+</script></body></html>

@@ -1,4 +1,4 @@
-// Generación de Bogotá: manzanas por barrio, Av. Caracas, cerros con Monserrate, Plaza de Bolívar y la torre de Coffee Land.
+// Generación de Bogotá: manzanas por barrio, Av. Caracas, cerros con bosque (Monserrate y Guadalupe), Plaza de Bolívar y la torre de Coffee Land.
 // De noche la ciudad se enciende sola: ventanas, neones de las agrocorporaciones, hologramas, LEDs de los
 // invernaderos en las azoteas y postes (Atmosphere llama SetNight con la hora del día).
 // Coordenadas: x = oriente, z = norte. La fila 0 del mapa es el norte.
@@ -15,6 +15,7 @@ namespace FloatGardens
         const float Half = FGConfig.Half;
         const float Block = FGConfig.Block;
         const float Lot = Block / 2f - 2f; // 2 m de andén
+        const float ChunkSize = Cell * 3f; // lado de cada sector de la ciudad (ver MeshBuilder.BuildChunked)
 
         System.Random rng;
         readonly Dictionary<string, MeshBuilder> builders = new Dictionary<string, MeshBuilder>();
@@ -150,7 +151,8 @@ namespace FloatGardens
             BuildBounds();
 
             BuildDrones();
-            foreach (var kv in builders) kv.Value.Build(kv.Key, builderMats[kv.Key], transform, !noShadow.Contains(kv.Key));
+            // Por sectores de 3x3 manzanas: lo que no ve la cámara ni cae en la distancia de sombras no se dibuja
+            foreach (var kv in builders) kv.Value.BuildChunked(kv.Key, builderMats[kv.Key], transform, ChunkSize, !noShadow.Contains(kv.Key));
             BuildMinimap();
         }
 
@@ -900,26 +902,61 @@ namespace FloatGardens
             }
         }
 
-        // Cerros orientales con Monserrate, su santuario blanco y el teleférico
+        // Cerros orientales: una ladera continua de ruido (no conos sueltos) con bosque, Monserrate y Guadalupe
         void BuildMountains()
         {
-            var green = B("cerro1", FGMaterials.Lit("#3d6b3a", 0.05f));
-            var green2 = B("cerro2", FGMaterials.Lit("#2f5a33", 0.05f));
-            float[][] peaks =
+            var forest = Scenery.ForestTexture(512, out var forestNormal);
+            var forestMat = FGMaterials.Lit("bosque", Color.white, forest, 0.06f);
+            forestMat.SetTexture("_BumpMap", forestNormal);
+            forestMat.SetFloat("_BumpScale", 1f);
+            forestMat.EnableKeyword("_NORMALMAP");
+            var hills = B("cerros", forestMat);
+            noShadow.Add("cerros");
+            const float x0 = 340f, x1 = 820f, z0 = -700f, z1 = 700f, step = 5f;
+            int nx = Mathf.RoundToInt((x1 - x0) / step), nz = Mathf.RoundToInt((z1 - z0) / step);
+            var verts = new List<Vector3>((nx + 1) * (nz + 1));
+            var uvs = new List<Vector2>(verts.Capacity);
+            var tris = new List<int>(nx * nz * 6);
+            float Height(float x, float z)
             {
-                new[] { 430f, 380, 130, 150 }, new[] { 470f, 260, 150, 190 }, new[] { 440f, 120, 120, 160 }, new[] { 455f, -20, 140, 185 },
-                new[] { 440f, -150, 130, 210 }, new[] { 470f, -300, 150, 180 }, new[] { 430f, -430, 120, 140 }, new[] { 560f, 200, 160, 230 }, new[] { 580f, -150, 170, 240 },
-            };
-            Mesh cone = MeshBuilder.Cone(7, 1, 1);
-            for (int i = 0; i < peaks.Length; i++)
-            {
-                var p = peaks[i];
-                (i % 2 == 0 ? green2 : green).Add(cone, Matrix4x4.TRS(new Vector3(p[0], -2, p[1]), Quaternion.Euler(0, i * 57, 0), new Vector3(p[2], p[3], p[2])));
+                // La ladera sube desde la ciudad (x 340) hasta la cresta (x ~ 520) y sigue alta hacia el oriente
+                float slope = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(345f, 520f, x));
+                float crest = 165f + 45f * Scenery.Fbm(x * 0.004f + 3f, z * 0.0035f, 64, 3, 41);
+                float ridges = (Scenery.Fbm(x * 0.012f, z * 0.012f, 64, 5, 17) - 0.5f) * 70f * slope;
+                float h = slope * crest + ridges;
+                // Picos: Monserrate (santuario) y Guadalupe (la Virgen), un poco más alto
+                h = Mathf.Max(h, 197f * Mathf.Exp(-(Sq(x - 440f) + Sq(z + 150f)) / Sq(75f)));
+                h = Mathf.Max(h, 214f * Mathf.Exp(-(Sq(x - 462f) + Sq(z + 20f)) / Sq(70f)));
+                return Mathf.Max(0f, h - 2f);
             }
-            // Monserrate: pico de 210 m al oriente de La Candelaria
+            for (int j = 0; j <= nz; j++)
+                for (int i = 0; i <= nx; i++)
+                {
+                    float x = x0 + i * step, z = z0 + j * step;
+                    verts.Add(new Vector3(x, Height(x, z), z));
+                    uvs.Add(new Vector2(x / 46f, z / 46f));
+                }
+            int w = nx + 1;
+            for (int j = 0; j < nz; j++)
+                for (int i = 0; i < nx; i++)
+                {
+                    int a = j * w + i, b = a + 1, c = a + w, d = c + 1;
+                    tris.Add(a); tris.Add(c); tris.Add(b);
+                    tris.Add(b); tris.Add(c); tris.Add(d);
+                }
+            var mesh = new Mesh { name = "Cerros", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            mesh.SetVertices(verts);
+            mesh.SetUVs(0, uvs);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateNormals();
+            hills.Add(mesh, Matrix4x4.identity);
+            // Guadalupe: la estatua blanca de la Virgen sobre su pedestal
             var white = B("santuario", FGMaterials.Lit("#f5f5f0", 0.3f));
-            white.Box(440, -150, 198, 14, 8, 8);
-            white.Box(434, -150, 198, 4, 16, 4);
+            white.Box(462, -20, 211, 5, 3, 5);
+            white.Box(462, -20, 214, 1.6f, 9, 1.6f);
+            // Monserrate: la iglesia blanca sobre el pico, al oriente de La Candelaria
+            white.Box(440, -150, 194, 14, 8, 8);
+            white.Box(434, -150, 194, 4, 16, 4);
             cableStart = new Vector3(352, 2, -170);
             cableEnd = new Vector3(432, 196, -152);
             var lineGo = new GameObject("CableTeleferico");
@@ -937,6 +974,8 @@ namespace FloatGardens
             cab.GetComponent<MeshRenderer>().sharedMaterial = FGMaterials.Lit("#d6423a", 0.4f);
             cabin = cab.transform;
         }
+
+        static float Sq(float v) => v * v;
 
         static Mesh icosa;
         static Mesh Icosahedron()
@@ -995,12 +1034,34 @@ namespace FloatGardens
             };
             Mesh cyl = MeshBuilder.Primitive(PrimitiveType.Cylinder);
             Mesh ico = Icosahedron();
+            // Copa de varios lóbulos alrededor del eje y ramas que salen del tronco: siluetas de árbol de verdad,
+            // no una bola sobre un palo. Cada árbol mezcla dos tonos de hoja.
             foreach (var s in treeSpots)
             {
                 bool small = s.y > 0.25f;
                 float k = small ? 0.7f : RR(0.9f, 1.5f);
-                trunks.Add(cyl, Matrix4x4.TRS(new Vector3(s.x, 1.5f * k + 0.25f, s.z), Quaternion.identity, new Vector3(0.6f * k, 1.5f * k, 0.6f * k)));
-                leaves[rng.Next(leaves.Length)].Add(ico, Matrix4x4.TRS(new Vector3(s.x, 4f * k + 0.25f, s.z), Quaternion.Euler(0, R() * 360, 0), new Vector3(2.2f * k, 2.5f * k, 2.2f * k)));
+                float trunkH = 2.6f * k, crownY = 0.25f + trunkH + 1.2f * k;
+                float lean = RR(-6f, 6f);
+                trunks.Add(cyl, Matrix4x4.TRS(new Vector3(s.x, 0.25f + trunkH / 2, s.z), Quaternion.Euler(lean, 0, 0), new Vector3(0.5f * k, trunkH / 2, 0.5f * k)));
+                int branches = small ? 2 : 3;
+                for (int b = 0; b < branches; b++)
+                {
+                    float a = R() * Mathf.PI * 2, len = RR(1.2f, 1.9f) * k;
+                    var dir = new Vector3(Mathf.Cos(a) * 0.8f, 1f, Mathf.Sin(a) * 0.8f).normalized;
+                    Vector3 from = new Vector3(s.x, 0.25f + trunkH * RR(0.55f, 0.85f), s.z);
+                    trunks.Add(cyl, Matrix4x4.TRS(from + dir * len / 2, Quaternion.FromToRotation(Vector3.up, dir), new Vector3(0.22f * k, len / 2, 0.22f * k)));
+                }
+                var tone = leaves[rng.Next(leaves.Length)];
+                var tone2 = leaves[rng.Next(leaves.Length)];
+                int lobes = small ? 3 : 5;
+                tone.Add(ico, Matrix4x4.TRS(new Vector3(s.x, crownY + 0.4f * k, s.z), Quaternion.Euler(0, R() * 360, 0), new Vector3(2.1f * k, 2.3f * k, 2.1f * k)));
+                for (int l = 0; l < lobes; l++)
+                {
+                    float a = l * Mathf.PI * 2 / lobes + R() * 0.6f, rad = RR(1.1f, 1.6f) * k;
+                    Vector3 p = new Vector3(s.x + Mathf.Cos(a) * rad, crownY + RR(-0.5f, 0.6f) * k, s.z + Mathf.Sin(a) * rad);
+                    float sz = RR(1.3f, 1.8f) * k;
+                    (l % 2 == 0 ? tone : tone2).Add(ico, Matrix4x4.TRS(p, Quaternion.Euler(R() * 360, R() * 360, R() * 360), new Vector3(sz, sz * RR(0.8f, 1.1f), sz)));
+                }
                 Collider(new Vector3(s.x, 1.5f, s.z), new Vector3(0.6f, 3, 0.6f));
             }
         }

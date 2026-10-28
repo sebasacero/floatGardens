@@ -4,6 +4,30 @@
   const money = (n) => '$' + Math.round(n).toLocaleString('es-CO');
   const TWO_PI = Math.PI * 2;
 
+  // El HUD se actualiza en cada cuadro: solo tocamos el DOM cuando un valor cambia de verdad,
+  // así el navegador no recalcula estilos ni diseño 60 veces por segundo.
+  const els = {};
+  const el = (id) => els[id] || (els[id] = $(id));
+  const last = new Map();
+  function set(id, prop, value) {
+    const k = id + ':' + prop;
+    if (last.get(k) === value) return;
+    last.set(k, value);
+    const e = el(id);
+    if (prop === 'text') e.textContent = value;
+    else if (prop === 'html') e.innerHTML = value;
+    else if (prop === 'class') e.className = value;
+    else if (prop.startsWith('--')) e.style.setProperty(prop, value);
+    else e.style[prop] = value;
+  }
+  function toggle(id, cls, on) {
+    const k = id + '.' + cls;
+    on = !!on;
+    if (last.get(k) === on) return;
+    last.set(k, on);
+    el(id).classList.toggle(cls, on);
+  }
+
   const HUD = {
     init() {
       this.el = $('hud');
@@ -25,61 +49,53 @@
 
       // vida
       const frac = Math.max(0, p.hp / p.maxHp);
-      $('hpFill').style.width = `${frac * 100}%`;
-      $('hpFill').className = frac < 0.3 ? 'low' : '';
-      $('hpText').textContent = `${Math.ceil(Math.max(0, p.hp))}`;
-      $('cherries').textContent = G.cherries;
+      set('hpFill', 'width', `${frac * 100}%`);
+      set('hpFill', 'class', frac < 0.3 ? 'low' : '');
+      set('hpText', 'text', `${Math.ceil(Math.max(0, p.hp))}`);
+      set('cherries', 'text', G.cherries);
       // arma
-      $('ammo').textContent = p.ammo;
-      $('ammoMax').textContent = `/ ${p.magSize}`;
-      $('ammo').className = p.ammo <= 3 ? 'low' : '';
-      const rl = $('reloadBar');
-      if (p.reloading > 0) {
-        rl.classList.remove('hidden');
-        rl.firstElementChild.style.width = `${(1 - p.reloading / p.reloadTime) * 100}%`;
-      } else rl.classList.add('hidden');
-      $('wMoney').textContent = money(G.save.money);
-      $('wPoints').textContent = `★ ${G.save.puntos}`;
+      set('ammo', 'text', p.ammo);
+      set('ammoMax', 'text', `/ ${p.magSize}`);
+      set('ammo', 'class', p.ammo <= 3 ? 'low' : '');
+      toggle('reloadBar', 'hidden', !(p.reloading > 0));
+      if (p.reloading > 0) set('reloadFill', 'width', `${(1 - p.reloading / p.reloadTime) * 100}%`);
+      set('wMoney', 'text', money(G.save.money));
+      set('wPoints', 'text', `★ ${G.save.puntos}`);
 
       // ubicación
       const d = G.currentDistrict;
       if (d) {
-        $('locDistrict').textContent = d.name;
-        $('locDistrict').className = G.isMarket(p.pos.x, p.pos.z) ? 'ours' : 'theirs';
-        $('locStreet').textContent = W.World.streetName(p.pos.x, p.pos.z);
+        set('locDistrict', 'text', d.name);
+        set('locDistrict', 'class', G.isMarket(p.pos.x, p.pos.z) ? 'ours' : 'theirs');
+        set('locStreet', 'text', W.World.streetName(p.pos.x, p.pos.z));
       }
 
       // objetivo
       const obj = G.objective();
-      $('objTitle').textContent = obj.title;
-      $('objSub').textContent = obj.target ? `${Math.round(Math.hypot(obj.target.x - p.pos.x, obj.target.z - p.pos.z))} m · ${obj.sub}` : obj.sub;
+      set('objTitle', 'text', obj.title);
+      set('objSub', 'text', obj.target ? `${Math.round(Math.hypot(obj.target.x - p.pos.x, obj.target.z - p.pos.z))} m · ${obj.sub}` : obj.sub);
 
       // captura
       const cz = G.capturing;
-      const cap = $('capture');
+      toggle('capture', 'hidden', !cz);
       if (cz) {
-        cap.classList.remove('hidden');
-        $('capName').textContent = cz.contested ? `${cz.zone.name} · ¡ELIMINA A LOS ENEMIGOS!` : `CAPTURANDO ${cz.zone.name.toUpperCase()}`;
-        $('capFill').style.width = `${cz.zone.progress * 100}%`;
-        cap.classList.toggle('contested', cz.contested);
-      } else cap.classList.add('hidden');
+        set('capName', 'text', cz.contested ? `${cz.zone.name} · ¡ELIMINA A LOS ENEMIGOS!` : `CAPTURANDO ${cz.zone.name.toUpperCase()}`);
+        set('capFill', 'width', `${cz.zone.progress * 100}%`);
+        toggle('capture', 'contested', cz.contested);
+      }
 
       // jefe
       const b = G.boss;
-      const bb = $('bossbar');
-      if (b && !b.dead) {
-        bb.classList.remove('hidden');
-        $('bossFill').style.width = `${(b.hp / b.maxHp) * 100}%`;
-      } else bb.classList.add('hidden');
+      toggle('bossbar', 'hidden', !(b && !b.dead));
+      if (b && !b.dead) set('bossFill', 'width', `${(b.hp / b.maxHp) * 100}%`);
 
       // indicación de interacción
-      const pr = $('prompt');
-      if (G.prompt) { pr.classList.remove('hidden'); pr.innerHTML = G.prompt; } else pr.classList.add('hidden');
+      toggle('prompt', 'hidden', !G.prompt);
+      if (G.prompt) set('prompt', 'html', G.prompt);
 
       // mira
-      const spread = p.spread;
-      $('crosshair').style.setProperty('--gap', `${6 + spread * 60}px`);
-      $('crosshair').classList.toggle('aim', p.aiming);
+      set('crosshair', '--gap', `${6 + p.spread * 60}px`);
+      toggle('crosshair', 'aim', p.aiming);
 
       // números de daño
       const cam = G.camera;
@@ -112,7 +128,7 @@
       ctx.save();
       ctx.clearRect(0, 0, S, S);
       ctx.beginPath();
-      ctx.arc(R, R, R - 2, 0, TWO_PI);
+      ctx.rect(0, 0, S, S);
       ctx.clip();
       ctx.fillStyle = '#20242a';
       ctx.fillRect(0, 0, S, S);
@@ -141,7 +157,7 @@
       for (const e of G.enemies) if (!e.dead && (e.alerted || Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 45)) dot(e.pos.x, e.pos.z, '#ff4b3a', e.boss ? 6 : 3);
       ctx.restore();
       // jugador (siempre mirando hacia arriba)
-      ctx.fillStyle = '#ffd34d';
+      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.moveTo(R, R - 8); ctx.lineTo(R + 6, R + 6); ctx.lineTo(R, R + 3); ctx.lineTo(R - 6, R + 6);
       ctx.closePath();
@@ -169,10 +185,10 @@
         if (Math.abs(diff) > 62) continue;
         const x = Wd / 2 + diff * pxDeg;
         const alpha = 1 - Math.abs(diff) / 70;
-        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.fillStyle = `rgba(44,48,46,${alpha})`;
         if (labels[b] !== undefined) {
-          ctx.font = `bold ${b % 90 === 0 ? 15 : 12}px system-ui, sans-serif`;
-          ctx.fillStyle = b === 0 ? `rgba(255,211,77,${alpha})` : `rgba(255,255,255,${alpha})`;
+          ctx.font = `${b % 90 === 0 ? 600 : 500} ${b % 90 === 0 ? 14 : 11}px Manrope, system-ui, sans-serif`;
+          ctx.fillStyle = b === 0 ? `rgba(79,143,44,${alpha})` : `rgba(44,48,46,${alpha})`;
           ctx.fillText(labels[b], x, H / 2 - 2);
         } else {
           ctx.fillRect(x - 1, H / 2 - 4, 2, 8);
@@ -187,12 +203,12 @@
         ctx.beginPath();
         ctx.moveTo(x, H - 2); ctx.lineTo(x - 6, H - 10); ctx.lineTo(x + 6, H - 10);
         ctx.fill();
-        if (label) { ctx.font = 'bold 10px system-ui'; ctx.fillText(label, x, 7); }
+        if (label) { ctx.font = '500 10px Manrope, system-ui'; ctx.fillText(label, x, 7); }
       };
       const obj = G.objective();
-      if (obj.target) marker(obj.target.x, obj.target.z, '#ffd34d');
-      marker(440, 150, 'rgba(255,255,255,0.6)', 'Monserrate');
-      ctx.fillStyle = '#ffd34d';
+      if (obj.target) marker(obj.target.x, obj.target.z, '#4f8f2c');
+      marker(440, 150, 'rgba(44,48,46,0.45)', 'Monserrate');
+      ctx.fillStyle = '#2a22f5';
       ctx.fillRect(Wd / 2 - 1, 0, 2, 6);
     },
 
@@ -285,7 +301,7 @@
     },
 
     lowHealth(frac) {
-      $('lowhp').style.opacity = frac < 0.35 ? (0.35 - frac) * 2 : 0;
+      set('lowhp', 'opacity', `${frac < 0.35 ? (0.35 - frac) * 2 : 0}`);
     },
 
     setBigMap(on) { this.big.parentElement.classList.toggle('hidden', !on); },

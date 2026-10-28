@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Float Gardens Control</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Plataforma de control del cultivo hidropónico de café Float Gardens en Kennedy, Neo-Bogotá.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: una "pantalla" a sangre con la foto del invernadero, barra superior de vidrio,
+   tarjeta verde flotante sobre las matas y una franja inferior de métricas pegadas al borde;
+   debajo, la red de terrazas sobre gris salvia. Un solo acento fuerte (azul) para alertas. */
+:root{
+  --ground:#c9cfcb;          /* gris salvia de la página */
+  --ink:#2c302e;             /* texto principal */
+  --ink-2:#7b817e;           /* etiquetas grises */
+  --ink-3:#a9aeab;           /* ejes y unidades */
+  --glass:rgba(246,248,247,.86);
+  --glass-2:rgba(255,255,255,.55);
+  --line:rgba(44,48,46,.12);
+  --leaf:#4f8f2c;            /* verde de datos */
+  --leaf-2:#8fbf45;
+  --lime:#d6e48a;
+  --alert:#2a22f5;           /* único acento fuerte: alertas */
+  --cherry:#c0161c;
+  --display:"Manrope",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:4px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font:400 14px/1.45 var(--display);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 0}
+img{max-width:100%;display:block}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--alert);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums;font-weight:300;letter-spacing:-.02em}
+.u{color:var(--ink-3);font-size:.42em;font-weight:400;letter-spacing:0;margin-left:.25em}
+.lbl{font-size:12px;color:var(--ink-2);font-weight:400}
+.mono{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* ---------- encabezado de página (como el post) ---------- */
+.eyebrow{display:flex;justify-content:space-between;align-items:center;gap:12px;max-width:1440px;margin:0 auto 14px}
+.pill{border:1px solid rgba(44,48,46,.25);border-radius:999px;padding:6px 16px;color:var(--ink);font-size:13px;background:rgba(255,255,255,.25)}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);font-weight:600;letter-spacing:.02em;font-size:13px}
+.brand b{font-weight:300}
+
+/* ---------- pantalla principal ---------- */
+.screen{position:relative;max-width:1440px;margin:0 auto;aspect-ratio:16/9.6;min-height:620px;max-height:900px;
+  background:#e7ecec url(assets/invernadero.jpg) center 42%/cover no-repeat;overflow:hidden;box-shadow:0 30px 80px -40px rgba(30,40,35,.45)}
+.screen::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 22%,transparent 70%,rgba(255,255,255,.08))}
+
+/* barra superior */
+.top{position:absolute;inset:0 0 auto;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;z-index:5}
+.rail{display:flex;background:var(--glass-2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.logo{width:40px;height:40px;display:grid;place-items:center;background:#fff;color:var(--ink)}
+.rail button{width:40px;height:40px;display:grid;place-items:center;color:var(--ink-2);position:relative}
+.rail button[aria-pressed="true"]{background:#fff;color:var(--ink)}
+.rail button:hover{color:var(--ink)}
+.rail svg,.icons svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.4}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.search{display:flex;align-items:center;gap:8px;width:min(480px,100%);height:40px;padding:0 14px;background:var(--glass-2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.search input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:12px;color:var(--ink);outline:none}
+.search input::placeholder{color:var(--ink-2)}
+.selector{display:flex;align-items:center;gap:0;background:var(--glass-2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:11.5px}
+.selector label{display:flex;align-items:center;gap:10px;padding:0 12px;height:32px;color:var(--ink-2)}
+.selector select{border:0;background:none;font:inherit;color:var(--ink);font-weight:500;appearance:none;padding-right:16px;cursor:pointer;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237b817e'/%3E%3C/svg%3E") right center no-repeat}
+.selector button{width:32px;height:32px;display:grid;place-items:center;border-left:1px solid var(--line);color:var(--ink-2)}
+.icons{display:flex;background:var(--glass-2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.icons button{width:40px;height:40px;display:grid;place-items:center;color:var(--ink-2);position:relative}
+.icons button:hover{color:var(--ink)}
+.dot{position:absolute;top:10px;right:10px;width:6px;height:6px;border-radius:50%;background:var(--alert)}
+
+/* marcadores sobre las matas */
+.mark{position:absolute;width:56px;height:56px;z-index:2;cursor:pointer}
+.mark::before,.mark::after{content:"";position:absolute;inset:0;border:1.5px solid rgba(255,255,255,.9);
+  clip-path:polygon(0 0,30% 0,30% 2px,2px 2px,2px 30%,0 30%,0 0,100% 0,100% 30%,calc(100% - 2px) 30%,calc(100% - 2px) 2px,70% 2px,70% 0,100% 0,100% 100%,70% 100%,70% calc(100% - 2px),calc(100% - 2px) calc(100% - 2px),calc(100% - 2px) 70%,100% 70%,100% 100%,0 100%,0 70%,2px 70%,2px calc(100% - 2px),30% calc(100% - 2px),30% 100%,0 100%)}
+.mark::after{display:none}
+.mark span{position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);white-space:nowrap;font-size:10px;color:#fff;background:rgba(40,46,42,.45);padding:2px 6px;opacity:0;transition:opacity .2s}
+.mark:hover span,.mark:focus-visible span,.mark.on span{opacity:1}
+.mark.on::before{border-color:var(--lime)}
+.eye{position:absolute;width:30px;height:30px;display:grid;place-items:center;background:var(--glass);z-index:3}
+.eye svg{width:14px;height:14px;stroke:var(--ink-2);fill:none;stroke-width:1.4}
+
+/* tarjeta verde de cosecha */
+.harvest{position:absolute;left:34.5%;top:19%;width:min(260px,26%);min-width:232px;z-index:4;
+  background:linear-gradient(160deg,#7fb349 0%,#9cc657 45%,#c8dd78 100%);color:#fff;box-shadow:0 18px 50px -20px rgba(40,70,20,.55)}
+.harvest .in{padding:14px 16px 0;position:relative}
+.harvest h3{margin:0;font-size:12px;font-weight:500}
+.harvest .sub{font-size:10.5px;opacity:.8}
+.harvest .big{font-size:40px;line-height:1;margin:22px 0 4px}
+.harvest .big .u{color:rgba(255,255,255,.75)}
+.harvest .eta{font-size:11px;opacity:.9}
+.harvest .cherry{position:absolute;right:6px;top:8px;width:96px;height:auto;filter:drop-shadow(0 6px 8px rgba(60,20,10,.35))}
+.harvest .bars{display:flex;align-items:flex-end;gap:2px;height:44px;margin-top:12px}
+.harvest .bars i{flex:1;background:rgba(255,255,255,.55);height:30%}
+.harvest .bars i.hi{background:#fff}
+.harvest .days{display:flex;justify-content:space-between;font-size:9.5px;opacity:.85;margin:6px 0 0;padding:0 1px}
+.harvest .predict{display:block;width:100%;text-align:center;font-size:11px;padding:12px 0 10px;border-top:1px solid rgba(255,255,255,.3);margin-top:10px;color:#fff}
+.harvest .predict:hover{background:rgba(255,255,255,.12)}
+.actions{display:grid;grid-template-columns:1fr 34px 1fr;background:#fff}
+.actions button{height:34px;font-size:11px;color:var(--ink)}
+.actions button+button{border-left:1px solid var(--line)}
+.actions button:hover{background:#f1f4f1}
+
+/* franja inferior de métricas */
+.dock{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:25fr 25fr 13fr 13fr 24fr;z-index:3;
+  border-top:1px solid rgba(255,255,255,.6)}
+.card{background:var(--glass);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);padding:12px 14px;position:relative;min-width:0}
+.card+.card,.pair>.card+.card{border-left:1px solid rgba(44,48,46,.08)}
+.card .go{position:absolute;top:8px;right:8px;width:22px;height:22px;display:grid;place-items:center;background:#fff;color:var(--ink-2)}
+.card .go svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:1.5}
+.card .num.xl{font-size:34px;line-height:1;margin-top:18px}
+.water{margin-top:-60px}
+.stripes{display:grid;gap:4px;margin:14px 0 0;width:62%}
+.stripes i{height:4px;border:1px solid #b9bfbc;border-radius:1px}
+.stripes i.f{border-color:var(--leaf);background:linear-gradient(90deg,rgba(143,191,69,.25),rgba(143,191,69,.1))}
+.spent{position:absolute;right:14px;bottom:56px;font-size:10px;color:var(--ink-2);display:flex;align-items:center;gap:8px}
+.spent::before{content:"";width:60px;border-top:1px dashed var(--ink-3)}
+.water .base{height:2px;background:var(--leaf);margin-top:8px;width:100%}
+.legend{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:10.5px;color:var(--ink-2);margin-top:8px}
+.legend span:nth-child(even){text-align:right;color:var(--ink)}
+.ticks{display:flex;align-items:flex-end;gap:1.5px;height:56px;margin-top:10px}
+.ticks i{flex:1;background:#c7ccc9;min-height:3px}
+.ticks i.g{background:var(--leaf-2)}
+.ticks i.r{background:#d75a5a}
+.axis{display:flex;justify-content:space-between;margin-top:6px}
+.pair{display:grid;grid-template-rows:1fr 1fr}
+.pair .card{padding:10px 12px}
+.pair .num{font-size:26px;margin-top:12px;line-height:1}
+.co2 svg{width:100%;height:84px;display:block;margin-top:6px;overflow:visible}
+
+/* panel de alerta azul */
+.alert{position:absolute;top:64px;right:14px;bottom:262px;width:min(290px,30%);background:var(--alert);color:#fff;z-index:6;
+  padding:14px 16px;display:flex;flex-direction:column;gap:10px;font-size:11px;overflow:auto;
+  transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .35s}
+.alert.off{transform:translateX(110%);opacity:0;pointer-events:none}
+.alert header{display:flex;justify-content:space-between;align-items:center;font-size:10px;opacity:.85}
+.alert h4{margin:0;font-size:17px;font-weight:600;line-height:1.15}
+.alert .row{display:grid;grid-template-columns:70px 1fr;gap:8px;border-top:1px solid rgba(255,255,255,.22);padding-top:8px}
+.alert .row b{font-weight:400;opacity:.75}
+.alert .bp{width:100%;height:auto;max-height:140px}
+.alert .tele{display:flex;gap:2px;align-items:center;height:12px}
+.alert .tele i{flex:1;height:6px;background:rgba(255,255,255,.35)}
+.alert .tele i.w{background:#fff;height:12px}
+.alert .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+.alert .meta strong{display:block;font-size:20px;font-weight:300}
+.alert .ack{background:#fff;color:var(--alert);padding:9px 0;font-weight:600;font-size:11px;letter-spacing:.02em}
+.alert .ack:hover{background:#e8e7ff}
+.alert .x{width:22px;height:22px;display:grid;place-items:center;color:#fff}
+
+/* toast */
+.toast{position:absolute;left:50%;bottom:190px;transform:translate(-50%,20px);background:rgba(40,46,42,.85);color:#fff;font-size:12px;padding:8px 14px;opacity:0;transition:.3s;z-index:9;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.handle{position:absolute;left:14px;bottom:8px;color:rgba(255,255,255,.9);font-size:11px;z-index:2}
+
+/* ---------- red de terrazas ---------- */
+.below{max-width:1440px;margin:0 auto;padding-block:56px 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.2fr);gap:40px}
+.below h2{font-size:clamp(28px,3.4vw,46px);font-weight:300;line-height:1.05;margin:0;letter-spacing:-.025em;text-wrap:balance;color:#fff}
+.below h2 b{font-weight:500;color:var(--ink)}
+.below p{max-width:42ch;color:#4a504d;margin:16px 0 0}
+.kpis{display:flex;gap:28px;margin-top:28px;flex-wrap:wrap}
+.kpis .num{font-size:30px;display:block}
+.net{background:var(--glass);min-width:0}
+.net-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}
+.filters{display:flex;gap:4px}
+.filters button{font-size:11px;padding:5px 10px;color:var(--ink-2);border:1px solid var(--line)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px}
+th{font-weight:400;color:var(--ink-2);font-size:11px;text-align:left;padding:10px 16px}
+td{white-space:nowrap;padding:12px 16px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+tr:hover td{background:rgba(255,255,255,.6)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:2px 8px;border:1px solid var(--line);background:#fff}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--leaf)}
+.chip.warn::before{background:#d9a21b}
+.chip.crit{background:var(--alert);color:#fff;border-color:var(--alert)}
+.chip.crit::before{background:#fff}
+.meter{display:flex;align-items:center;gap:8px}
+.meter i{display:block;width:70px;height:4px;background:#dfe3e0;position:relative}
+.meter i::after{content:"";position:absolute;inset:0;width:var(--v);background:var(--leaf)}
+footer{max-width:1440px;margin:0 auto;padding-block:20px calc(28px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#59605c;font-size:12px;border-top:1px solid rgba(255,255,255,.5)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){
+  .alert{bottom:auto;max-height:calc(100% - 80px)}
+}
+@media (max-width:900px){
+  body{padding-block:12px 0}
+  .screen{aspect-ratio:auto;min-height:0;max-height:none;display:flex;flex-direction:column;overflow:visible;background:var(--ground)}
+  .brand b{display:none}
+  .top{position:relative;flex-wrap:wrap}
+  .center{order:3;flex-basis:100%;align-items:stretch}
+  .search{width:100%}
+  .selector{align-self:flex-start}
+  .stage{position:relative;height:430px;background:#e7ecec url(assets/invernadero.jpg) 42% 70%/auto 620px no-repeat}
+  .harvest{left:50%;top:24px;transform:translateX(-50%);width:260px}
+  .mark,.eye{display:none}
+  .dock{position:relative;grid-template-columns:1fr 1fr;gap:1px;background:rgba(44,48,46,.08)}
+  .card+.card,.pair>.card+.card{border-left:0}
+  .water{margin-top:0}
+  .co2{grid-column:1/-1}
+  .pair{grid-column:span 1}
+  .alert{position:relative;inset:auto;width:auto;margin:0;order:5}
+  .alert.off{display:none}
+  .toast{position:fixed;bottom:24px}
+  .below{grid-template-columns:1fr;padding-block:36px 28px}
+  .handle{display:none}
+}
+@media (max-width:520px){
+  .rail button:nth-child(n+5){display:none}
+  .dock{grid-template-columns:1fr}
+  .pair{grid-template-columns:1fr 1fr;grid-template-rows:auto}
+  .pair .card+.card{border-left:1px solid rgba(44,48,46,.08)}
+  .spent{position:static;margin-top:8px}
+}
+@media (min-width:901px){ .stage{position:absolute;inset:0} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="eyebrow">
+  <span class="pill">Float Gardens · Plataforma de control</span>
+  <span class="brand"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c4.5 2.5 6.5 6 6 10.5-.3 3.4-2.9 6.2-6 7.5-3.1-1.3-5.7-4.1-6-7.5C5.5 9 7.5 5.5 12 3z" fill="#fff"/><path d="M12 5v15" stroke="#7fb349" stroke-width="1.4"/></svg>floatGardens <b>Kennedy · Neo-Bogotá</b></span>
+</div>
+
+<main class="screen" id="screen">
+  <div class="top">
+    <nav class="rail" aria-label="Secciones">
+      <span class="logo" title="Float Gardens"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c4.5 2.5 6.5 6 6 10.5-.3 3.4-2.9 6.2-6 7.5-3.1-1.3-5.7-4.1-6-7.5C5.5 9 7.5 5.5 12 3z" fill="#2c302e"/><path d="M12 6v14" stroke="#fff" stroke-width="1.6"/></svg></span>
+      <button aria-pressed="false" data-view="agua" title="Riego y agua"><svg viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg></button>
+      <button aria-pressed="false" data-view="calendario" title="Calendario de cosecha"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></button>
+      <button aria-pressed="false" data-view="clima" title="Clima"><svg viewBox="0 0 24 24"><path d="M6 4v16M12 4v16M18 4v16"/><circle cx="6" cy="9" r="1.6"/><circle cx="12" cy="15" r="1.6"/><circle cx="18" cy="8" r="1.6"/></svg></button>
+      <button aria-pressed="false" data-view="sensores" title="Sensores"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9z"/></svg></button>
+      <button aria-pressed="true" data-view="tablero" title="Tablero"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/></svg></button>
+    </nav>
+    <div class="center">
+      <form class="search" role="search" id="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7b817e" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+        <input id="q" type="search" placeholder="Buscar módulo, terraza o sensor" aria-label="Buscar">
+      </form>
+      <div class="selector">
+        <label for="house">Invernadero
+          <select id="house">
+            <option value="torre">Torre Kennedy · Piso 7</option>
+            <option value="patio">Patio Bonito · Nave 2</option>
+            <option value="americas">Av. Américas · Bodega 11</option>
+          </select>
+        </label>
+        <button type="button" title="Ubicación" id="locate"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></svg></button>
+        <button type="button" title="Ajustes del invernadero" id="tune"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
+      </div>
+    </div>
+    <div class="icons">
+      <button type="button" title="Modo eco" id="eco"><svg viewBox="0 0 24 24"><path d="M5 19c0-8 6-13 14-14-1 8-6 14-14 14zM5 19l7-7"/></svg></button>
+      <button type="button" title="Alertas" id="bell"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></svg><i class="dot" id="bellDot"></i></button>
+      <button type="button" title="Configuración" id="gear"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.1 14H3a2 2 0 0 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.1V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.6 1.6 0 0 0 20.9 10H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></button>
+      <button type="button" title="Cuenta" id="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <button class="mark" style="left:5%;top:36%" data-mod="0" aria-label="Módulo K-1453"><span>K-1453 · Castillo</span></button>
+    <button class="mark on" style="left:24%;top:51%" data-mod="1" aria-label="Módulo K-1460"><span>K-1460 · Geisha</span></button>
+    <button class="mark" style="left:63%;top:47%" data-mod="2" aria-label="Módulo K-1502"><span>K-1502 · Tabi</span></button>
+    <button class="mark" style="left:73%;top:52%" data-mod="3" aria-label="Módulo K-1511"><span>K-1511 · Caturra</span></button>
+    <span class="eye" style="left:31%;top:54%" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>
+
+    <article class="harvest" aria-live="polite">
+      <div class="in">
+        <img class="cherry" src="assets/cafe.png" alt="Racimo de cerezas de café maduras">
+        <h3 id="hvName">Café Geisha</h3>
+        <div class="sub" id="hvMod">Módulo K-1460</div>
+        <div class="big num"><span id="hvPct">78</span><span class="u">%</span></div>
+        <div class="eta" id="hvEta">Cosechar en 2 días</div>
+        <div class="bars" id="hvBars"></div>
+        <div class="days"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <button class="predict" type="button" id="predict">Predecir cosecha</button>
+      </div>
+      <div class="actions">
+        <button type="button" id="doHarvest">Cosechar</button>
+        <button type="button" aria-label="Descartar" id="doSkip">×</button>
+        <button type="button" id="doFeed">Fertilizar</button>
+      </div>
+    </article>
+  </div>
+
+  <section class="dock" aria-label="Métricas del invernadero">
+    <div class="card water">
+      <span class="lbl">Consumo de agua</span>
+      <button class="go" type="button" aria-label="Ver detalle de agua"><svg viewBox="0 0 10 10"><path d="M2 8l6-6M3 2h5v5"/></svg></button>
+      <div class="num xl"><span data-live="water">6.750</span><span class="u">L</span></div>
+      <div class="stripes" id="stripes"></div>
+      <div class="spent">Gastado 3.543 L · 54%</div>
+      <div class="base"></div>
+    </div>
+    <div class="card">
+      <span class="lbl">Consumo de energía</span>
+      <button class="go" type="button" aria-label="Ver detalle de energía"><svg viewBox="0 0 10 10"><path d="M2 8l6-6M3 2h5v5"/></svg></button>
+      <div class="num xl"><span data-live="kwh">174</span><span class="u">kWh</span></div>
+      <div class="legend"><span>Luces LED</span><span>118 kWh</span><span>Bombas y riego</span><span>36 kWh</span><span>Otros</span><span>20 kWh</span></div>
+      <div class="ticks" id="ticks"></div>
+      <div class="axis mono"><span>06:00</span><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span></div>
+    </div>
+    <div class="pair">
+      <div class="card"><span class="lbl">Temp. interior</span><div class="num"><span data-live="temp">23</span><span class="u">°C</span></div></div>
+      <div class="card"><span class="lbl">Horas de luz</span><div class="num">15<span class="u">h</span></div></div>
+    </div>
+    <div class="pair">
+      <div class="card"><span class="lbl">Humedad del aire</span><div class="num"><span data-live="hum">68</span><span class="u">%</span></div></div>
+      <div class="card"><span class="lbl">EC nutrientes</span><div class="num"><span data-live="ec">2.1</span><span class="u">mS</span></div></div>
+    </div>
+    <div class="card co2">
+      <span class="lbl">Nivel de CO₂</span>
+      <button class="go" type="button" aria-label="Ver detalle de CO2"><svg viewBox="0 0 10 10"><path d="M2 8l6-6M3 2h5v5"/></svg></button>
+      <div class="num xl" style="margin-top:10px"><span data-live="co2">800</span><span class="u">ppm</span></div>
+      <svg viewBox="0 0 300 84" preserveAspectRatio="none" id="co2" aria-label="CO2 de las últimas 10 horas, estable en 800 ppm"></svg>
+    </div>
+  </section>
+
+  <aside class="alert" id="alert" aria-label="Alerta">
+    <header><span>Atención</span><span class="mono" style="color:#fff;opacity:.8">ID 4985</span><button class="x" type="button" id="alertX" aria-label="Cerrar alerta">×</button></header>
+    <h4>Bomba de nutrientes<br>PB-014412</h4>
+    <div class="row"><b>Info</b><span>El filtro de la bomba del piso 7 está saturado de sedimento. El caudal a los módulos K-14xx bajó un 31 %.</span></div>
+    <svg class="bp" viewBox="0 0 240 140" fill="none" stroke="#fff" stroke-width=".9" aria-hidden="true">
+      <g opacity=".35"><path d="M0 20h240M0 50h240M0 80h240M0 110h240M30 0v140M80 0v140M130 0v140M180 0v140M230 0v140" stroke-width=".4"/></g>
+      <ellipse cx="62" cy="72" rx="26" ry="34"/><ellipse cx="62" cy="72" rx="16" ry="22"/><ellipse cx="62" cy="72" rx="6" ry="8"/>
+      <path d="M62 38h96c12 0 22 15 22 34s-10 34-22 34H62"/><path d="M180 58h30v28h-30"/><path d="M210 52h10v40h-10z"/>
+      <path d="M88 44v56M110 40v64M132 40v64M154 42v60"/><path d="M78 106l-8 24h70l-8-24"/><path d="M62 38v-16h24v16"/>
+      <path d="M120 72l8-14 8 14z" fill="#fff"/><text x="166" y="20" fill="#fff" stroke="none" font-size="8" font-family="monospace">Ø 48 mm</text>
+    </svg>
+    <div class="row"><b>Estado</b><span>Crítico · cambiar filtro ya</span></div>
+    <div><b style="font-weight:400;opacity:.75">Telemetría</b><div class="tele" id="tele"></div></div>
+    <div class="meta"><div><span style="opacity:.75">Carga de sedimento</span><strong>Alta</strong></div><div><span style="opacity:.75">Tiempo para falla</span><strong>&lt; 4 h</strong></div></div>
+    <button class="ack" type="button" id="ack">Enviar técnico de turno</button>
+  </aside>
+
+  <div class="toast" id="toast" role="status"></div>
+  <span class="handle">@floatgardens · Kennedy, Bogotá 2087</span>
+</main>
+
+<section class="below" aria-labelledby="netTitle">
+  <div>
+    <h2 id="netTitle">Red de terrazas <b>Kennedy</b></h2>
+    <p>Cada letrero de Float Gardens en un techo del barrio es una terraza de la red. La torre central les manda solución nutritiva y compra la cosecha al precio de la cooperativa.</p>
+    <div class="kpis">
+      <div><span class="num">128</span><span class="lbl">terrazas activas</span></div>
+      <div><span class="num">9.420</span><span class="lbl">matas de café</span></div>
+      <div><span class="num">1,9<span class="u">t</span></span><span class="lbl">cereza este mes</span></div>
+    </div>
+  </div>
+  <div class="net">
+    <div class="net-head">
+      <span class="lbl">Terrazas por estado · actualizado <span id="clock" class="mono">--:--</span></span>
+      <div class="filters" role="group" aria-label="Filtrar terrazas">
+        <button type="button" aria-pressed="true" data-f="all">Todas</button>
+        <button type="button" aria-pressed="false" data-f="ok">Al día</button>
+        <button type="button" aria-pressed="false" data-f="warn">Revisar</button>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Terraza</th><th>Barrio</th><th>Variedad</th><th>Matas</th><th>Humedad</th><th>Maduración</th><th>Estado</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>floatGardens · Cultivo hidropónico de café en Kennedy, Neo-Bogotá</span>
+  <span>Datos de ejemplo del juego, no son lecturas reales</span>
+</footer>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const fmt=(n,d=0)=>n.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+// módulos que muestra la tarjeta verde
+const MODS=[
+  {name:'Café Castillo',mod:'Módulo K-1453',pct:64,eta:'Cosechar en 5 días',peak:5},
+  {name:'Café Geisha',mod:'Módulo K-1460',pct:78,eta:'Cosechar en 2 días',peak:4},
+  {name:'Café Tabi',mod:'Módulo K-1502',pct:91,eta:'Listo para cosechar',peak:2},
+  {name:'Café Caturra',mod:'Módulo K-1511',pct:47,eta:'Cosechar en 9 días',peak:6}
+];
+function drawBars(peak){
+  const el=$('#hvBars');el.innerHTML='';
+  for(let i=0;i<42;i++){const d=i/6;const near=Math.abs(d-peak);const h=near<.5?92-near*30:30+Math.sin(i*1.7)*6;
+    const b=document.createElement('i');b.style.height=h+'%';if(near<.5)b.className='hi';el.appendChild(b)}
+}
+function showMod(i){const m=MODS[i];$('#hvName').textContent=m.name;$('#hvMod').textContent=m.mod;$('#hvPct').textContent=m.pct;$('#hvEta').textContent=m.eta;drawBars(m.peak);
+  $$('.mark').forEach(x=>x.classList.toggle('on',+x.dataset.mod===i))}
+$$('.mark').forEach(b=>b.addEventListener('click',()=>showMod(+b.dataset.mod)));
+showMod(1);
+
+// agua: 12 franjas, las de abajo llenas
+const st=$('#stripes');for(let i=0;i<12;i++){const s=document.createElement('i');if(i>=7)s.className='f';st.appendChild(s)}
+
+// energía: barras por hora
+const tk=$('#ticks');for(let i=0;i<72;i++){const t=i/72;const day=Math.sin(Math.PI*Math.min(1,Math.max(0,(t-.05)/.9)));
+  const h=12+day*70+((i*37)%11)-5;const b=document.createElement('i');b.style.height=Math.max(4,h)+'%';
+  if(i>30&&i<46&&i%3!==0)b.className='g';if(i===52||i===53)b.className='r';tk.appendChild(b)}
+
+// CO2: líneas guía, sombreado y la lectura
+(function(){const s=$('#co2');const y=v=>8+(900-v)/300*62;let g='';
+  for(const v of [900,800,700,600]){g+=`<line x1="22" x2="300" y1="${y(v)}" y2="${y(v)}" stroke="#c4c9c6" stroke-width=".5" stroke-dasharray="${v===800?'0':'2 3'}"/><text x="0" y="${y(v)+3}" font-size="8" fill="#a9aeab" font-family="JetBrains Mono,monospace">${v}</text>`}
+  for(let x=24;x<240;x+=3)g+=`<line x1="${x}" x2="${x}" y1="${y(790)}" y2="${y(600)}" stroke="#d3d8d5" stroke-width=".8"/>`;
+  let d='M24 '+y(806);for(let x=30;x<=240;x+=6)d+=` L${x} ${y(800+Math.sin(x*.3)*4)}`;
+  g+=`<path d="${d}" stroke="#4f8f2c" stroke-width="1.2" fill="none"/><circle cx="240" cy="${y(800)}" r="2.5" fill="#4f8f2c"/>`;
+  g+=`<line x1="240" x2="240" y1="${y(900)}" y2="${y(600)}" stroke="#2c302e" stroke-width=".5"/><text x="232" y="84" font-size="8" fill="#7b817e" font-family="JetBrains Mono,monospace" id="co2t">16:47</text>`;
+  s.innerHTML=g})();
+
+// telemetría de la alerta
+const te=$('#tele');for(let i=0;i<34;i++){const b=document.createElement('i');if([6,7,19,27].includes(i))b.className='w';te.appendChild(b)}
+
+// toasts y acciones
+let tt;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2200)};
+$('#doHarvest').onclick=()=>toast(`${$('#hvMod').textContent}: cosecha programada`);
+$('#doFeed').onclick=()=>toast('Dosis de nutrientes enviada · EC objetivo 2,1 mS');
+$('#doSkip').onclick=()=>toast('Recomendación descartada');
+$('#predict').onclick=()=>toast('Predicción actualizada con el clima de mañana');
+$('#eco').onclick=()=>toast('Modo eco activado · luces al 70 %');
+$('#gear').onclick=()=>toast('Configuración disponible en la versión completa');
+$('#me').onclick=()=>toast('Sesión: Doña Rosa · Terraza #128');
+$('#locate').onclick=()=>toast('Kennedy Central, Bogotá');
+$('#tune').onclick=()=>toast('Clima del invernadero en automático');
+$('#search').addEventListener('submit',e=>{e.preventDefault();const q=$('#q').value.trim();if(q)toast(`Sin resultados para “${q}” en esta demo`)});
+$('#house').addEventListener('change',e=>toast(`Mostrando ${e.target.selectedOptions[0].text}`));
+$$('.rail button').forEach(b=>b.addEventListener('click',()=>{$$('.rail button').forEach(x=>x.setAttribute('aria-pressed',x===b));toast(b.title)}));
+
+// alerta azul
+const al=$('#alert');
+$('#alertX').onclick=()=>al.classList.add('off');
+$('#bell').onclick=()=>al.classList.toggle('off');
+$('#ack').onclick=()=>{toast('Técnico en camino · llega en 25 min');al.classList.add('off');$('#bellDot').hidden=true};
+
+// lecturas en vivo (pequeñas variaciones)
+const live={water:6750,kwh:174,temp:23,hum:68,ec:2.1,co2:800};
+const clock=()=>{const d=new Date();const s=d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',hour12:false});$('#clock').textContent=s;const c=$('#co2t');if(c)c.textContent=s};
+clock();
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches)setInterval(()=>{
+  live.water+=Math.round(Math.random()*3);live.kwh+=Math.random()<.3?1:0;
+  live.hum=Math.max(64,Math.min(71,live.hum+(Math.random()<.5?-1:1)*(Math.random()<.3)));
+  live.co2=Math.round(796+Math.random()*9);
+  const el=k=>document.querySelector(`[data-live="${k}"]`);
+  el('water').textContent=fmt(live.water);el('kwh').textContent=live.kwh;el('hum').textContent=live.hum;el('co2').textContent=live.co2;clock();
+},3000);
+
+// red de terrazas
+const T=[
+  ['#128 Doña Rosa','Kennedy Central','Castillo',42,66,82,'ok'],
+  ['#044 Los Mellos','Timiza','Geisha',28,71,64,'ok'],
+  ['#097 Tienda La 38','Patio Bonito','Caturra',35,58,49,'warn'],
+  ['#203 Don Efraín','Américas','Tabi',51,69,91,'ok'],
+  ['#171 Las Primas','Bavaria','Castillo',22,74,37,'warn'],
+  ['#015 Torre FG piso 7','Kennedy Central','Geisha',640,68,78,'crit'],
+  ['#162 Mamá Inés','Carvajal','Castillo',30,67,70,'ok']
+];
+const label={ok:'Al día',warn:'Revisar riego',crit:'Bomba en alerta'};
+function rows(f){$('#rows').innerHTML=T.filter(r=>f==='all'||r[6]===f||(f==='warn'&&r[6]==='crit')).map(r=>
+  `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${fmt(r[3])}</td><td>${r[4]} %</td><td><span class="meter"><i style="--v:${r[5]}%"></i>${r[5]} %</span></td><td><span class="chip ${r[6]==='ok'?'':r[6]}">${label[r[6]]}</span></td></tr>`).join('')}
+$$('.filters button').forEach(b=>b.addEventListener('click',()=>{$$('.filters button').forEach(x=>x.setAttribute('aria-pressed',x===b));rows(b.dataset.f)}));
+rows('all');
+})();
+</script>
+</body>
+</html>

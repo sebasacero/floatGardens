@@ -78,6 +78,13 @@ Funciona con el **Input System** nuevo (el que trae Unity 6 por defecto) y tambi
 - Calles con postes de luz, postes de concreto con cables colgando (bien bogotano) y carros parqueados con pintura
   brillante, muchos de ellos taxis amarillos.
 
+**Cielo, cerros y clima (`Scripts/Game/Scenery.cs`):** dos capas de nubes generadas con ruido que derivan por el
+cielo y se tiñen de naranja al atardecer, estrellas que salen de noche, y una bruma más ligera para que se vean los
+cerros orientales: ahora son una ladera continua con textura de bosque (con relieve), Monserrate con su iglesia y
+Guadalupe con la Virgen. Los árboles tienen tronco, ramas y copa de varios lóbulos en dos tonos. Cuando llueve, el
+asfalto se oscurece y se vuelve espejo (refleja los neones y los postes), las gotas salpican anillos en el piso y
+bajo cada poste aparece un cono de luz volumétrico que también se nota, más suave, en las noches secas.
+
 **Bogotá agro-punk de noche:** el día dura 14 minutos. Al caer la noche se encienden las ventanas (cada fachada trae
 un mapa de luz), los neones de las agrocorporaciones (AGROCORP, SEMILLAS Ω, HIDRO·PONIA, DRON·FUMIGA...), las tiras de
 neón de las torres, los hologramas que giran sobre las azoteas y los LEDs rosados de los invernaderos hidropónicos.
