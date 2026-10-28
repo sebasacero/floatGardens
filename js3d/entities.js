@@ -57,48 +57,45 @@
     return g;
   }
 
-  // Humanoide genérico
+  // Humanoide genérico. Cada parte rígida (cuerpo, piernas, brazos) es una sola malla con colores por vértice:
+  // 5 llamadas de dibujo por personaje en vez de ~15. Las geometrías se comparten entre personajes iguales.
+  const partCache = new Map();
+  function parts(list, opts) {
+    const key = JSON.stringify(list) + JSON.stringify(opts || {});
+    if (!partCache.has(key)) {
+      partCache.set(key, W.Geom.merge(list.map(([w, h, d, color, x, y, z, rz]) => ({
+        geo: boxGeo, matrix: W.Geom.matrix(x, y, z, 0, 0, rz, w, h, d), color,
+      }))));
+    }
+    return new THREE.Mesh(partCache.get(key), W.Geom.vcMat(opts));
+  }
   function makeHuman(o) {
     const root = new THREE.Group();
-    const body = new THREE.Group();
-    root.add(body);
     const skin = o.skin || '#d9a273';
-    const legL = pivot(-0.13, 0.85, 0, box(0.22, 0.85, 0.26, o.pants, 0, -0.42, 0));
-    const legR = pivot(0.13, 0.85, 0, box(0.22, 0.85, 0.26, o.pants, 0, -0.42, 0));
-    const torso = box(0.62, 0.72, 0.34, o.shirt, 0, 1.22, 0);
-    const head = box(0.36, 0.38, 0.36, skin, 0, 1.79, 0);
-    const armL = pivot(-0.4, 1.52, 0, box(0.17, 0.66, 0.2, o.shirt, 0, -0.3, 0));
-    const armR = pivot(0.4, 1.52, 0, box(0.17, 0.66, 0.2, o.shirt, 0, -0.3, 0));
-    armL.add(box(0.15, 0.14, 0.17, skin, 0, -0.66, 0));
-    armR.add(box(0.15, 0.14, 0.17, skin, 0, -0.66, 0));
-    body.add(legL, legR, torso, head, armL, armR);
-    // ojos
-    body.add(box(0.06, 0.06, 0.02, '#111', -0.08, 1.82, 0.185), box(0.06, 0.06, 0.02, '#111', 0.08, 1.82, 0.185));
-    if (o.hair) body.add(box(0.38, 0.1, 0.38, o.hair, 0, 2.0, 0));
-    if (o.apron) body.add(box(0.5, 0.75, 0.04, o.apron, 0, 1.1, 0.19));
-    if (o.tie) body.add(box(0.08, 0.4, 0.03, o.tie, 0, 1.32, 0.18));
-    if (o.mustache) body.add(box(0.2, 0.05, 0.03, '#2a1a10', 0, 1.7, 0.185));
-    if (o.cap) {
-      body.add(box(0.4, 0.14, 0.4, o.cap, 0, 2.03, 0));
-      body.add(box(0.36, 0.04, 0.22, o.cap, 0, 1.97, 0.26));
-    }
-    if (o.hat === 'fedora') {
-      body.add(box(0.6, 0.04, 0.6, '#222', 0, 1.99, 0));
-      body.add(box(0.38, 0.2, 0.38, '#222', 0, 2.1, 0));
-      body.add(box(0.39, 0.05, 0.39, '#c0392b', 0, 2.03, 0));
-    }
-    if (o.hat === 'beret') body.add(box(0.44, 0.1, 0.44, '#8f1f1a', 0.03, 2.02, 0));
-    if (o.hat === 'tophat') {
-      body.add(box(0.62, 0.04, 0.62, '#111', 0, 1.99, 0));
-      body.add(box(0.38, 0.5, 0.38, '#111', 0, 2.25, 0));
-      body.add(box(0.39, 0.07, 0.39, '#c0392b', 0, 2.05, 0));
-    }
-    if (o.sash) {
-      const s = box(0.08, 0.85, 0.36, o.sash, 0, 1.22, 0);
-      s.rotation.z = 0.6;
-      body.add(s);
-    }
-    if (o.badge) body.add(box(0.1, 0.1, 0.03, '#e6c34a', 0.17, 1.4, 0.18));
+    const leg = [[0.22, 0.85, 0.26, o.pants, 0, -0.42, 0]];
+    const legL = pivot(-0.13, 0.85, 0, parts(leg));
+    const legR = pivot(0.13, 0.85, 0, parts(leg));
+    const arm = (extra) => [[0.17, 0.66, 0.2, o.shirt, 0, -0.3, 0], [0.15, 0.14, 0.17, skin, 0, -0.66, 0]].concat(extra || []);
+    const armL = pivot(-0.4, 1.52, 0, parts(arm(o.holdL)));
+    const armR = pivot(0.4, 1.52, 0, parts(arm(o.holdR)));
+    const b = [
+      [0.62, 0.72, 0.34, o.shirt, 0, 1.22, 0], // torso
+      [0.36, 0.38, 0.36, skin, 0, 1.79, 0], // cabeza
+      [0.06, 0.06, 0.02, '#111', -0.08, 1.82, 0.185], [0.06, 0.06, 0.02, '#111', 0.08, 1.82, 0.185], // ojos
+    ];
+    if (o.hair) b.push([0.38, 0.1, 0.38, o.hair, 0, 2.0, 0]);
+    if (o.apron) b.push([0.5, 0.75, 0.04, o.apron, 0, 1.1, 0.19]);
+    if (o.tie) b.push([0.08, 0.4, 0.03, o.tie, 0, 1.32, 0.18]);
+    if (o.mustache) b.push([0.2, 0.05, 0.03, '#2a1a10', 0, 1.7, 0.185]);
+    if (o.cap) b.push([0.4, 0.14, 0.4, o.cap, 0, 2.03, 0], [0.36, 0.04, 0.22, o.cap, 0, 1.97, 0.26]);
+    if (o.hat === 'fedora') b.push([0.6, 0.04, 0.6, '#222', 0, 1.99, 0], [0.38, 0.2, 0.38, '#222', 0, 2.1, 0], [0.39, 0.05, 0.39, '#c0392b', 0, 2.03, 0]);
+    if (o.hat === 'beret') b.push([0.44, 0.1, 0.44, '#8f1f1a', 0.03, 2.02, 0]);
+    if (o.hat === 'tophat') b.push([0.62, 0.04, 0.62, '#111', 0, 1.99, 0], [0.38, 0.5, 0.38, '#111', 0, 2.25, 0], [0.39, 0.07, 0.39, '#c0392b', 0, 2.05, 0]);
+    if (o.sash) b.push([0.08, 0.85, 0.36, o.sash, 0, 1.22, 0, 0.6]);
+    if (o.badge) b.push([0.1, 0.1, 0.03, '#e6c34a', 0.17, 1.4, 0.18]);
+    const body = parts(b);
+    root.add(body);
+    body.add(legL, legR, armL, armR);
     const shadow = new THREE.Mesh(shadowGeo, shadowMat);
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.y = 0.02;
@@ -107,7 +104,7 @@
     if (o.scale) shadow.scale.setScalar(o.scale);
 
     return {
-      root, body, legL, legR, armL, armR, head,
+      root, body, legL, legR, armL, armR,
       animate(phase, amount, aiming) {
         const s = Math.sin(phase) * 0.7 * amount;
         legL.rotation.x = s;
@@ -196,13 +193,11 @@
       this.alerted = !!(opts && opts.alerted);
       this.ko = 0;
       this.strafe = Math.random() < 0.5 ? 1 : -1;
-      this.h = makeHuman({ shirt: t.color, pants: '#26282d', hat: t.hat, tie: '#c0392b', badge: true, mustache: Math.random() < 0.5, skin: Math.random() < 0.5 ? '#d9a273' : '#a8714a' });
-      if (kind === 'guardia') {
-        const stampStack = box(0.25, 0.12, 0.25, '#c0392b', 0, -0.72, 0.1);
-        this.h.armR.add(stampStack);
-      } else {
-        this.h.armL.add(box(0.28, 0.36, 0.04, '#9a6b3f', 0, -0.62, 0.15));
-      }
+      const look = { shirt: t.color, pants: '#26282d', hat: t.hat, tie: '#c0392b', badge: true, mustache: Math.random() < 0.5, skin: Math.random() < 0.5 ? '#d9a273' : '#a8714a' };
+      // el guardia lleva una pila de sellos; el inspector, su carpeta
+      if (kind === 'guardia') look.holdR = [[0.25, 0.12, 0.25, '#c0392b', 0, -0.72, 0.1]];
+      else look.holdL = [[0.28, 0.36, 0.04, '#9a6b3f', 0, -0.62, 0.15]];
+      this.h = makeHuman(look);
       this.bar = makeBar(0.9, '#ff4b3a');
       this.bar.position.y = 2.45;
       this.h.root.add(this.bar);
@@ -376,6 +371,17 @@
     { shirt: '#3f9e8a', pants: '#2d2d2d', hair: '#2b1b12' },
     { shirt: '#8a3b2a', pants: '#3a3020', hair: '#1a1a1a' }, // ruana
   ];
+  const umbrellaGeos = new Map();
+  const umbrellaCone = new THREE.ConeGeometry(0.75, 0.3, 8);
+  function umbrellaGeo(color) {
+    if (!umbrellaGeos.has(color)) {
+      umbrellaGeos.set(color, W.Geom.merge([
+        { geo: umbrellaCone, matrix: W.Geom.matrix(0, 2.35, 0), color },
+        { geo: boxGeo, matrix: W.Geom.matrix(0, 1.9, 0, 0, 0, 0, 0.03, 0.9, 0.03), color: '#333' },
+      ]));
+    }
+    return umbrellaGeos.get(color);
+  }
   class Pedestrian {
     constructor(spot) {
       const st = PED_STYLES[Math.floor(Math.random() * PED_STYLES.length)];
@@ -391,12 +397,8 @@
       this.icon.position.y = 2.4;
       this.icon.visible = false;
       this.mesh.add(this.icon);
-      // sombrilla para la lluvia bogotana
-      const umb = new THREE.Group();
-      const canopy = new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.3, 8), mat(['#111', '#2c5aa0', '#c0392b', '#2fbf71', '#f2a541'][Math.floor(Math.random() * 5)]));
-      canopy.position.y = 2.35;
-      const stick = box(0.03, 0.9, 0.03, '#333', 0, 1.9, 0);
-      umb.add(canopy, stick);
+      // sombrilla para la lluvia bogotana (una sola malla por color)
+      const umb = new THREE.Mesh(umbrellaGeo(['#111', '#2c5aa0', '#c0392b', '#2fbf71', '#f2a541'][Math.floor(Math.random() * 5)]), W.Geom.vcMat());
       umb.position.set(0.25, 0, 0.1);
       umb.visible = false;
       this.umbrella = umb;
@@ -445,32 +447,33 @@
   }
 
   // ---------- Cultivo hidropónico flotante ----------
+  const planterGeo = (() => {
+    const M = W.Geom.matrix;
+    const leafGeo = new THREE.IcosahedronGeometry(0.45, 0);
+    const cg = new THREE.SphereGeometry(0.09, 6, 5);
+    const plant = [{ geo: boxGeo, matrix: M(0, 0.5, 0, 0, 0, 0, 0.08, 1, 0.08), color: '#2a7a41' }];
+    for (let i = 0; i < 4; i++) plant.push({ geo: leafGeo, matrix: M(Math.cos(i * 1.6) * 0.3, 0.6 + i * 0.15, Math.sin(i * 1.6) * 0.3), color: i % 2 ? '#3fa35b' : '#2a7a41' });
+    const cherries = [];
+    for (let i = 0; i < 9; i++) cherries.push({ geo: cg, matrix: M(Math.cos(i * 2.1) * 0.45, 0.55 + (i % 3) * 0.22, Math.sin(i * 2.1) * 0.45), color: '#d6423a' });
+    return {
+      base: W.Geom.merge([
+        { geo: new THREE.CylinderGeometry(1.1, 1.1, 0.25, 14), matrix: M(0, 0.12, 0), color: '#f2f2ee' },
+        { geo: new THREE.CylinderGeometry(0.35, 0.3, 0.3, 10), matrix: M(0, 0.3, 0), color: '#2d2d2d' },
+      ]),
+      plant: W.Geom.merge(plant),
+      cherries: W.Geom.merge(cherries),
+    };
+  })();
   class Planter {
     constructor(spot) {
       this.pos = { x: spot.x, z: spot.z };
       this.mesh = new THREE.Group();
-      const raft = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.25, 14), mat('#f2f2ee'));
-      raft.position.y = 0.12;
-      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.3, 0.3, 10), mat('#2d2d2d'));
-      pot.position.y = 0.3;
-      this.mesh.add(raft, pot);
+      // base, planta y cerezas: tres mallas fusionadas (antes eran 16 piezas sueltas)
+      this.mesh.add(new THREE.Mesh(planterGeo.base, W.Geom.vcMat()));
       this.plant = new THREE.Group();
       this.plant.position.y = 0.4;
-      const stem = box(0.08, 1, 0.08, '#2a7a41', 0, 0.5, 0);
-      this.plant.add(stem);
-      const leafGeo = new THREE.IcosahedronGeometry(0.45, 0);
-      for (let i = 0; i < 4; i++) {
-        const l = new THREE.Mesh(leafGeo, mat(i % 2 ? '#3fa35b' : '#2a7a41', { flatShading: true }));
-        l.position.set(Math.cos(i * 1.6) * 0.3, 0.6 + i * 0.15, Math.sin(i * 1.6) * 0.3);
-        this.plant.add(l);
-      }
-      this.cherries = new THREE.Group();
-      const cg = new THREE.SphereGeometry(0.09, 6, 5);
-      for (let i = 0; i < 9; i++) {
-        const c = new THREE.Mesh(cg, mat('#d6423a', { emissive: '#3a0805' }));
-        c.position.set(Math.cos(i * 2.1) * 0.45, 0.55 + (i % 3) * 0.22, Math.sin(i * 2.1) * 0.45);
-        this.cherries.add(c);
-      }
+      this.plant.add(new THREE.Mesh(planterGeo.plant, W.Geom.vcMat({ flatShading: true })));
+      this.cherries = new THREE.Mesh(planterGeo.cherries, W.Geom.vcMat({ emissive: '#3a0805' }));
       this.plant.add(this.cherries);
       this.mesh.add(this.plant);
       this.mesh.position.set(spot.x, spot.y || (spot.water ? 0.3 : 0.3), spot.z);
@@ -532,15 +535,14 @@
       this.progress = 0;
       this.owner = 'fed';
       this.mesh = new THREE.Group();
-      this.counter = box(3, 1.1, 1.4, '#5a3a24', 0, 0.55, 0);
       this.canopyMat = new THREE.MeshLambertMaterial({ color: ZONE_COLORS.fed });
       const canopy = new THREE.Mesh(boxGeo, this.canopyMat);
       canopy.scale.set(3.8, 0.25, 2.4);
       canopy.position.y = 2.6;
-      this.mesh.add(this.counter, canopy);
-      for (const [px, pz] of [[-1.8, -1.1], [1.8, -1.1], [-1.8, 1.1], [1.8, 1.1]]) this.mesh.add(box(0.1, 2.5, 0.1, '#ccc', px, 1.3, pz));
-      // asta con bandera
-      this.mesh.add(box(0.12, 7, 0.12, '#ddd', 2.6, 3.5, 0));
+      // mostrador, postes y asta de la bandera en una sola malla
+      const stall = [[3, 1.1, 1.4, '#5a3a24', 0, 0.55, 0], [0.12, 7, 0.12, '#ddd', 2.6, 3.5, 0]];
+      for (const [px, pz] of [[-1.8, -1.1], [1.8, -1.1], [-1.8, 1.1], [1.8, 1.1]]) stall.push([0.1, 2.5, 0.1, '#ccc', px, 1.3, pz]);
+      this.mesh.add(parts(stall), canopy);
       this.flagMat = new THREE.MeshLambertMaterial({ color: ZONE_COLORS.fed, side: THREE.DoubleSide });
       this.flag = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.1), this.flagMat);
       this.flag.position.set(3.5, 6.3, 0);
@@ -584,10 +586,37 @@
   function makeStamp() {
     return new THREE.Mesh(stampGeo, stampMat);
   }
+  // Partículas: todas en una sola malla instanciada (una llamada de dibujo para hasta `max` cubitos)
   const partGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-  function makeParticle(color) {
-    return new THREE.Mesh(partGeo, mat(color));
+  class Particles {
+    constructor(max) {
+      this.mesh = new THREE.InstancedMesh(partGeo, new THREE.MeshLambertMaterial(), max);
+      this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      this.mesh.frustumCulled = false;
+      const white = new THREE.Color('#ffffff');
+      for (let i = 0; i < max; i++) this.mesh.setColorAt(i, white);
+      this.mesh.count = 0;
+      this.max = max;
+      this.colors = new Map();
+      this.m = new THREE.Matrix4();
+    }
+    color(hex) {
+      if (!this.colors.has(hex)) this.colors.set(hex, new THREE.Color(hex));
+      return this.colors.get(hex);
+    }
+    // list: [{ x, y, z, color }]
+    sync(list) {
+      const n = Math.min(list.length, this.max);
+      for (let i = 0; i < n; i++) {
+        const p = list[i];
+        this.mesh.setMatrixAt(i, this.m.makeTranslation(p.x, p.y, p.z));
+        this.mesh.setColorAt(i, this.color(p.color));
+      }
+      this.mesh.count = n;
+      this.mesh.instanceMatrix.needsUpdate = true;
+      this.mesh.instanceColor.needsUpdate = true;
+    }
   }
 
-  W.Ent = { makeHuman, makeBarista, Enemy, Boss, Pedestrian, Planter, Loot, Zone, makeTracer, makeStamp, makeParticle, iconSprite, lerpAngle, makeBar, setBar };
+  W.Ent = { makeHuman, makeBarista, Enemy, Boss, Pedestrian, Planter, Loot, Zone, makeTracer, makeStamp, Particles, iconSprite, lerpAngle, makeBar, setBar };
 })();

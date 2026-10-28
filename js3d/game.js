@@ -42,6 +42,8 @@
       this.save.world = Object.assign({ captured: [], upgrades: {}, kos: 0, sales: 0, bossDefeated: false }, this.save.world || {});
 
       this.buildRain();
+      this.partPool = new Ent.Particles(161);
+      this.scene.add(this.partPool.mesh);
       this.createPlayer();
       this.createZones();
       this.createPlanters();
@@ -155,7 +157,7 @@
       for (const z of this.zones) if (z.owner === 'fg') set.add(z.def.district);
       return set;
     },
-    isMarket(x, z) { return (this.owned || this.ownedDistricts()).has(W.World.districtAt(x, z).code); },
+    isMarket(x, z) { return (this.owned || this.ownedDistricts()).has(W.World.districtCodeAt(x, z)); },
     allCaptured() { return this.zones.every((z) => z.owner === 'fg'); },
     capturedCount() { return this.zones.filter((z) => z.owner === 'fg').length; },
 
@@ -321,15 +323,19 @@
       const p = this.player;
       const cam = this.camera;
       const targetFov = p.aiming ? 48 : p.sprinting ? 76 : 70;
-      cam.fov += (targetFov - cam.fov) * Math.min(1, dt * 10);
-      cam.updateProjectionMatrix();
+      if (Math.abs(targetFov - cam.fov) > 0.01) {
+        cam.fov += (targetFov - cam.fov) * Math.min(1, dt * 10);
+        cam.updateProjectionMatrix();
+      }
       const dist = p.aiming ? 2.3 : 3.6;
       const side = p.aiming ? 0.95 : 1.05;
       const cp = Math.cos(p.pitch + p.recoil);
+      // vectores reutilizados: sin basura para el recolector en cada cuadro
+      const v = this.camVecs || (this.camVecs = { right: new THREE.Vector3(), pivot: new THREE.Vector3(), back: new THREE.Vector3(), look: new THREE.Vector3() });
       const dir = new THREE.Vector3(-Math.sin(p.yaw) * cp, Math.sin(p.pitch + p.recoil), -Math.cos(p.yaw) * cp);
-      const right = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
-      const pivot = new THREE.Vector3(p.pos.x, p.y + (p.aiming ? 1.8 : 1.95), p.pos.z).addScaledVector(right, side);
-      const back = dir.clone().multiplyScalar(-1);
+      const right = v.right.set(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
+      const pivot = v.pivot.set(p.pos.x, p.y + (p.aiming ? 1.8 : 1.95), p.pos.z).addScaledVector(right, side);
+      const back = v.back.copy(dir).multiplyScalar(-1);
       let d = dist;
       const hit = W.World.raycast(pivot, back, dist + 0.3);
       if (hit < dist + 0.3) d = Math.max(0.4, hit - 0.3);
@@ -341,7 +347,7 @@
         cam.position.y += (Math.random() - 0.5) * this.shakeAmt;
         this.shakeAmt = Math.max(0, this.shakeAmt - dt * 2);
       }
-      cam.lookAt(cam.position.clone().add(dir));
+      cam.lookAt(v.look.copy(cam.position).add(dir));
       this.aimDir = dir;
       p.recoil = Math.max(0, p.recoil - dt * 0.15);
     },
@@ -749,32 +755,33 @@
     burst(at, color, n, speed) {
       for (let i = 0; i < n; i++) {
         if (this.particles.length > 160) break;
-        const m = Ent.makeParticle(color);
-        m.position.set(at.x, at.y, at.z);
-        this.scene.add(m);
-        this.particles.push({ mesh: m, vx: rand(-1, 1) * speed, vy: rand(0.5, 1.5) * speed, vz: rand(-1, 1) * speed, life: rand(0.3, 0.7) });
+        this.particles.push({ x: at.x, y: at.y, z: at.z, color, vx: rand(-1, 1) * speed, vy: rand(0.5, 1.5) * speed, vz: rand(-1, 1) * speed, life: rand(0.3, 0.7) });
       }
+      this.partPool.sync(this.particles);
     },
     updateParticles(dt) {
       for (const p of this.particles) {
         p.vy -= 18 * dt;
-        p.mesh.position.x += p.vx * dt;
-        p.mesh.position.y += p.vy * dt;
-        p.mesh.position.z += p.vz * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.z += p.vz * dt;
         p.life -= dt;
-        if (p.life <= 0 || p.mesh.position.y < 0) { p.life = 0; this.scene.remove(p.mesh); }
+        if (p.life <= 0 || p.y < 0) p.life = 0;
       }
       this.particles = this.particles.filter((p) => p.life > 0);
+      this.partPool.sync(this.particles);
     },
     shake(a) { this.shakeAmt = Math.max(this.shakeAmt, a); },
 
     // Lluvia bogotana
+    // Las gotas no se recalculan en la CPU: hay dos capas idénticas (0-40 m y 40-80 m) y se desplaza
+    // la malla completa hacia abajo, repitiendo cada 40 m. Las gotas bajo el suelo quedan ocultas.
     buildRain() {
       const n = 2200;
-      const pos = new Float32Array(n * 6);
+      const pos = new Float32Array(n * 12);
       for (let i = 0; i < n; i++) {
         const x = rand(-40, 40), y = rand(0, 40), z = rand(-40, 40);
-        pos.set([x, y, z, x, y - 0.6, z], i * 6);
+        pos.set([x, y, z, x, y - 0.6, z, x, y + 40, z, x, y + 39.4, z], i * 12);
       }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -785,14 +792,8 @@
     },
     updateRain(dt) {
       if (!this.rain.visible) return;
-      const a = this.rain.geometry.attributes.position;
-      const arr = a.array;
-      for (let i = 0; i < arr.length; i += 6) {
-        arr[i + 1] -= 28 * dt; arr[i + 4] -= 28 * dt;
-        if (arr[i + 1] < 0) { arr[i + 1] += 40; arr[i + 4] += 40; }
-      }
-      a.needsUpdate = true;
-      this.rain.position.set(this.camera.position.x, 0, this.camera.position.z);
+      this.rainFall = ((this.rainFall || 0) + 28 * dt) % 40;
+      this.rain.position.set(this.camera.position.x, -this.rainFall, this.camera.position.z);
     },
     weather(dt) {
       this.weatherTimer -= dt;
