@@ -55,10 +55,24 @@ namespace FloatGardens
                 new Vector2(x0 / scale, z0 / scale), new Vector2(x1 / scale, z1 / scale));
         }
 
+        public void Bottom(float x, float z, float y, float w, float d, float scale = 8f)
+        {
+            float x0 = x - w / 2, x1 = x + w / 2, z0 = z - d / 2, z1 = z + d / 2;
+            Quad(new Vector3(x0, y, z0), new Vector3(x1, y, z0), new Vector3(x1, y, z1), new Vector3(x0, y, z1), Vector3.down,
+                new Vector2(x0 / scale, z0 / scale), new Vector2(x1 / scale, z1 / scale));
+        }
+
         public void Box(float x, float z, float y0, float w, float h, float d, float uw = 4f, float vh = 3f)
         {
             Walls(x, z, y0, w, h, d, uw, vh);
             Top(x, z, y0 + h, w, d);
+        }
+
+        /// <summary>Caja cerrada (también por debajo): balcones, cornisas y franjas que se ven desde la calle.</summary>
+        public void Solid(float x, float z, float y0, float w, float h, float d, float uw = 4f, float vh = 3f)
+        {
+            Box(x, z, y0, w, h, d, uw, vh);
+            Bottom(x, z, y0, w, d);
         }
 
         /// <summary>Agrega una malla existente transformada (árboles, columnas, cerros...).</summary>
@@ -92,6 +106,7 @@ namespace FloatGardens
             mesh.SetNormals(normals);
             mesh.SetUVs(0, uvs);
             mesh.SetTriangles(tris, 0);
+            mesh.RecalculateTangents(); // los normal maps los necesitan
             mesh.RecalculateBounds();
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);

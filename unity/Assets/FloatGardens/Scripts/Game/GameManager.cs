@@ -7,7 +7,7 @@ namespace FloatGardens
     public class GameManager : MonoBehaviour
     {
         public static GameManager I;
-        public enum GameState { Lobby, Playing, Paused, Shop, Dead }
+        public enum GameState { Lobby, Playing, Paused, Shop, Dead, Dialogue, Lab }
 
         public struct Stats { public float damage, hp, speed, grow; public int mag, yield; }
         public struct Objective_ { public string title, sub; public Vector3 target; public bool hasTarget; }
@@ -30,6 +30,8 @@ namespace FloatGardens
         public TouchControls touch;
         public Atmosphere atmosphere;
         public City city;
+        public Story story;
+        public Dialogue dialogue;
 
         public readonly List<CaptureZone> zones = new List<CaptureZone>();
         public readonly List<Enemy> enemies = new List<Enemy>();
@@ -103,6 +105,10 @@ namespace FloatGardens
             UIKit.EnsureEventSystem();
             hud = new GameObject("HUD").AddComponent<HUD>();
             hud.Build();
+            dialogue = new GameObject("Dialogo").AddComponent<Dialogue>();
+            dialogue.Build();
+            story = new Story(this);
+            story.Spawn(actors);
             touch = new GameObject("Tactil").AddComponent<TouchControls>();
             touch.Build();
             menus = new GameObject("Menus").AddComponent<Menus>();
@@ -149,6 +155,52 @@ namespace FloatGardens
                 hud.Banner(FGConfig.DistrictName(currentDistrict).ToUpperInvariant(), "Float Gardens HQ · Bogotá", true);
             }
             UpdateZoneColors();
+            story.OnPlay();
+        }
+
+        /// <summary>Diálogo de la campaña: el mundo se congela y al terminar vuelve a Playing (o sigue el callback).</summary>
+        public void StartDialogue(Line[] lines, System.Action then)
+        {
+            var before = State;
+            State = GameState.Dialogue;
+            FGInput.CursorLocked = false;
+            touch.Show(false);
+            SetMap(false);
+            dialogue.Play(lines, () =>
+            {
+                if (State == GameState.Dialogue)
+                {
+                    State = GameState.Playing;
+                    FGInput.CursorLocked = true;
+                    cursorWasLocked = false;
+                    touch.Show(FGInput.IsTouchDevice);
+                    FGInput.EndFrame();
+                }
+                then?.Invoke();
+            });
+        }
+
+        public void OpenLab()
+        {
+            State = GameState.Lab;
+            FGInput.CursorLocked = false;
+            touch.Show(false);
+            menus.Show("lab");
+        }
+
+        /// <summary>Resultado de una preparación en el laboratorio: guarda el récord, da puntos y avanza la campaña.</summary>
+        public void OnBrew(BrewRecipe r, BrewResult res)
+        {
+            save.brewCount++;
+            save.bestBrew = Mathf.Max(save.bestBrew, res.score);
+            bool first = save.BestBrew(r.variety) <= 0;
+            save.brews.Add(new BrewRecord { variety = r.variety, score = res.score });
+            if (save.brews.Count > 60) save.brews.RemoveAt(0);
+            int pts = res.score >= 75 ? Mathf.RoundToInt((res.score - 70) * 3) : 0;
+            if (pts > 0) AddPoints(pts);
+            if (first) story.UnlockCodex("variables", false);
+            Persist();
+            story.OnEvent(MissionKind.Brew, 1, r.variety, res.score);
         }
 
         public void Pause()
@@ -205,6 +257,10 @@ namespace FloatGardens
         {
             save.captured.Clear();
             save.upgrades.Clear();
+            save.chapter = 0;
+            save.mission = 0;
+            save.missionProgress = 0;
+            save.introSeen = false;
             save.kos = 0;
             save.sales = 0;
             save.bossDefeated = false;
@@ -242,6 +298,7 @@ namespace FloatGardens
 
         public Objective_ Objective()
         {
+            if (story != null && !story.Finished) return story.Objective();
             if (!AllCaptured)
                 return new Objective_ { title = "Captura: " + (targetZone != null ? targetZone.def.name : ""), sub = "Zonas " + CapturedCount + "/" + zones.Count, target = targetZone != null ? targetZone.transform.position : Vector3.zero, hasTarget = targetZone != null };
             if (!save.bossDefeated)
@@ -269,6 +326,11 @@ namespace FloatGardens
                     player.rig.SetDead(1);
                     camRig.Follow(dt);
                     hud.Tick(this, dt);
+                    break;
+                case GameState.Dialogue:
+                    player.rig.Animate(Time.time * 2, 0.05f, false);
+                    camRig.Follow(dt);
+                    atmosphere.Tick(dt, cam, hud);
                     break;
             }
         }
@@ -310,7 +372,7 @@ namespace FloatGardens
             {
                 currentDistrict = d;
                 bool ours = owned.Contains(d);
-                hud.Banner(FGConfig.DistrictName(d).ToUpperInvariant(), ours ? "Territorio Float Gardens" : "Territorio de la Federación", ours);
+                hud.Banner(FGConfig.DistrictName(d).ToUpperInvariant(), ours ? "Territorio Float Gardens" : "Territorio de " + FGConfig.Faction, ours);
             }
             zoneColorTimer -= dt;
             if (zoneColorTimer <= 0) { zoneColorTimer = 1; UpdateZoneColors(); }
@@ -347,9 +409,23 @@ namespace FloatGardens
                         hud.Toast("Cosecha: +" + stats.yield + " cerezas · +" + stats.yield + " ★");
                         SFX.Play("pickup");
                         FX.Burst(pl.transform.position + Vector3.up * 1.2f, FGMaterials.Hex("#d6423a"), 10, 3);
+                        story.OnEvent(MissionKind.Harvest, stats.yield);
                     }
                     return;
                 }
+            }
+            foreach (var n in story.npcs)
+            {
+                if (!Near(n.transform.position, 3f)) continue;
+                prompt = use + " Hablar con " + n.def.name;
+                if (FGInput.Pressed(FGAction.Use)) story.Talk(n);
+                return;
+            }
+            if (Near(city.hqLab, 2.6f))
+            {
+                prompt = use + " Laboratorio AeroPress (tu PC)";
+                if (FGInput.Pressed(FGAction.Use)) OpenLab();
+                return;
             }
             if (Near(city.hqShop, 3.2f))
             {
@@ -371,6 +447,7 @@ namespace FloatGardens
                     c.Served();
                     hud.Toast("¡Venta! +" + FGConfig.Money(FGConfig.SalePrice) + " · +" + FGConfig.PointsPerSale + " ★");
                     SFX.Play("cash");
+                    story.OnEvent(MissionKind.Sell, 1);
                 }
                 return;
             }
@@ -493,8 +570,8 @@ namespace FloatGardens
             {
                 boss = Boss.SpawnBoss(city.bossArena + new Vector3(8, 0.3f, 10), actors);
                 enemies.Add(boss);
-                hud.Banner(FGConfig.BossName.ToUpperInvariant(), "El jefe de la Federación sale de la sede", false);
-                Say(boss, "¡Nadie compite con la Federación!");
+                hud.Banner(FGConfig.BossName.ToUpperInvariant(), "El " + FGConfig.BossTitle + " sale de la torre", false);
+                Say(boss, "¡Nadie compite con Coffee Land!");
             }
         }
 
@@ -554,10 +631,11 @@ namespace FloatGardens
             foreach (var e in enemies) if (e.zoneId == z.def.id && !e.Dead) { e.hp = 0; Say(e, "¡Retirada!"); }
             UpdateZoneColors();
             Persist();
+            story.OnEvent(MissionKind.Capture, 1, z.def.id);
             if (AllCaptured) Invoke(nameof(AnnounceBoss), 3.2f);
         }
 
-        void AnnounceBoss() { hud.Banner("LA SEDE ESTÁ EXPUESTA", "Ve a la Plaza de Bolívar y derrota a " + FGConfig.BossName, false); }
+        void AnnounceBoss() { hud.Banner("LA TORRE ESTÁ EXPUESTA", "Ve a la Plaza de Bolívar y derrota a " + FGConfig.BossName, false); }
 
         void OnBossDefeated()
         {
@@ -566,11 +644,13 @@ namespace FloatGardens
             Persist();
             SFX.Play("capture");
             hud.Banner("¡BOGOTÁ ES DE FLOAT GARDENS!", FGConfig.BossName + " colgó el sombrero", true);
+            story.OnEvent(MissionKind.Boss);
             Invoke(nameof(ShowVictory), 3.5f);
         }
 
         void ShowVictory()
         {
+            if (State == GameState.Dialogue) { Invoke(nameof(ShowVictory), 2f); return; }
             if (State != GameState.Playing) return;
             State = GameState.Paused;
             FGInput.CursorLocked = false;

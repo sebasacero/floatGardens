@@ -56,6 +56,13 @@ GPS en pantalla que dice en qué esquina estás. Barrios con estilo propio:
 
 La vida se regenera si te cubres unos segundos. Si caes, vuelves al HQ y pierdes la mitad de tus cerezas.
 
+## La historia y el diseño
+
+Un barista con una AeroPress y un PC contra **Coffee Land**, la corporación del sello oficial, en una Bogotá donde el
+café solo crece adentro. Campaña por capítulos, Códice del Café con las historias reales (de Kaldi a la roya de 2008),
+mapa de expediciones por Colombia y laboratorio de recetas. Todo el diseño, personajes y referencias:
+[`docs/DISENO.md`](docs/DISENO.md).
+
 ## Versión Unity (en desarrollo)
 
 En [`unity/`](unity/) está el mismo juego reescrito en C# para **Unity 6 + URP**: misma lógica, con sombras en tiempo

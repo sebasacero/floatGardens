@@ -148,7 +148,7 @@ namespace FloatGardens
             }
             UIKit.Image(bigMarkers, "HQ", new Vector2(0.5f, 0.5f), P(City.I.hqCenter), new Vector2(14, 14), UIKit.Green);
             UIKit.Label(bigMarkers, "Float Gardens HQ", 14, UIKit.Mint, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), P(City.I.hqCenter) + Vector2.up * 16, new Vector2(220, 20));
-            UIKit.Label(bigMarkers, g.AllCaptured ? "☠ Sede de la Federación" : "Sede de la Federación (bloqueada)", 14, g.AllCaptured ? UIKit.Yellow : UIKit.Red,
+            UIKit.Label(bigMarkers, g.AllCaptured ? "☠ Torre Coffee Land" : "Torre Coffee Land (bloqueada)", 14, g.AllCaptured ? UIKit.Yellow : UIKit.Red,
                 TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), P(City.I.bossArena) + Vector2.up * 30, new Vector2(260, 20));
             var arrow = UIKit.Label(bigMarkers, "▲", 22, UIKit.Yellow, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), P(g.player.transform.position), new Vector2(30, 30));
             arrow.rectTransform.localRotation = Quaternion.Euler(0, 0, -g.player.yaw);
