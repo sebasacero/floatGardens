@@ -53,6 +53,17 @@ namespace FloatGardens
         static readonly Color LampColor = new Color(1f, 0.82f, 0.58f);
         // Bruma más ligera que antes: los cerros y las nubes del horizonte se ven desde la ciudad en vez de borrarse
         const float DryFogDensity = 0.0026f, WetFogDensity = 0.0046f, NightFogDensity = 0.0036f;
+
+        // Maqueta (versión móvil, FGStyle.Miniatura): bruma lineal verde-gris que sigue el foco de la cámara,
+        // etalonaje más apagado (sombras verde azulado, luces ámbar) y tilt-shift con la profundidad de campo Bokeh.
+        static readonly Color MiniHaze = new Color32(0x9f, 0xb2, 0xae, 255);
+        static readonly Color MiniHazeWet = new Color32(0x86, 0x96, 0x95, 255);
+        static readonly Color MiniHazeNight = new Color32(0x18, 0x20, 0x2e, 255);
+        static readonly Color MiniSplitDay = new Color32(0x5f, 0x8c, 0x8a, 255);
+        static readonly Color MiniSplitNight = new Color32(0x4a, 0x5f, 0x9a, 255);
+        const float MiniSaturation = -14f, MiniNightSaturation = -8f;
+        Camera cam;
+        ThirdPersonCamera rig;
         const float DrySaturation = 8f, WetSaturation = -12f, NightSaturation = 16f;
 
         // Luces reales de la calle: un grupo de luces puntuales que se van moviendo a los postes y neones
@@ -67,6 +78,7 @@ namespace FloatGardens
 
         public void Setup(Camera cam)
         {
+            this.cam = cam;
             // Sol (de noche hace de luna, desde el lado contrario)
             var sunGo = new GameObject("Sol");
             sunGo.transform.SetParent(transform, false);
@@ -99,7 +111,7 @@ namespace FloatGardens
             RenderSettings.reflectionIntensity = 1f;
             // Bruma de montaña: niebla exponencial, la ciudad se pierde suave hacia los cerros
             RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogMode = FGStyle.Miniatura ? FogMode.Linear : FogMode.ExponentialSquared;
             QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
 
             BuildReflections();
@@ -174,6 +186,22 @@ namespace FloatGardens
             dof.gaussianEnd.Override(260f);
             dof.gaussianMaxRadius.Override(1f);
             dof.highQualitySampling.Override(!Mobile);
+            if (FGStyle.Miniatura)
+            {
+                // Tilt-shift: lente larga muy abierta enfocada en el barista; lo de adelante y lo de atrás se desenfoca y
+                // la ciudad parece una maqueta. LateUpdate mueve el foco con la cámara.
+                dof.mode.Override(DepthOfFieldMode.Bokeh);
+                dof.focusDistance.Override(60f);
+                dof.focalLength.Override(200f);
+                dof.aperture.Override(2.8f);
+                dof.bladeCount.Override(6);
+                color.contrast.Override(10f);
+                bloom.threshold.Override(0.92f);
+                bloom.scatter.Override(0.5f);
+                split.highlights.Override(new Color32(0xd8, 0xb4, 0x8a, 255));
+                split.balance.Override(-20f);
+                chroma.active = false;
+            }
 
             // Barrido de cámara al girar rápido (no en celular: cuesta mucho y casi no se nota en pantalla pequeña)
             if (!Mobile)
@@ -370,8 +398,8 @@ namespace FloatGardens
                 sky.SetFloat("_Exposure", Mathf.Lerp(Raining ? 0.75f : 1.1f, 0.05f, night));
                 sky.SetColor("_SkyTint", Color.Lerp(SkyDay, SkyNight, night));
             }
-            Color dayFog = Raining ? WetFog : DryFog;
-            RenderSettings.fogColor = Color.Lerp(dayFog, NightFog, night);
+            Color dayFog = FGStyle.Miniatura ? (Raining ? MiniHazeWet : MiniHaze) : Raining ? WetFog : DryFog;
+            RenderSettings.fogColor = Color.Lerp(dayFog, FGStyle.Miniatura ? MiniHazeNight : NightFog, night);
             RenderSettings.fogDensity = Mathf.Lerp(Raining ? WetFogDensity : DryFogDensity, NightFogDensity, night);
             float dim = Raining ? 0.8f : 1f;
             RenderSettings.ambientSkyColor = Color.Lerp(new Color32(0xc9, 0xd8, 0xe6, 255), new Color32(0x2a, 0x2b, 0x4c, 255), night) * dim;
@@ -385,6 +413,14 @@ namespace FloatGardens
                 bloom.intensity.Override(Mathf.Lerp(0.9f, 1.6f, night));
                 split.shadows.Override(Color.Lerp(SplitDay, SplitNight, night));
                 vignette.intensity.Override(Mathf.Lerp(0.3f, 0.4f, night));
+                if (FGStyle.Miniatura)
+                {
+                    color.postExposure.Override(Mathf.Lerp(0f, 0.05f, night));
+                    color.saturation.Override(Mathf.Lerp(Raining ? MiniSaturation - 8f : MiniSaturation, MiniNightSaturation, night));
+                    bloom.intensity.Override(Mathf.Lerp(0.55f, 0.9f, night));
+                    split.shadows.Override(Color.Lerp(MiniSplitDay, MiniSplitNight, night));
+                    vignette.intensity.Override(Mathf.Lerp(0.25f, 0.3f, night));
+                }
                 if (flare != null) flare.intensity.Override(Mathf.Lerp(0.35f, 0.7f, night));
             }
 
@@ -392,6 +428,23 @@ namespace FloatGardens
             {
                 lastNight = night;
                 if (City.I != null) City.I.SetNight(night);
+            }
+        }
+
+        // La maqueta enfoca y despeja la bruma alrededor de lo que mira la cámara (también en el lobby, donde no hay Tick)
+        void LateUpdate()
+        {
+            if (!FGStyle.Miniatura || cam == null) return;
+            if (rig == null) rig = cam.GetComponent<ThirdPersonCamera>();
+            if (rig == null) return;
+            float focus = rig.Focus;
+            RenderSettings.fogStartDistance = focus * 0.75f;
+            RenderSettings.fogEndDistance = focus * 3.2f;
+            if (dof != null)
+            {
+                dof.focusDistance.Override(focus);
+                // 200 mm jugando (unos 60 m), 300 mm en el paneo del lobby (420 m): el desenfoque se nota igual en los dos
+                dof.focalLength.Override(Mathf.Lerp(200f, 300f, Mathf.InverseLerp(60f, 420f, focus)));
             }
         }
 

@@ -61,6 +61,8 @@ namespace FloatGardens
             var cityGo = new GameObject("Bogota");
             city = cityGo.AddComponent<City>();
             city.Build();
+            // Versión móvil: la escenografía de la maqueta (convoy de café, cóndor holográfico, Virgen colosal)
+            if (FGStyle.Miniatura) cityGo.AddComponent<MiniatureSet>().Build(city);
             Physics.SyncTransforms();
 
             actors = new GameObject("Personajes").transform;
@@ -75,7 +77,7 @@ namespace FloatGardens
                 camGo.AddComponent<AudioListener>();
             }
             cam.nearClipPlane = 0.1f;
-            cam.farClipPlane = 900;
+            cam.farClipPlane = FGStyle.Miniatura ? 2200 : 900; // el paneo del lobby mira desde 420 m
             camRig = cam.gameObject.AddComponent<ThirdPersonCamera>();
             camRig.cam = cam;
 
