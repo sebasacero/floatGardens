@@ -191,7 +191,7 @@ namespace FloatGardens
                 // Tilt-shift: lente larga muy abierta enfocada en el barista; lo de adelante y lo de atrás se desenfoca y
                 // la ciudad parece una maqueta. LateUpdate mueve el foco con la cámara.
                 dof.mode.Override(DepthOfFieldMode.Bokeh);
-                dof.focusDistance.Override(60f);
+                dof.focusDistance.Override(90f);
                 dof.focalLength.Override(200f);
                 dof.aperture.Override(2.8f);
                 dof.bladeCount.Override(6);
@@ -443,8 +443,8 @@ namespace FloatGardens
             if (dof != null)
             {
                 dof.focusDistance.Override(focus);
-                // 200 mm jugando (unos 60 m), 300 mm en el paneo del lobby (420 m): el desenfoque se nota igual en los dos
-                dof.focalLength.Override(Mathf.Lerp(200f, 300f, Mathf.InverseLerp(60f, 420f, focus)));
+                // 200 mm jugando (unos 90 m), 300 mm en el paneo del lobby (420 m): el desenfoque se nota igual en los dos
+                dof.focalLength.Override(Mathf.Lerp(200f, 300f, Mathf.InverseLerp(90f, 420f, focus)));
             }
         }
 

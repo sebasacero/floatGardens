@@ -73,7 +73,7 @@ En celular el juego no usa la cámara sobre el hombro sino el look de **ciudad e
 teleobjetivo desde lo alto, como un dron, con la ciudad vista como una maqueta. Concepto con imágenes y valores:
 [Kennedy en miniatura](https://claude.ai/artifact/K1sK5LFS2Ritrkouc4syq5).
 
-- **Cámara de juego**: lente larga (FOV 22°, 18° al apuntar) a 58 m del barista, inclinada 42°. Si un edificio lo
+- **Cámara de juego**: lente larga (FOV 26°, 20° al apuntar) a 90 m del barista (70 m al apuntar), inclinada 42°. Si un edificio lo
   tapa, sube sola hasta 74° (casi cenital). Al deslizar el dedo gira alrededor del barista.
 - **Puntería asistida**: no hay mira en el centro. El barista dispara desde el pecho hacia donde mira y la puntería
   se ayuda sola hacia el enemigo más cercano a la vista dentro de un cono de 25° (a la cabeza si estás apuntando).

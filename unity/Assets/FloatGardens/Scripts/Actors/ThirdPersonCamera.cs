@@ -10,12 +10,13 @@ namespace FloatGardens
         public Camera cam;
         public float Distance { get; private set; } = 3.6f;
         /// <summary>Distancia de la cámara al punto enfocado: la profundidad de campo y la bruma de la maqueta la siguen.</summary>
-        public float Focus { get; private set; } = 60f;
+        public float Focus { get; private set; } = 90f;
         float shake;
 
-        // Maqueta: lente larga (FOV 16-22°) lejos del barista. Si un edificio lo tapa, la cámara sube hacia cenital.
-        const float MiniDistance = 58f, MiniAimDistance = 46f, MiniPitch = 42f, MiniMaxPitch = 74f;
-        const float MiniFov = 22f, MiniAimFov = 18f, LobbyDistance = 420f;
+        // Maqueta: lente larga (FOV 16-26°) lejos del barista, para que se vean varias manzanas alrededor. Si un
+        // edificio lo tapa, la cámara sube hacia cenital.
+        const float MiniDistance = 90f, MiniAimDistance = 70f, MiniPitch = 42f, MiniMaxPitch = 74f;
+        const float MiniFov = 26f, MiniAimFov = 20f, LobbyDistance = 420f;
         float miniPitch = MiniPitch;
         static readonly RaycastHit[] hits = new RaycastHit[16];
 
