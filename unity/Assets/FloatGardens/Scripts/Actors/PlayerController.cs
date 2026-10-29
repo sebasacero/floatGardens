@@ -158,13 +158,25 @@ namespace FloatGardens
             SFX.Play("shot", 0.8f);
             flashTime = 0.05f;
 
-            var cam = g.cam.transform;
-            Vector3 d = cam.forward + (cam.right * Random.Range(-1f, 1f) + cam.up * Random.Range(-1f, 1f)) * spread;
-            d.Normalize();
-            Vector3 hitPoint = cam.position + d * FGConfig.Range;
+            Vector3 from, d;
+            if (FGStyle.Miniatura)
+            {
+                // Cámara de maqueta: sin mira central, se dispara desde el pecho hacia donde mira el barista
+                from = transform.position + Vector3.up * 1.4f;
+                d = AutoAim(g, from) + (Right * Random.Range(-1f, 1f) + Vector3.up * Random.Range(-0.3f, 0.3f)) * spread;
+                d.Normalize();
+            }
+            else
+            {
+                var cam = g.cam.transform;
+                d = cam.forward + (cam.right * Random.Range(-1f, 1f) + cam.up * Random.Range(-1f, 1f)) * spread;
+                d.Normalize();
+                from = cam.position + d * g.camRig.Distance;
+            }
+            Vector3 hitPoint = from + d * FGConfig.Range;
             Enemy target = null;
             bool head = false;
-            if (Phys.Raycast(cam.position + d * g.camRig.Distance, d, FGConfig.Range, cc, out RaycastHit hit))
+            if (Phys.Raycast(from, d, FGConfig.Range, cc, out RaycastHit hit))
             {
                 hitPoint = hit.point;
                 target = hit.collider.GetComponentInParent<Enemy>();
@@ -180,6 +192,31 @@ namespace FloatGardens
             FX.Burst(muzzle.position, FGMaterials.Hex("#8b5a2b"), 3, 2);
             FX.Burst(hitPoint, FGMaterials.Hex("#6b3b1f"), 6, 3);
             if (target != null && !target.Dead) g.HitEnemy(target, head, hitPoint);
+        }
+
+        /// <summary>
+        /// Puntería asistida de la maqueta: apunta al enemigo vivo más cercano dentro de un cono de 25° al frente y a la
+        /// vista (al pecho; a la cabeza si el barista está apuntando). Si no hay ninguno, dispara recto al frente.
+        /// </summary>
+        Vector3 AutoAim(GameManager g, Vector3 from)
+        {
+            Vector3 best = Forward;
+            float bestScore = float.MaxValue;
+            foreach (var e in g.enemies)
+            {
+                if (e == null || e.Dead) continue;
+                Vector3 aimAt = e.transform.position + Vector3.up * (aiming ? e.HeadHeight - e.transform.position.y - 0.1f : 1.1f);
+                Vector3 to = aimAt - from;
+                float dist = to.magnitude;
+                if (dist < 0.5f || dist > FGConfig.Range) continue;
+                float angle = Vector3.Angle(Forward, new Vector3(to.x, 0, to.z));
+                if (angle > 25f) continue;
+                float score = angle * 1.5f + dist;
+                if (score >= bestScore || !Phys.LineOfSight(from, aimAt, cc, null)) continue;
+                bestScore = score;
+                best = to / dist;
+            }
+            return best;
         }
 
         public void Damage(float dmg, Vector3 from, float knockForce, GameManager g)

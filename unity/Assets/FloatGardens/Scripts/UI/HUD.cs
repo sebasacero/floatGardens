@@ -111,7 +111,13 @@ namespace FloatGardens
             // ---- Mira y marcador de impacto ----
             for (int i = 0; i < 4; i++)
                 cross[i] = (RectTransform)UIKit.Image(root, "Mira", new Vector2(0.5f, 0.5f), Vector2.zero, i < 2 ? new Vector2(2, 9) : new Vector2(9, 2), Color.white).transform;
-            UIKit.Image(root, "Punto", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(3, 3), Color.white);
+            var dot = UIKit.Image(root, "Punto", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(3, 3), Color.white);
+            // En la maqueta el centro de la pantalla no es hacia donde se dispara (la puntería es asistida): sin mira
+            if (FGStyle.Miniatura)
+            {
+                foreach (var c in cross) c.gameObject.SetActive(false);
+                dot.gameObject.SetActive(false);
+            }
             hit1 = UIKit.Image(root, "Impacto1", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2, 30), new Color(1, 1, 1, 0));
             hit2 = UIKit.Image(root, "Impacto2", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2, 30), new Color(1, 1, 1, 0));
             hit1.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);

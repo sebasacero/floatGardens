@@ -67,6 +67,27 @@ Funciona con el **Input System** nuevo (el que trae Unity 6 por defecto) y tambi
    sombras a 30–50 m y render scale de 0,8–0,9.
 4. **Build**. En Android sale un `.apk` o `.aab` para la Play Store. En iOS sale un proyecto de Xcode.
 
+### 4b. Estilo móvil: Kennedy en miniatura
+
+En celular el juego no usa la cámara sobre el hombro sino el look de **ciudad en miniatura**: una cámara de
+teleobjetivo desde lo alto, como un dron, con la ciudad vista como una maqueta. Concepto con imágenes y valores:
+[Kennedy en miniatura](https://claude.ai/artifact/K1sK5LFS2Ritrkouc4syq5).
+
+- **Cámara de juego**: lente larga (FOV 26°, 20° al apuntar) a 90 m del barista (70 m al apuntar), inclinada 42°. Si un edificio lo
+  tapa, sube sola hasta 74° (casi cenital). Al deslizar el dedo gira alrededor del barista.
+- **Puntería asistida**: no hay mira en el centro. El barista dispara desde el pecho hacia donde mira y la puntería
+  se ayuda sola hacia el enemigo más cercano a la vista dentro de un cono de 25° (a la cabeza si estás apuntando).
+- **Lobby**: paneo lento de dron a 420 m, con lente de 16°, mirando hacia los cerros y la Virgen.
+- **Tilt-shift y bruma**: profundidad de campo Bokeh enfocada en el barista (200 mm jugando, 300 mm en el lobby,
+  f/2.8), niebla lineal verde-gris que empieza al 75 % y termina al 320 % de la distancia de enfoque, etalonaje más
+  apagado (saturación −14, sombras verde azulado, luces ámbar) y sin aberración cromática.
+- **Escenografía** (`MiniatureSet.cs`): convoy de 18 costales de café dorados colgados de drones dando vueltas sobre
+  la ciudad, un cóndor holográfico de malla azul sobre el HQ y la Virgen de Guadalupe colosal (unos 75 m) sobre su
+  cerro, con rayos dorados que se encienden de noche y una luz desde abajo.
+
+Se activa sola en Android e iOS, y en el editor cuando el destino del build es Android o iOS. Para probarla en PC usa
+el menú **Float Gardens → Estilo móvil (miniatura) → Siempre** antes de darle Play (y **Automático** para volver).
+
 ## 5. Gráficos y personajes
 
 **Lo que ya hace el código:**
@@ -135,10 +156,12 @@ Assets/FloatGardens/
   Scripts/Core/FGConfig.cs      mapa de barrios, calles, zonas, enemigos, mejoras y balance
   Scripts/Core/FGSave.cs        guardado (PlayerPrefs) y cupones FG-XXX-XXX-XX
   Scripts/Core/FGInput.cs       teclado/mouse (Input System nuevo o clásico) + táctil
+  Scripts/Core/FGStyle.cs       elige el estilo móvil "Kennedy en miniatura"
   Scripts/Core/SFX.cs           efectos de sonido sintetizados
   Scripts/World/City.cs         generación de Bogotá, colisiones, minimapa
   Scripts/World/Bus.cs          buses articulados de la Av. Caracas
   Scripts/World/Drone.cs        drones fumigadores con reflector y hologramas publicitarios
+  Scripts/World/MiniatureSet.cs escenografía del estilo móvil: convoy de café, cóndor holográfico, Virgen colosal
   Scripts/World/FGTextures.cs   texturas procedurales (ladrillo, colonial, vidrio...)
   Scripts/World/FGMaterials.cs  materiales URP (Lit, emisivos, transparentes)
   Scripts/World/MeshBuilder.cs  mallas combinadas para pocas llamadas de dibujo

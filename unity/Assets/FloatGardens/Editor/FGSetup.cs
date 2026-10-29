@@ -178,5 +178,33 @@ namespace FloatGardens.EditorTools
             PlayerPrefs.DeleteKey(FGSave.Key);
             PlayerPrefs.Save();
         }
+
+        // Estilo "Kennedy en miniatura" de la versión móvil. Automático: se ve en celular y en el editor cuando el
+        // destino del build es Android o iOS. Con estas opciones se puede forzar para probarlo en Play.
+        const string StyleMenu = "Float Gardens/Estilo móvil (miniatura)/";
+
+        [MenuItem(StyleMenu + "Automático (solo celular)", priority = 60)]
+        static void StyleAuto() => FGStyle.SetPreference(-1);
+
+        [MenuItem(StyleMenu + "Siempre", priority = 61)]
+        static void StyleOn() => FGStyle.SetPreference(1);
+
+        [MenuItem(StyleMenu + "Nunca", priority = 62)]
+        static void StyleOff() => FGStyle.SetPreference(0);
+
+        [MenuItem(StyleMenu + "Automático (solo celular)", true)]
+        static bool StyleAutoCheck() => CheckStyle(StyleMenu + "Automático (solo celular)", -1);
+
+        [MenuItem(StyleMenu + "Siempre", true)]
+        static bool StyleOnCheck() => CheckStyle(StyleMenu + "Siempre", 1);
+
+        [MenuItem(StyleMenu + "Nunca", true)]
+        static bool StyleOffCheck() => CheckStyle(StyleMenu + "Nunca", 0);
+
+        static bool CheckStyle(string path, int value)
+        {
+            Menu.SetChecked(path, PlayerPrefs.GetInt(FGStyle.PrefKey, -1) == value);
+            return !EditorApplication.isPlaying; // el estilo se elige al arrancar la partida
+        }
     }
 }
