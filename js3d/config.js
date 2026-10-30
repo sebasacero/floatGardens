@@ -7,6 +7,7 @@ W.CONFIG = {
   BLOCK: 40,              // lado de una manzana (m)
   STREET: 14,             // ancho de calle (m)
   GRID: 12,               // manzanas por lado
+  MAQUETA: true,          // guía v2: ciudad en maqueta blanca (false = estilo anterior de ladrillo y color)
 
   PLAYER_RADIUS: 0.45,
   WALK_SPEED: 6,
@@ -95,6 +96,9 @@ W.ZONES = [
   { id: 'candelaria', row: 10, col: 8, name: 'Chorro de Quevedo', district: 'L' },
   { id: 'aranda', row: 9, col: 2, name: 'Puente Aranda', district: 'A' },
 ];
+
+// Kennedy 2089: manzanas de los barrios del occidente donde la red levantó torres colgantes [fila, columna]
+W.HANGING_TOWERS = [[7, 4], [10, 4], [11, 6]];
 
 // Batalla final
 W.BOSS = { row: 9, col: 9, name: 'Don Monopolio', hp: 3000 };

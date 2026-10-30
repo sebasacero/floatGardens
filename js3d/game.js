@@ -27,12 +27,12 @@
       this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: 'high-performance' });
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.25 : 1.75));
       this.scene = new THREE.Scene();
-      this.skyColor = new THREE.Color('#a9bccb');
+      this.skyColor = new THREE.Color(C.MAQUETA ? '#e3e9e8' : '#a9bccb');
       this.scene.background = this.skyColor.clone();
       this.scene.fog = new THREE.Fog(this.skyColor.clone(), 40, 430);
       this.camera = new THREE.PerspectiveCamera(70, 1, 0.1, 900);
-      this.scene.add(new THREE.HemisphereLight('#e8f0f7', '#4a4f45', 0.95));
-      const sun = new THREE.DirectionalLight('#fff4e0', 0.55);
+      this.scene.add(C.MAQUETA ? new THREE.HemisphereLight('#eef4ff', '#8f9a88', 0.75) : new THREE.HemisphereLight('#e8f0f7', '#4a4f45', 0.95));
+      const sun = new THREE.DirectionalLight('#fff4e0', C.MAQUETA ? 1.0 : 0.55);
       sun.position.set(-120, 200, 80);
       this.scene.add(sun);
 

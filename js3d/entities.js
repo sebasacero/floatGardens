@@ -525,7 +525,8 @@
   }
 
   // ---------- Zonas de captura ----------
-  const ZONE_COLORS = { fed: '#e0413a', fg: '#2fbf71', target: '#ffd34d' };
+  // guía v2: Arcadia en azul, lo tuyo en verde hoja, el objetivo en lima
+  const ZONE_COLORS = W.CONFIG.MAQUETA ? { fed: '#2a22f5', fg: '#4f8f2c', target: '#d6e48a' } : { fed: '#e0413a', fg: '#2fbf71', target: '#ffd34d' };
   class Zone {
     constructor(def) {
       this.def = def;
