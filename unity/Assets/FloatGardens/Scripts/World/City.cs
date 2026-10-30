@@ -170,6 +170,7 @@ namespace FloatGardens
             if (row == FGConfig.HQ.y && col == FGConfig.HQ.x) { HQ(c); return; }
             if (zone.HasValue) { ZonePlaza(zone.Value, c, false); return; }
             if (row == 7 && col == 10) { Torre(c); return; }
+            foreach (var t in FGConfig.HangingTowers) if (t.y == row && t.x == col) { Colgante(c); return; }
             Buildings(code, c);
         }
 
@@ -587,16 +588,9 @@ namespace FloatGardens
         void HQ(Vector3 c)
         {
             B("empedrado", FGMaterials.Lit("empedrado", Color.white, FGTextures.Cobble, 0.2f)).Top(c.x, c.z, 0.27f, Block - 4, Block - 4);
-            // edificio de ladrillo con huerta en la azotea (lado norte)
-            plainRoof = true; // la azotea es la huerta y el letrero va en la fachada sur
-            Building("ladrillo", 0, c.x, c.z + 12, 34, 15, 14);
-            plainRoof = false;
-            var leaf = B("hojaHQ", FGMaterials.Lit("#2f8f45", 0.1f));
-            for (int i = -3; i <= 3; i++) leaf.Box(c.x + i * 4.5f, c.z + 12, 15.25f, 3, 1.4f, 10);
-            var ledHQ = GrowLight();
-            for (int i = -3; i <= 3; i++) B("ledCultivo", ledHQ).Solid(c.x + i * 4.5f, c.z + 12, 17.3f, 0.25f, 0.06f, 10);
-            neonSpots.Add(new NeonSpot { pos = new Vector3(c.x, 17.5f, c.z + 12), color = FGMaterials.Hex("#ff4fd8") });
-            Sign("FLOAT GARDENS", new Vector3(c.x, 11, c.z + 4.9f), 0.55f, FGMaterials.Hex("#7dffb0"), FGMaterials.Hex("#0f3d2e"), new Vector2(20, 4));
+            // torre de terrazas colgantes (guía v2): la sede de la red, al norte de la plaza
+            HangingTower.Build(B, Collider, transform, new Vector3(c.x, 0, c.z + 9),
+                new HangingTower.Settings { terraces = 7, floorHeight = 6, baseSize = 20, setback = 1.1f }, rng);
             // piscina hidropónica (transitable, agua poco profunda)
             B("borde", FGMaterials.Lit("#9fb7a8", 0.2f)).Walls(c.x - 4, c.z - 7, 0.25f, 22, 0.6f, 11);
             var pool = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -640,16 +634,17 @@ namespace FloatGardens
 
         void Torre(Vector3 c)
         {
-            Building("concreto", 0, c.x, c.z, 36, 9, 36);
-            Building("vidrio", 1, c.x, c.z, 22, 140, 22);
-            crownMat = FGMaterials.Instance(FGMaterials.Emissive("corona", FGMaterials.Hex("#ff3366"), 3f));
-            var crown = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Destroy(crown.GetComponent<UnityEngine.Collider>());
-            crown.name = "CoronaTorre";
-            crown.transform.SetParent(transform, false);
-            crown.transform.position = new Vector3(c.x, 136, c.z);
-            crown.transform.localScale = new Vector3(23, 10, 23);
-            crown.GetComponent<MeshRenderer>().sharedMaterial = crownMat;
+            // torre colgante sellada por Arcadia: el azul es el único color que no es café
+            HangingTower.Build(B, Collider, transform, c,
+                new HangingTower.Settings { terraces = 11, floorHeight = 6.4f, baseSize = 36, setback = 1.3f, plinth = 9, sealed_ = true }, rng);
+            noShadow.Add("selloVidrio");
+        }
+
+        // Kennedy 2089: torre colgante de la red en los barrios del occidente
+        void Colgante(Vector3 c)
+        {
+            HangingTower.Build(B, Collider, transform, c,
+                new HangingTower.Settings { terraces = 8, floorHeight = 6, baseSize = 34, setback = 1.6f }, rng);
         }
 
         void PlazaBolivar(Vector3 c)

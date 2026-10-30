@@ -105,6 +105,8 @@ namespace FloatGardens
 
         public static readonly Vector2Int HQ = new Vector2Int(9, 4); // (columna, fila)
         public const char HQDistrict = 'C';
+        // Kennedy 2089: manzanas de los barrios del occidente donde la red levantó torres colgantes (columna, fila)
+        public static readonly Vector2Int[] HangingTowers = { new Vector2Int(4, 7), new Vector2Int(4, 10), new Vector2Int(6, 11) };
 
         public struct ZoneDef
         {

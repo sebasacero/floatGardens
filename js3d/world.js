@@ -71,6 +71,7 @@
       (topGeo || this).top(x, z, y0 + h, w, d, topColor || color);
     }
     mesh(material) {
+      if (C.MAQUETA) maquetaColors(this.col);
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
       g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nor, 3));
@@ -83,6 +84,24 @@
 
   const col = (hex) => new THREE.Color(hex);
   const WHITE = new THREE.Color('#ffffff');
+
+  // ---------- Maqueta blanca (guía v2) ----------
+  // Las texturas pasan a gris claro (el detalle queda como relieve suave) y los colores de fachada a blancos cálidos y fríos.
+  const TONES = ['#f3f3f0', '#eeebe6', '#f1efe9', '#e9ece8', '#efe8e1', '#f5f4f1', '#ebe7e0'].map((h) => new THREE.Color(h));
+  function maquetaColors(arr) {
+    for (let i = 0; i < arr.length; i += 3) { // el tono sale del color original: cada edificio queda parejo
+      const r = arr[i], g = arr[i + 1], b = arr[i + 2];
+      const t = TONES[Math.floor((r * 7 + g * 13 + b * 17) * 100) % 7], f = 0.9 + 0.1 * (0.3 * r + 0.59 * g + 0.11 * b);
+      arr[i] = t.r * f; arr[i + 1] = t.g * f; arr[i + 2] = t.b * f;
+    }
+  }
+  function maquetaTexture(tex, lo, tint) {
+    const img = tex.image; if (!img || !img.getContext) return;
+    const x = img.getContext('2d'); const d = x.getImageData(0, 0, img.width, img.height); const a = d.data;
+    const t = new THREE.Color(tint || '#ffffff');
+    for (let i = 0; i < a.length; i += 4) { const l = (0.3 * a[i] + 0.59 * a[i + 1] + 0.11 * a[i + 2]) / 255; const v = lo + (1 - lo) * l; a[i] = 255 * v * t.r; a[i + 1] = 255 * v * t.g; a[i + 2] = 255 * v * t.b; }
+    x.putImageData(d, 0, 0); tex.needsUpdate = true;
+  }
   const tint = (hex, amt) => {
     const c = new THREE.Color(hex);
     const k = 1 + (rnd() - 0.5) * (amt || 0.15);
@@ -137,6 +156,13 @@
         plain: new THREE.MeshLambertMaterial({ vertexColors: true }),
       };
       this.mats = mats;
+      if (C.MAQUETA) {
+        // ventanas oscuras quedan en gris vidrio (#8E9C9D aprox.) y los muros en yeso
+        for (const k of ['brick', 'stucco', 'concrete', 'warehouse']) maquetaTexture(T[k], 0.6);
+        maquetaTexture(T.glass, 0.55, '#eef2f2');
+        maquetaTexture(T.roof, 0.82); maquetaTexture(T.sidewalk, 0.85); maquetaTexture(T.cobble, 0.82);
+        maquetaTexture(T.asphalt, 0.72, '#e4e7e3'); maquetaTexture(T.grass, 0.55, '#c3d0b7');
+      }
       const geo = {};
       for (const k in mats) geo[k] = new Geo();
       this.geo = geo;
@@ -198,6 +224,7 @@
       if (isHQ) { this.hq(x, z); return; }
       if (zone) { this.zonePlaza(zone, x, z, false); return; }
       if (row === 7 && c === 10) { this.torre(x, z); return; }
+      if (W.HANGING_TOWERS.some(([r, k]) => r === row && k === c)) { this.hangingTower(x, z); return; }
       this.buildings(style, x, z);
     },
 
@@ -207,7 +234,7 @@
       g.roof.top(x, z, h + 0.25, w, d, roofColor || col('#ffffff'));
       addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2, h + 0.25, 'building');
       // Toldos de colores en algunos locales del primer piso
-      if (h < 40 && rnd() < 0.35) {
+      if (!C.MAQUETA && h < 40 && rnd() < 0.35) {
         const side = Math.floor(rnd() * 4);
         const color = col(pickR(['#d6423a', '#2fbf71', '#f2a541', '#47b5e0', '#e85d75']));
         const aw = Math.min(w, d) * 0.6;
@@ -215,7 +242,7 @@
         g.plain.box(x + off[0], z + off[1], 3, off[2], 0.25, off[3], color);
       }
       // Murales
-      if (h >= 6 && rnd() < 0.08 && (mat === 'brick' || mat === 'warehouse' || mat === 'concrete')) {
+      if (!C.MAQUETA && h >= 6 && rnd() < 0.08 && (mat === 'brick' || mat === 'warehouse' || mat === 'concrete')) {
         const ti = Math.floor(rnd() * W.Tex.murals.length);
         const mw = Math.min(10, Math.max(w, d) * 0.7);
         const side = Math.floor(rnd() * 4);
@@ -331,16 +358,11 @@
     hq(x, z) {
       const g = this.geo;
       g.cobble.box(x, z, 0.25, C.BLOCK - 4, 0.05, C.BLOCK - 4, col('#ffffff'), 8, 8);
-      // edificio de ladrillo con jardín en la azotea
-      this.building('brick', x, z - 12, 34, 15, 14, col('#ffffff'), col('#5a8f4a'));
-      for (let i = -3; i <= 3; i++) g.plain.box(x + i * 4.5, z - 12, 15.25, 3, 1.4, 10, col(i % 2 ? '#3fa35b' : '#2a7a41'));
-      const signMat = new THREE.MeshBasicMaterial({ map: W.Tex.sign('FLOAT GARDENS', '#0f3d2e', '#7dffb0'), side: THREE.DoubleSide });
-      const sign = new THREE.Mesh(new THREE.PlaneGeometry(20, 4), signMat);
-      sign.position.set(x, 11, z - 4.9);
-      this.scene.add(sign);
+      // torre de terrazas colgantes (guía v2): la sede de la red, al norte de la plaza
+      W.HangingTower.build(this.scene, x, z - 9, { terraces: 7, floorH: 6, base: 20, setback: 1.1, y0: 0.25, rnd, addCollider });
       // piscina hidropónica
       g.plain.box(x - 4, z + 7, 0.3, 22, 0.6, 11, col('#9fb7a8'));
-      const pool = new THREE.Mesh(new THREE.PlaneGeometry(20.5, 9.5), new THREE.MeshLambertMaterial({ map: W.Tex.water }));
+      const pool = new THREE.Mesh(new THREE.PlaneGeometry(20.5, 9.5), C.MAQUETA ? new THREE.MeshPhongMaterial({ color: '#8e9c9d', shininess: 80 }) : new THREE.MeshLambertMaterial({ map: W.Tex.water }));
       pool.rotation.x = -Math.PI / 2;
       pool.position.set(x - 4, 0.92, z + 7);
       this.scene.add(pool);
@@ -357,14 +379,17 @@
     },
 
     torre(x, z) {
-      this.building('concrete', x, z, 36, 9, 36, col('#ffffff'));
-      this.building('glass', x, z, 22, 140, 22, col('#d0dcea'));
-      this.crownMat = new THREE.MeshBasicMaterial({ color: '#ff3366' });
-      const crown = new THREE.Mesh(new THREE.BoxGeometry(23, 10, 23), this.crownMat);
-      crown.position.set(x, 136, z);
-      this.scene.add(crown);
+      // torre colgante sellada por Arcadia: el azul es el único color que no es café
+      W.HangingTower.build(this.scene, x, z, { terraces: 11, floorH: 6.4, base: 36, setback: 1.3, plinth: 9, y0: 0.25, sealed: true, rnd, addCollider });
       this.landmarks = this.landmarks || [];
-      this.landmarks.push({ name: 'Torre del Centro', x, z });
+      this.landmarks.push({ name: 'Torre sellada de Arcadia', x, z });
+    },
+
+    // Kennedy 2089: torres colgantes de la red en los barrios del occidente
+    hangingTower(x, z) {
+      W.HangingTower.build(this.scene, x, z, { terraces: 8, floorH: 6, base: 34, setback: 1.6, y0: 0.25, rnd, addCollider });
+      this.landmarks = this.landmarks || [];
+      this.landmarks.push({ name: 'Torre colgante', x, z });
     },
 
     plazaBolivar(x, z) {
@@ -455,8 +480,8 @@
       const M = W.Geom.matrix;
       const busParts = [{ geo: new THREE.BoxGeometry(2.3, 2.6, 1), matrix: M(0, 1.8, 0), color: '#333' }];
       for (const off of [-5.2, 5.2]) {
-        busParts.push({ geo: new THREE.BoxGeometry(2.5, 3, 9.6), matrix: M(0, 1.9, off), color: '#c62828' });
-        busParts.push({ geo: new THREE.BoxGeometry(2.56, 1, 8.6), matrix: M(0, 2.3, off), color: '#1d2b36' });
+        busParts.push({ geo: new THREE.BoxGeometry(2.5, 3, 9.6), matrix: M(0, 1.9, off), color: C.MAQUETA ? '#f4f5f3' : '#c62828' });
+        busParts.push({ geo: new THREE.BoxGeometry(2.56, 1, 8.6), matrix: M(0, 2.3, off), color: C.MAQUETA ? '#8e9c9d' : '#1d2b36' });
       }
       const busGeo = W.Geom.merge(busParts);
       for (let i = 0; i < 4; i++) {
@@ -472,8 +497,8 @@
 
     // Cerros orientales con Monserrate, su santuario blanco y el teleférico
     buildMountains() {
-      const mat = new THREE.MeshLambertMaterial({ color: '#3d6b3a', flatShading: true });
-      const mat2 = new THREE.MeshLambertMaterial({ color: '#2f5a33', flatShading: true });
+      const mat = new THREE.MeshLambertMaterial({ color: C.MAQUETA ? '#a2b2a8' : '#3d6b3a', flatShading: true });
+      const mat2 = new THREE.MeshLambertMaterial({ color: C.MAQUETA ? '#b4c2b8' : '#2f5a33', flatShading: true });
       const peaks = [
         [430, -380, 130, 150], [470, -260, 150, 190], [440, -120, 120, 160], [455, 20, 140, 185],
         [440, 150, 130, 210], [470, 300, 150, 180], [430, 430, 120, 140], [560, -200, 160, 230], [580, 150, 170, 240],
@@ -497,7 +522,7 @@
       const end = new THREE.Vector3(432, 196, 152);
       const cable = new THREE.Line(new THREE.BufferGeometry().setFromPoints([start, end]), new THREE.LineBasicMaterial({ color: '#222' }));
       this.scene.add(cable);
-      this.cabin = new THREE.Mesh(new THREE.BoxGeometry(3, 2.4, 3), new THREE.MeshLambertMaterial({ color: '#d6423a' }));
+      this.cabin = new THREE.Mesh(new THREE.BoxGeometry(3, 2.4, 3), new THREE.MeshLambertMaterial({ color: C.MAQUETA ? '#f6f7f6' : '#d6423a' }));
       this.cable = { start, end };
       this.scene.add(this.cabin);
       this.landmarks.push({ name: 'Monserrate', x: 440, z: 150 });
@@ -528,7 +553,7 @@
       const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshLambertMaterial({ color: '#6b4a30' }), spots.length);
       const leaves = new THREE.InstancedMesh(leafGeo, new THREE.MeshLambertMaterial({ color: '#ffffff', flatShading: true }), spots.length);
       const m = new THREE.Matrix4();
-      const leafColors = ['#3f8f3f', '#2f7a3a', '#4f9f45', '#5a8f3a'];
+      const leafColors = C.MAQUETA ? ['#b7c6aa', '#c3d0b7', '#aabd9c', '#9fb491'] : ['#3f8f3f', '#2f7a3a', '#4f9f45', '#5a8f3a'];
       spots.forEach((s, i) => {
         const k = s.small ? 0.7 : rr(0.9, 1.5);
         m.makeScale(k, k, k).setPosition(s.x, 1.5 * k + 0.25, s.z);
@@ -548,9 +573,11 @@
       cv.width = cv.height = size;
       const ctx = cv.getContext('2d');
       const o = HALF + 20;
-      ctx.fillStyle = '#2b3036';
+      ctx.fillStyle = C.MAQUETA ? '#c9cfcb' : '#2b3036';
       ctx.fillRect(0, 0, size, size);
-      const colors = { glass: '#5d7f99', tower: '#6d8aa3', brick: '#8f5a46', house: '#8a6150', colonial: '#c9a46a', warehouse: '#7c858c', mixed: '#7e6f66', park: '#3f7a3a', plaza: '#a89f90', sede: '#a33a30' };
+      const colors = C.MAQUETA
+        ? { glass: '#f4f5f3', tower: '#f4f5f3', brick: '#f1efe9', house: '#f1efe9', colonial: '#eeebe6', warehouse: '#e9ece8', mixed: '#f1efe9', park: '#b7c6aa', plaza: '#e6e8e4', sede: '#2a22f5' }
+        : { glass: '#5d7f99', tower: '#6d8aa3', brick: '#8f5a46', house: '#8a6150', colonial: '#c9a46a', warehouse: '#7c858c', mixed: '#7e6f66', park: '#3f7a3a', plaza: '#a89f90', sede: '#a33a30' };
       for (let row = 0; row < C.GRID; row++) {
         for (let c = 0; c < C.GRID; c++) {
           const { x, z } = cellCenter(row, c);
@@ -561,12 +588,12 @@
         }
       }
       if (this.lake) {
-        ctx.fillStyle = '#3f8fb3';
+        ctx.fillStyle = C.MAQUETA ? '#8e9c9d' : '#3f8fb3';
         ctx.beginPath();
         ctx.ellipse((this.lake.x + o) * S, (this.lake.z + o) * S, this.lake.rx * S, this.lake.rz * S, 0, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.fillStyle = '#b8443a';
+      ctx.fillStyle = C.MAQUETA ? '#a9aeab' : '#b8443a';
       ctx.fillRect((lineX(6) - 2 + o) * S, 0, 4 * S, size);
       this.minimap = { canvas: cv, offset: o, scale: S };
     },
