@@ -8,6 +8,7 @@ W.CONFIG = {
   STREET: 14,             // ancho de calle (m)
   GRID: 12,               // manzanas por lado
   MAQUETA: true,          // guía v2: ciudad en maqueta blanca (false = estilo anterior de ladrillo y color)
+  SUPER_TORRES: true,     // Kennedy 2089: Zona T y Centro Internacional con súper torres y acentos de color de cereza
 
   PLAYER_RADIUS: 0.45,
   WALK_SPEED: 6,

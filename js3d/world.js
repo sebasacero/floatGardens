@@ -187,6 +187,7 @@
       this.buildTrees();
 
       for (const k in geo) if (geo[k].pos.length) scene.add(geo[k].mesh(mats[k]));
+      if (this.superParts && this.superParts.length) { scene.add(new THREE.Mesh(W.Geom.merge(this.superParts), W.Geom.vcMat())); this.superParts = null; }
       this.muralGeo.forEach((g, i) => { if (g.pos.length) scene.add(g.mesh(new THREE.MeshLambertMaterial({ map: T.murals[i] }))); });
       // la ciudad no se mueve: fijamos sus matrices para no recalcularlas en cada cuadro
       const moving = new Set([...this.buses.map((b) => b.mesh), this.cabin]);
@@ -267,6 +268,8 @@
           for (let j = 0; j < n; j++) fn(x - L + s * (i + 0.5), z - L + s * (j + 0.5), s - 0.02);
         }
       };
+      // Kennedy 2089: Zona T y Centro Internacional pasan a súper torres con acentos de color
+      if (C.MAQUETA && C.SUPER_TORRES && (style === 'glass' || style === 'tower')) { this.superBlock(style, x, z); return; }
       switch (style) {
         case 'glass':
           if (rnd() < 0.5) this.building('glass', x, z, 30, floors(33, 75), 30, tint('#ffffff'), col('#9aa3ab'));
@@ -390,6 +393,19 @@
       W.HangingTower.build(this.scene, x, z, { terraces: 8, floorH: 6, base: 34, setback: 1.6, y0: 0.25, rnd, addCollider });
       this.landmarks = this.landmarks || [];
       this.landmarks.push({ name: 'Torre colgante', x, z });
+    },
+
+    superBlock(style, x, z) {
+      const ST = W.SuperTower;
+      const lots = style === 'tower'
+        ? [[x, z, rr(24, 28), rr(24, 28), Math.round(rr(65, 105))]]
+        : [[x - 9, z, 17, rr(30, 34), Math.round(rr(40, 80))], [x + 9, z, 17, rr(30, 34), Math.round(rr(40, 80))]];
+      const styles = ST.blockStyles(lots.length, rnd);
+      this.superParts = this.superParts || [];
+      lots.forEach(([lx, lz, w, d, fl], k) => {
+        const t = ST.parts(lx, lz, Object.assign({ w, d, floors: fl, y0: 0.25, slabEvery: 2, rnd, addCollider }, styles[k]));
+        for (const p of t.parts) this.superParts.push(p);
+      });
     },
 
     plazaBolivar(x, z) {
@@ -522,7 +538,7 @@
       const end = new THREE.Vector3(432, 196, 152);
       const cable = new THREE.Line(new THREE.BufferGeometry().setFromPoints([start, end]), new THREE.LineBasicMaterial({ color: '#222' }));
       this.scene.add(cable);
-      this.cabin = new THREE.Mesh(new THREE.BoxGeometry(3, 2.4, 3), new THREE.MeshLambertMaterial({ color: C.MAQUETA ? '#f6f7f6' : '#d6423a' }));
+      this.cabin = new THREE.Mesh(new THREE.BoxGeometry(3, 2.4, 3), new THREE.MeshLambertMaterial({ color: C.MAQUETA ? (C.SUPER_TORRES ? '#b3121a' : '#f6f7f6') : '#d6423a' }));
       this.cable = { start, end };
       this.scene.add(this.cabin);
       this.landmarks.push({ name: 'Monserrate', x: 440, z: 150 });
