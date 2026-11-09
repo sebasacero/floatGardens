@@ -1,7 +1,8 @@
-// Vista cenital ("devlog"): cámara casi vertical de lente larga, mira asistida tipo twin-stick,
-// piso con retícula y dos temas: noche (piso carbón, el estilo del video) y día (maqueta blanca).
-// Se activa sola en pantallas táctiles; en PC se elige en el lobby o en pausa. Todo el mundo 3D,
-// los enemigos y el balance son los mismos: solo cambian cámara, mira, controles y HUD.
+// Vista cenital ("devlog"): cámara casi vertical de lente larga, mira asistida tipo twin-stick y
+// piso con retícula. Se activa sola en pantallas táctiles; en PC se elige en el lobby o en pausa.
+// Este módulo también lleva la LUZ del juego para las dos cámaras (guía v2: las plataformas no cambian
+// el diseño): dos temas, noche (mesa carbón) y día (maqueta blanca), con sol, sombras y cielo propios.
+// El mundo 3D, los enemigos y el balance son los mismos: solo cambian cámara, mira, controles y HUD.
 (function () {
   const KEY = 'fg.cenital', KEY_THEME = 'fg.cenital.tema';
   const read = (k, def) => { try { const v = localStorage.getItem(k); return v === null ? def : v; } catch (e) { return def; } };
@@ -9,12 +10,12 @@
 
   const THEMES = {
     noche: {
-      sky: '#23272c', fogNear: 90, fogFar: 520,
+      sky: '#23272c', zenith: '#14171b', fogNear: 90, fogFar: 520,
       ground: '#262b30', paving: '#3a4046', grid: 'rgba(255,255,255,0.09)',
       hemi: { sky: '#aab4c8', ground: '#15181b', intensity: 0.42 }, sun: 0.85, sunColor: '#ffdcb4',
     },
     dia: {
-      sky: '#e3e9e8', fogNear: 110, fogFar: 650,
+      sky: '#e3e9e8', zenith: '#c5d3dc', fogNear: 110, fogFar: 650,
       ground: '#ffffff', paving: '#ffffff', grid: 'rgba(44,48,46,0.14)',
       hemi: { sky: '#eef4ff', ground: '#8f9a88', intensity: 0.75 }, sun: 1.05, sunColor: '#fff1dc',
     },
@@ -31,7 +32,9 @@
     load(isTouch) {
       const saved = read(KEY, null);
       this.enabled = saved === null ? !!isTouch : saved === '1';
-      this.theme = THEMES[read(KEY_THEME, 'noche')] ? read(KEY_THEME, 'noche') : 'noche';
+      // sin preferencia guardada: noche en el celular (el estilo del video), día en PC
+      const def = isTouch ? 'noche' : 'dia';
+      this.theme = THEMES[read(KEY_THEME, def)] ? read(KEY_THEME, def) : def;
     },
     get active() { return this.enabled; },
 
@@ -65,13 +68,6 @@
       this.grid.renderOrder = 1;
       this.grid.visible = false;
       scene.add(this.grid);
-      // sombra blanda bajo el barista (la escena no usa sombras reales)
-      this.blob = new THREE.Mesh(new THREE.CircleGeometry(0.75, 24), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.28, depthWrite: false }));
-      this.blob.rotation.x = -Math.PI / 2;
-      this.blob.position.y = 0.03;
-      this.blob.renderOrder = 2;
-      this.blob.visible = false;
-      scene.add(this.blob);
       // marcador de mira: una línea fina en el piso hacia donde apunta (lima = "lo que apuntas")
       this.aimLine = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 1), new THREE.MeshBasicMaterial({ color: '#d6e48a', transparent: true, opacity: 0.9, depthWrite: false }));
       this.aimLine.rotation.x = -Math.PI / 2;
@@ -82,7 +78,39 @@
       this.camVec = new THREE.Vector3();
       this.lookVec = new THREE.Vector3();
       this.follow = null;
+      // cielo: cúpula con degradado del horizonte (color de la niebla) al cenit; sigue a la cámara
+      const sc = document.createElement('canvas');
+      sc.width = 4; sc.height = 256;
+      this.skyCtx = sc.getContext('2d');
+      this.skyTex = new THREE.CanvasTexture(sc);
+      this.skyDome = new THREE.Mesh(new THREE.SphereGeometry(820, 24, 12), new THREE.MeshBasicMaterial({ map: this.skyTex, side: THREE.BackSide, fog: false, depthWrite: false }));
+      this.skyDome.renderOrder = -10;
+      this.skyDome.frustumCulled = false;
+      scene.add(this.skyDome);
+      // destello del disparo
+      this.flash = new THREE.PointLight('#ffd9a8', 0, 10, 2);
+      scene.add(this.flash);
       this.apply(G);
+    },
+
+    drawSky(T, rain) {
+      const g = this.skyCtx;
+      const grad = g.createLinearGradient(0, 0, 0, 256);
+      const top = rain ? '#77848f' : T.zenith, hor = rain ? '#8e9ba6' : T.sky;
+      grad.addColorStop(0, top); grad.addColorStop(0.42, hor); grad.addColorStop(1, hor);
+      g.fillStyle = grad; g.fillRect(0, 0, 4, 256);
+      this.skyTex.needsUpdate = true;
+    },
+    // Cielo y niebla según tema y clima (la lluvia solo cambia el cielo de día)
+    sky(G) {
+      const T = THEMES[this.theme];
+      const rain = G.raining && this.theme === 'dia';
+      const c = rain ? '#8e9ba6' : T.sky;
+      G.scene.background.set(c);
+      G.scene.fog.color.set(c);
+      G.scene.fog.near = this.enabled ? T.fogNear : 55;
+      G.scene.fog.far = this.enabled ? T.fogFar : rain ? 320 : 480;
+      this.drawSky(T, rain);
     },
 
     drawGrid(color) {
@@ -97,43 +125,32 @@
     apply(G) {
       const on = this.enabled;
       const T = THEMES[this.theme];
+      const night = this.theme === 'noche';
       const body = document.body;
       body.classList.toggle('cenital', on);
-      body.classList.toggle('cenital-noche', on && this.theme === 'noche');
-      body.classList.toggle('cenital-dia', on && this.theme === 'dia');
+      body.classList.toggle('cenital-noche', on && night);
+      body.classList.toggle('cenital-dia', on && !night);
+      body.classList.toggle('fg-noche', night);
       W.Input.topdown = on;
       if (this.grid) this.grid.visible = on;
-      if (this.blob) this.blob.visible = false; // con sombras reales no hace falta
-      if (G.sun) G.sun.castShadow = on;
-      this.reskin(G, on);
       if (this.aimLine) this.aimLine.visible = false;
       if (on) this.drawGrid(T.grid);
-      // luces, cielo, niebla y piso
-      const sky = on ? T.sky : G.skyColor.getStyle();
-      G.scene.background.set(sky);
-      G.scene.fog.color.set(sky);
-      G.scene.fog.near = on ? T.fogNear : 40;
-      G.scene.fog.far = on ? T.fogFar : 430;
-      if (G.hemi) {
-        if (on) { G.hemi.color.set(T.hemi.sky); G.hemi.groundColor.set(T.hemi.ground); G.hemi.intensity = T.hemi.intensity; }
-        else { G.hemi.color.copy(G.hemiBase.color); G.hemi.groundColor.copy(G.hemiBase.ground); G.hemi.intensity = G.hemiBase.intensity; }
-      }
-      if (G.sun) { G.sun.intensity = on ? T.sun : G.sunBase; G.sun.color.set(on ? T.sunColor : '#fff4e0'); }
-      // tonemapping de cine solo en la cenital (los materiales se recompilan)
-      if (G.renderer) {
-        const tm = on ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
-        if (G.renderer.toneMapping !== tm) {
-          G.renderer.toneMapping = tm;
-          G.renderer.toneMappingExposure = on ? 1.15 : 1;
-          G.scene.traverse((o) => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.needsUpdate = true; }); });
-        }
+      // luces, cielo, niebla y piso: iguales en las dos cámaras
+      this.sky(G);
+      if (G.hemi) { G.hemi.color.set(T.hemi.sky); G.hemi.groundColor.set(T.hemi.ground); G.hemi.intensity = T.hemi.intensity; }
+      if (G.sun) {
+        G.sun.intensity = T.sun; G.sun.color.set(T.sunColor);
+        // la cenital ve ~30 m alrededor; la tercera persona necesita sombras más lejos
+        const r = on ? 34 : 62, sc = G.sun.shadow.camera;
+        if (sc.right !== r) { sc.left = -r; sc.right = r; sc.top = r; sc.bottom = -r; sc.updateProjectionMatrix(); }
       }
       if (!on) this.clearTags();
-      if (W.World.ground) W.World.ground.material.color.set(on ? T.ground : '#ffffff');
+      if (W.World.ground) W.World.ground.material.color.set(T.ground);
       // andenes, adoquín y pasto: de noche son "la mesa oscura" bajo la maqueta blanca
       const mats = W.World.mats || {};
-      for (const k of ['sidewalk', 'cobble', 'grass']) if (mats[k]) mats[k].color.set(on ? T.paving : '#ffffff');
-      if (W.World.pool) W.World.pool.material.color.set(on && this.theme === 'noche' ? '#2f363b' : '#8e9c9d');
+      for (const k of ['sidewalk', 'cobble', 'grass']) if (mats[k]) mats[k].color.set(T.paving);
+      // el chorro de café se lee sobre blanco (marrón) y sobre carbón (crema)
+      if (W.Ent.tracerMat) W.Ent.tracerMat.color.set(night ? '#ffd9a8' : '#7a4422');
       if (G.camera) {
         G.camera.fov = on ? this.FOV : 70;
         G.camera.updateProjectionMatrix();
@@ -143,35 +160,20 @@
       if (on) W.Input.unlock();
     },
 
-    // Arte de la cenital: barista de armadura blanca con mochila de prensas, drones de Arcadia y costales durazno.
-    // Al volver a tercera persona vuelve el barista de delantal y los inspectores humanos.
-    reskin(G, on) {
-      const p = G.player;
-      if (p && (!!p.h.cenital !== on)) {
-        const h = on ? W.Ent.makeBaristaBlanco() : W.Ent.makeBarista();
-        h.cenital = on;
-        h.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-        h.root.position.copy(p.mesh.position);
-        h.root.rotation.y = p.mesh.rotation.y;
-        G.scene.remove(p.mesh);
-        G.scene.add(h.root);
-        p.h = h;
-        p.mesh = h.root;
-      }
-      for (const e of G.enemies || []) if (!e.dead && e.reskin && (!!e.h.drone !== on)) e.reskin();
-      if (G.loot) {
-        G.loot = G.loot.map((l) => {
-          G.scene.remove(l.mesh);
-          const n = new W.Ent.Loot(l.pos.x, l.pos.z, l.amount, l.kind);
-          G.scene.add(n.mesh);
-          return n;
-        });
-      }
+    // El sol acompaña al punto de interés para que las sombras siempre caigan dentro del mapa de sombras.
+    // En cenital entra desde atrás (noroccidente); en tercera persona, de lado, para que las fachadas que ves tengan luz.
+    placeSun(G, x, y, z) {
+      if (!G.sun) return;
+      if (this.enabled) G.sun.position.set(x - 60, y + 100, z - 40); else G.sun.position.set(x - 62, y + 96, z + 44);
+      G.sun.target.position.set(x, y, z);
+      if (this.skyDome) this.skyDome.position.copy(G.camera.position);
+      if (this.flash && this.flash.intensity > 0) this.flash.intensity = Math.max(0, this.flash.intensity - 0.35);
     },
+    muzzleFlash(at) { this.flash.position.copy(at); this.flash.intensity = 2.2; },
 
     // Los botones táctiles cambian de texto: en cenital son cuadrados con etiqueta, como en el video.
     labelButtons(on) {
-      const L = { tFire: ['💥', 'disparar'], tJump: ['⤒', 'impulso'], tReload: ['↻', 'recargar'], tAction: ['E', 'cosechar'], tAim: ['🎯', 'fijar'] };
+      const L = { tFire: ['disparar', 'disparar'], tJump: ['saltar', 'impulso'], tReload: ['recargar', 'recargar'], tAction: ['acción', 'cosechar'], tAim: ['apuntar', 'fijar'] };
       for (const id in L) {
         const el = document.getElementById(id);
         if (!el) continue;
@@ -260,7 +262,7 @@
       const dir = new THREE.Vector3(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
       if (this.target) {
         // apunta al torso del objetivo asistido, también en altura
-        dir.set(this.target.pos.x - origin.x, this.target.y + 1.15 - origin.y, this.target.pos.z - origin.z).normalize();
+        dir.set(this.target.pos.x - origin.x, this.target.mesh.position.y + (this.target.boss ? 3 : 1.3) - origin.y, this.target.pos.z - origin.z).normalize();
       }
       return { origin, dir, minT: 0.7 };
     },
@@ -276,19 +278,21 @@
       const k = Math.min(1, dt * 4.5);
       this.follow.x += (tx - this.follow.x) * k;
       this.follow.z += (tz - this.follow.z) * k;
-      const d = this.DIST, s = Math.sin(this.TILT), c = Math.cos(this.TILT);
-      cam.position.set(this.follow.x, p.y + c * d, this.follow.z + s * d);
+      // celular vertical: la cámara sube (se ve más terraza a los lados) y encuadra al barista en el tercio alto,
+      // porque los controles ocupan la parte de abajo
+      const portrait = cam.aspect < 0.8;
+      const d = portrait ? this.DIST * 1.32 : this.DIST, s = Math.sin(this.TILT), c = Math.cos(this.TILT);
+      const bias = portrait ? 4.5 : 0;
+      cam.position.set(this.follow.x, p.y + c * d, this.follow.z + bias + s * d);
       if (G.shakeAmt > 0) {
         cam.position.x += (Math.random() - 0.5) * G.shakeAmt * 2;
         cam.position.z += (Math.random() - 0.5) * G.shakeAmt * 2;
         G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2);
       }
-      cam.lookAt(this.camVec.set(this.follow.x, p.y, this.follow.z));
+      cam.lookAt(this.camVec.set(this.follow.x, p.y, this.follow.z + bias));
       const targetFov = p.aiming || this.target ? 22 : p.sprinting ? 26 : this.FOV;
       if (Math.abs(targetFov - cam.fov) > 0.01) { cam.fov += (targetFov - cam.fov) * Math.min(1, dt * 6); cam.updateProjectionMatrix(); }
       this.placeDecor(G);
-      // el sol acompaña al jugador para que su sombra siempre caiga dentro del mapa de sombras
-      if (G.sun) { G.sun.position.set(p.pos.x - 60, p.y + 100, p.pos.z - 40); G.sun.target.position.set(p.pos.x, p.y, p.pos.z); }
       G.aimDir = this.shotRay(G).dir;
     },
 
@@ -296,12 +300,6 @@
       const p = G.player;
       const gs = this.GRID;
       this.grid.position.set(Math.round(p.pos.x / gs) * gs, 0.02, Math.round(p.pos.z / gs) * gs);
-      const ground = W.World.groundAt ? W.World.groundAt(p.pos.x, p.pos.z, p.y) : 0;
-      this.blob.position.set(p.pos.x, ground + 0.03, p.pos.z);
-      const h = Math.max(0, p.y - ground);
-      const sc = Math.max(0.45, 1 - h * 0.12);
-      this.blob.scale.set(sc, sc, 1);
-      this.blob.material.opacity = 0.28 * sc;
     },
 
     // Lobby: el barista posa sobre el pad, visto desde arriba, con un giro lento.
@@ -318,7 +316,6 @@
       cam.lookAt(this.camVec.set(sp.x, 0.6, sp.z - 1.5));
       if (cam.fov !== this.FOV) { cam.fov = this.FOV; cam.updateProjectionMatrix(); }
       this.grid.position.set(Math.round(sp.x / this.GRID) * this.GRID, 0.02, Math.round(sp.z / this.GRID) * this.GRID);
-      if (G.sun) { G.sun.position.set(sp.x - 60, 100, sp.z - 40); G.sun.target.position.set(sp.x, 0, sp.z); }
     },
 
     // ---------- HUD ----------
@@ -343,6 +340,9 @@
       H.set('tdHpBig', 'text', `${Math.ceil(Math.max(0, p.hp))}`);
       H.set('tdHpFill', 'width', `${Math.max(0, p.hp / p.maxHp) * 100}%`);
       H.set('tdHpFill', 'class', p.hp / p.maxHp < 0.3 ? 'low' : '');
+      H.set('tdEn', 'text', `${Math.round(p.energy)}`);
+      H.set('tdEnFill', 'width', `${p.energy}%`);
+      H.set('tdEnFill', 'class', p.energy < W.CONFIG.DASH_COST ? 'empty' : '');
       this.drawRadar(G);
       this.updateTags(G);
     },
@@ -364,14 +364,19 @@
         if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; }
         if (el.dataset.c !== cls) { el.className = `td-tag ${cls}`; el.dataset.c = cls; }
         v.set(x, y, z).project(cam);
-        el.style.transform = `translate(${(v.x * W2 + W2).toFixed(1)}px, ${(-v.y * H2 + H2).toFixed(1)}px) translate(-50%, -100%)`;
+        const sx = v.x * W2 + W2, sy = -v.y * H2 + H2;
+        // no tapar la telemetría (arriba a la izquierda) ni la cápsula (arriba a la derecha)
+        const hide = sy < 150 && (sx < 200 || sx > W2 * 2 - 200) ? 'none' : '';
+        if (el.style.display !== hide) el.style.display = hide;
+        el.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) translate(-50%, -100%)`;
         seen.add(key);
       };
       const near = (o, r) => Math.abs(o.x - p.pos.x) < r && Math.abs(o.z - p.pos.z) < r;
       for (const pl of G.planters) {
         if (!near(pl.pos, 24)) continue;
         const pct = Math.round(Math.min(1, pl.growth) * 100);
-        put(pl, pl.pos.x, pl.mesh.position.y + 1.7, pl.pos.z, pl.ripe ? 'lista · 100 %' : `${pct} %`, pl.ripe ? 'green' : '');
+        const name = pl.label ? `${pl.label} · ` : '';
+        put(pl, pl.pos.x, pl.mesh.position.y + 1.7, pl.pos.z, pl.ripe ? `${name}lista` : `${name}${pct} %`, pl.ripe ? 'green' : '');
       }
       for (const e of G.enemies) {
         if (e.dead || e.boss || !near(e.pos, 40)) continue;

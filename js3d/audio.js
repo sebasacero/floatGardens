@@ -63,6 +63,8 @@
     capture() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 0.18, 0.25, 'triangle'), i * 110)); },
     stamp() { this.burst(300, 0.15, 0.3, 'lowpass'); },
     jump() { this.tone(300, 0.08, 0.1, 'sine', 500); },
+    dash() { this.burst(2400, 0.22, 0.35, 'highpass'); this.tone(180, 0.16, 0.18, 'sine', 420); },
+    harvest() { [784, 988, 1175].forEach((f, i) => setTimeout(() => this.tone(f, 0.09, 0.18, 'triangle'), i * 55)); },
   };
   W.Audio = Audio;
 })();

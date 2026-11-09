@@ -26,9 +26,11 @@
       const mobile = W.Input.isTouch || /Mobi|Android/i.test(navigator.userAgent);
       this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: 'high-performance' });
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.25 : 1.75));
-      // sombras reales solo en la vista cenital (el sol deja de proyectar al salir de ella)
+      // sombras reales y exposición de cine (ACES) en las dos cámaras
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = 1.15;
       this.mobile = mobile;
       this.scene = new THREE.Scene();
       this.skyColor = new THREE.Color(C.MAQUETA ? '#e3e9e8' : '#a9bccb');
@@ -46,6 +48,7 @@
       const sc = sun.shadow.camera;
       sc.left = -34; sc.right = 34; sc.top = 34; sc.bottom = -34; sc.near = 20; sc.far = 260;
       sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03; sun.shadow.radius = 4;
+      sun.castShadow = true;
       this.sun = sun;
       this.sunBase = sun.intensity;
 
@@ -108,14 +111,14 @@
 
     createPlayer() {
       const h = Ent.makeBarista();
-      h.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
       this.scene.add(h.root);
       const s = this.stats();
       const spawn = W.World.hqSpot.spawn;
       this.player = {
-        h, mesh: h.root, pos: { x: spawn.x, z: spawn.z }, y: 0, vy: 0, yaw: Math.PI, pitch: -0.12,
+        h, mesh: h.root, pos: { x: spawn.x, z: spawn.z }, y: 0, vy: 0, yaw: 0, pitch: -0.05, // mira al norte: su terraza y la torre
         hp: s.hp, maxHp: s.hp, ammo: s.mag, magSize: s.mag, reloading: 0, reloadTime: C.RELOAD_TIME,
         fireCool: 0, spread: 0.02, recoil: 0, aiming: false, dead: false, lastHurt: -99, lastShot: -99, phase: 0, moving: 0,
+        energy: C.ENERGY_MAX, dash: 0, dashDir: { x: 0, z: -1 },
       };
       this.cherries = this.save.world.cherries != null ? this.save.world.cherries : C.START_CHERRIES;
     },
@@ -194,12 +197,12 @@
     objective() {
       if (!this.allCaptured()) {
         const z = this.targetZone;
-        return { title: `Captura: ${z ? z.name : ''}`, sub: `Zonas ${this.capturedCount()}/${this.zones.length}`, target: z && z.pos };
+        return { title: `Libera: ${z ? z.name : ''}`, sub: `Zonas ${this.capturedCount()}/${this.zones.length}`, target: z && z.pos };
       }
       if (!this.save.world.bossDefeated) {
         return { title: `Derrota a ${W.BOSS.name}`, sub: 'Plaza de Bolívar', target: W.World.bossArena };
       }
-      return { title: 'Bogotá es de Float Gardens', sub: 'Sigue farmeando Puntos Float', target: null };
+      return { title: 'Bogotá es de la red', sub: 'Sigue cosechando Puntos Float', target: null };
     },
 
     // ---------- bucle ----------
@@ -217,30 +220,35 @@
       } else if (this.state === 'lobby' && W.TopDown.active) {
         W.TopDown.lobbyCamera(this);
       } else if (this.state === 'lobby') {
-        // cámara de lobby: el barista posa frente al HQ
+        // cámara de lobby: el barista posa en su terraza, con las filas de café y la torre colgante detrás
         const sp = W.World.hqSpot.spawn;
-        const a = Math.sin(this.time * 0.25) * 0.35;
+        const a = Math.sin(this.time * 0.2) * 0.3;
         this.player.mesh.position.set(sp.x, 0.25, sp.z);
-        this.player.mesh.rotation.y = 0.5;
+        this.player.mesh.rotation.y = 0.45;
         this.player.h.animate(this.time * 2, 0.05, false);
-        this.camera.position.set(sp.x + 1.2 + Math.sin(a) * 4.5, 1.9, sp.z + Math.cos(a) * 4.5);
-        this.camera.lookAt(sp.x - 1.6, 1.5, sp.z);
+        this.camera.position.set(sp.x + 2.6 + Math.sin(a) * 5, 2.5, sp.z + 1.5 + Math.cos(a) * 5.5);
+        this.camera.lookAt(sp.x - 2.6, 3.4, sp.z - 8);
+        if (this.camera.fov !== 58) { this.camera.fov = 58; this.camera.updateProjectionMatrix(); }
       } else if (this.state === 'dead') {
         this.player.h.body.rotation.x = Math.max(-Math.PI / 2, this.player.h.body.rotation.x - dt * 4);
       }
 
+      {
+        const lobby = this.state === 'lobby', sp = W.World.hqSpot.spawn, pp = this.player;
+        W.TopDown.placeSun(this, lobby ? sp.x : pp.pos.x, lobby ? 0 : pp.y, lobby ? sp.z : pp.pos.z);
+      }
       W.World.update(dt, this.time, this.state === 'playing' ? this.player : null);
       this.owned = this.ownedDistricts();
       for (const p of this.peds) p.update(dt, this);
       for (const z of this.zones) z.update(dt, this.time);
       for (const l of this.loot) l.update(dt);
       this.updateRain(dt);
+      this.updateBubbles(dt);
       this.renderer.render(this.scene, this.camera);
       if (this.state === 'playing' || this.state === 'dead') {
         W.HUD.update(this, dt);
         if (W.TopDown.active) W.TopDown.hud(this, dt);
       }
-      this.updateBubbles();
       I.endFrame();
       requestAnimationFrame((t) => this.loop(t));
     },
@@ -265,12 +273,20 @@
       for (const pl of this.planters) pl.update(dt, this, rate);
       // botín
       for (const l of this.loot) {
-        if (Math.hypot(l.pos.x - p.pos.x, l.pos.z - p.pos.z) < 1.6) {
+        const ld = Math.hypot(l.pos.x - p.pos.x, l.pos.z - p.pos.z);
+        if (ld < C.MAGNET_RADIUS && ld > 0.01 && !p.dead) {
+          // imán: el botín cercano vuela hacia el barista, más rápido cuanto más cerca
+          const sp = Math.min(ld, (5 + (C.MAGNET_RADIUS - ld) * 4) * dt);
+          l.pos.x += ((p.pos.x - l.pos.x) / ld) * sp; l.pos.z += ((p.pos.z - l.pos.z) / ld) * sp;
+          l.mesh.position.x = l.pos.x; l.mesh.position.z = l.pos.z;
+        }
+        if (ld < 1.3) {
           l.taken = true;
           this.scene.remove(l.mesh);
           this.cherries += l.amount;
           this.addPoints(l.amount * C.POINTS_PER_CHERRY);
-          W.HUD.toast(l.kind === 'crate' ? `📦 Caja de café: +${l.amount} 🍒` : `+${l.amount} 🍒`);
+          W.HUD.gain(p.pos.x, p.y + 2.1, p.pos.z, `+${l.amount}`);
+          if (l.kind === 'crate') W.HUD.toast(`Costal de café · +${l.amount} cerezas`);
           W.Audio.pickup();
           if (l.kind === 'crate') setTimeout(() => this.spawnCrate(), 8000);
         }
@@ -281,7 +297,7 @@
       if (!this.currentDistrict || d.code !== this.currentDistrict.code) {
         if (this.currentDistrict) {
           const ours = this.ownedDistricts().has(d.code);
-          W.HUD.banner(d.name.toUpperCase(), ours ? 'Territorio Float Gardens' : 'Territorio de la Federación', ours ? 'ours' : 'theirs');
+          W.HUD.banner(d.name, ours ? 'Territorio de la red Float Gardens' : 'Territorio de Arcadia', ours ? 'ours' : 'theirs');
         }
         this.currentDistrict = d;
       }
@@ -318,7 +334,8 @@
       const rx = Math.cos(cy), rz = -Math.sin(cy);
       let dx = fx * mv.y + rx * mv.x, dz = fz * mv.y + rz * mv.x;
       const len = Math.hypot(dx, dz);
-      const sprint = I.held('sprint') && mv.y > 0.3 && !p.aiming && p.reloading <= 0;
+      // en tercera persona solo se corre hacia adelante; en cenital, hacia cualquier lado
+      const sprint = I.held('sprint') && (td ? len > 0.3 : mv.y > 0.3) && !p.aiming && p.reloading <= 0;
       p.sprinting = sprint && len > 0.1;
       let speed = (sprint ? C.SPRINT_SPEED : C.WALK_SPEED) * this.stats().speed;
       if (p.aiming) speed *= 0.6;
@@ -332,12 +349,34 @@
         p.knock.x *= 0.88; p.knock.z *= 0.88;
         if (Math.hypot(p.knock.x, p.knock.z) < 0.3) p.knock = null;
       }
+      // impulso: la mochila de prensas da un salto corto y rasante. Gasta energía y no recibe daño mientras dura.
+      // En cenital reemplaza al salto (botón "impulso" o Espacio); en tercera persona va en Q.
+      if (p.dash <= 0) p.energy = Math.min(C.ENERGY_MAX, p.energy + C.ENERGY_REGEN * dt);
+      if ((I.pressed('dash') || (td && I.pressed('jump'))) && p.dash <= 0) {
+        if (p.energy >= C.DASH_COST) {
+          p.energy -= C.DASH_COST;
+          p.dash = C.DASH_TIME;
+          p.dashDir = len > 0.15 ? { x: dx, z: dz } : { x: -Math.sin(p.yaw), z: -Math.cos(p.yaw) };
+          W.Audio.dash();
+          this.shake(0.06);
+        } else W.Audio.empty();
+      }
+      if (p.dash > 0) {
+        p.dash -= dt;
+        // en pasos cortos para no atravesar muros delgados
+        for (let i = 0; i < 3; i++) {
+          p.pos.x += p.dashDir.x * C.DASH_SPEED * dt / 3; p.pos.z += p.dashDir.z * C.DASH_SPEED * dt / 3;
+          W.World.collide(p.pos, C.PLAYER_RADIUS, p.y);
+        }
+        this.burst({ x: p.pos.x, y: p.y + 0.9, z: p.pos.z }, '#ffffff', 2, 1.2);
+      }
       // salto y gravedad
       const ground = W.World.groundAt ? W.World.groundAt(p.pos.x, p.pos.z, p.y) : 0;
-      if (I.pressed('jump') && p.y <= ground + 0.01) { p.vy = C.JUMP_SPEED; W.Audio.jump(); }
+      if (!td && I.pressed('jump') && p.y <= ground + 0.01) { p.vy = C.JUMP_SPEED; W.Audio.jump(); }
       p.vy -= C.GRAVITY * dt;
       p.y += p.vy * dt;
       if (p.y < ground) { p.y = ground; p.vy = 0; }
+      p.air = p.y > ground + 0.05; // en el aire de verdad (antes cualquier andén contaba como salto y abría la mira)
       W.World.collide(p.pos, C.PLAYER_RADIUS, p.y);
 
       p.moving = Math.min(1, len);
@@ -348,6 +387,8 @@
       p.mesh.rotation.y = Ent.lerpAngle(p.mesh.rotation.y, face, Math.min(1, dt * 14));
       p.mesh.position.set(p.pos.x, p.y, p.pos.z);
       p.h.animate(p.phase, p.moving * (sprint ? 1.2 : 0.8), combat);
+      // durante el impulso el cuerpo se inclina hacia adelante
+      p.h.body.rotation.x += ((p.dash > 0 ? 0.5 : 0) - p.h.body.rotation.x) * Math.min(1, dt * 18);
     },
 
     updateCamera(dt) {
@@ -389,7 +430,7 @@
       const p = this.player;
       p.fireCool -= dt;
       const base = p.aiming ? 0.006 : 0.018;
-      const target = base + p.moving * (p.aiming ? 0.01 : 0.03) + (p.y > 0.05 ? 0.05 : 0);
+      const target = base + p.moving * (p.aiming ? 0.01 : 0.03) + (p.air ? 0.05 : 0);
       p.spread += (target - p.spread) * Math.min(1, dt * 8);
       if (p.reloading > 0) {
         p.reloading -= dt;
@@ -413,7 +454,7 @@
       const p = this.player;
       if (p.reloading > 0) return;
       if (this.cherries < C.CHERRIES_PER_RELOAD) {
-        W.HUD.toast('¡Sin cerezas! Cosecha en el HQ o busca cajas de café 📦');
+        W.HUD.toast('Sin cerezas · cosecha en tu terraza o busca costales');
         return;
       }
       p.reloading = p.reloadTime;
@@ -441,6 +482,13 @@
       const minT = ray.minT;
       for (const e of this.enemies) {
         if (e.dead) continue;
+        if (e.h.drone) {
+          // dron: una esfera para el cuerpo y, dentro, el núcleo (el ojo): pasar por el núcleo es golpe crítico
+          const cy = e.mesh.position.y + 1.3;
+          const rb = this.raySphere(cam, dir, e.pos.x, cy, e.pos.z, 0.68);
+          if (rb > minT && rb < tHit) { tHit = rb; target = e; head = this.raySphere(cam, dir, e.pos.x, cy, e.pos.z, 0.27) < Infinity; }
+          continue;
+        }
         const sc = e.boss ? 2.6 : 1;
         const res = this.raySphere(cam, dir, e.pos.x, e.headY + (e.boss ? 0 : 0), e.pos.z, 0.24 * sc);
         if (res > minT && res < tHit) { tHit = res; target = e; head = true; }
@@ -465,6 +513,8 @@
       this.scene.add(tr);
       this.tracers.push({ mesh: tr, from: muzzle, to: hitPoint, dist: muzzle.distanceTo(hitPoint), t: 0, target, head });
       this.burst(muzzle, '#8b5a2b', 3, 2);
+      W.TopDown.muzzleFlash(muzzle);
+      if (W.TopDown.active) this.shake(0.035);
     },
 
     raySphere(o, d, cx, cy, cz, r) {
@@ -505,7 +555,7 @@
           W.Audio.stamp();
         } else if (W.World.solidAt(m.x, m.y, m.z)) {
           s.life = 0;
-          this.burst(m, '#c0392b', 4, 2);
+          this.burst(m, '#2a22f5', 4, 2);
         }
         if (s.life <= 0) this.scene.remove(s.mesh);
       }
@@ -526,16 +576,19 @@
       this.save.world.kos++;
       this.addPoints(e.boss ? C.POINTS_PER_BOSS : C.POINTS_PER_KO);
       this.save.money += e.boss ? 50000 : C.KO_MONEY;
-      W.HUD.killFeed(`<b class="me">Barista</b> <span class="gun">☕ AeroPress</span> <b class="foe">${e.name}</b>${head ? ' <span class="hs">✦ HEADSHOT</span>' : ''}`);
+      W.HUD.killFeed(`<b class="me">Barista</b> apagó <b class="foe">${e.name}</b>${head ? ' <span class="hs">crítico</span>' : ''}`);
       this.say(e, W.KO_LINES[Math.floor(Math.random() * W.KO_LINES.length)]);
-      this.burst({ x: e.pos.x, y: 1.2, z: e.pos.z }, '#6b3b1f', 14, 4);
+      // chispas azules y blancas: el dron se apaga
+      this.burst({ x: e.pos.x, y: 1.3, z: e.pos.z }, '#2a22f5', 12, 5);
+      this.burst({ x: e.pos.x, y: 1.3, z: e.pos.z }, '#ffffff', 6, 3.5);
+      this.shake(e.boss ? 0.5 : 0.1);
       if (!e.boss && Math.random() < 0.45) this.spawnCrate(e.pos.x, e.pos.z, 2, 'orb');
       if (e.boss) this.onBossDefeated();
     },
 
     damagePlayer(dmg, from, opts) {
       const p = this.player;
-      if (p.dead) return;
+      if (p.dead || p.dash > 0) return;
       p.hp -= dmg;
       p.lastHurt = this.time;
       W.HUD.hurt(dmg);
@@ -563,8 +616,9 @@
     respawn() {
       const p = this.player;
       const s = W.World.hqSpot.spawn;
-      p.pos.x = s.x; p.pos.z = s.z; p.y = 0; p.vy = 0; p.yaw = Math.PI;
+      p.pos.x = s.x; p.pos.z = s.z; p.y = 0; p.vy = 0; p.yaw = 0;
       p.dead = false;
+      p.energy = C.ENERGY_MAX; p.dash = 0;
       p.hp = p.maxHp;
       p.ammo = p.magSize;
       p.reloading = 0;
@@ -610,11 +664,11 @@
       document.getElementById('numbers').appendChild(el);
       this.bubbles.push({ el, ent, t: 0 });
     },
-    updateBubbles() {
-      const v = new THREE.Vector3();
+    updateBubbles(dt) {
+      const v = this.bubbleVec || (this.bubbleVec = new THREE.Vector3());
       const W2 = window.innerWidth / 2, H2 = window.innerHeight / 2;
       for (const b of this.bubbles) {
-        b.t += 1 / 60;
+        b.t += dt;
         const h = b.ent.boss ? 6.4 : 2.7;
         v.set(b.ent.pos.x, h, b.ent.pos.z).project(this.camera);
         const dist = Math.hypot(b.ent.pos.x - this.player.pos.x, b.ent.pos.z - this.player.pos.z);
@@ -633,16 +687,18 @@
       const near = (o, r) => Math.hypot(o.x - p.pos.x, o.z - p.pos.z) < r;
       // cultivo
       for (const pl of this.planters) {
-        if (pl.ripe && near(pl.pos, pl.water ? 4 : 3.3)) {
-          this.prompt = '<kbd>E</kbd> Cosechar café hidropónico';
+        if (pl.ripe && near(pl.pos, pl.reach)) {
+          this.prompt = `<kbd>E</kbd> Cosechar ${pl.label ? `fila ${pl.label}` : 'café hidropónico'}`;
           if (I.pressed('action')) {
             const n = this.stats().yield;
             pl.harvest();
             this.cherries += n;
             this.addPoints(n * C.POINTS_PER_CHERRY);
-            W.HUD.toast(`🌱 Cosecha: +${n} 🍒 · +${n} ★`);
-            W.Audio.pickup();
-            this.burst({ x: pl.pos.x, y: 1.2, z: pl.pos.z }, '#d6423a', 10, 3);
+            W.HUD.toast(`Cosecha · +${n} cerezas · +${n} puntos`);
+            W.HUD.gain(pl.pos.x, pl.mesh.position.y + 1.6, pl.pos.z, `+${n}`);
+            W.Audio.harvest();
+            this.burst({ x: pl.pos.x, y: pl.mesh.position.y + 0.9, z: pl.pos.z }, '#b3121a', 12, 3.5);
+            this.burst({ x: pl.pos.x, y: pl.mesh.position.y + 0.9, z: pl.pos.z }, '#8cc84a', 6, 2.5);
           }
           return;
         }
@@ -657,8 +713,8 @@
       // clientes
       for (const c of this.peds) {
         if (c.icon.visible && near(c.pos, 2.6)) {
-          if (this.cherries < C.CHERRIES_PER_SALE) { this.prompt = `Necesitas ${C.CHERRIES_PER_SALE} 🍒 para preparar un café`; return; }
-          this.prompt = `<kbd>E</kbd> Vender café AeroPress · ${'$' + C.SALE_PRICE.toLocaleString('es-CO')}`;
+          if (this.cherries < C.CHERRIES_PER_SALE) { this.prompt = `Necesitas ${C.CHERRIES_PER_SALE} cerezas para preparar un café`; return; }
+          this.prompt = `<kbd>E</kbd> Vender café · ${'$' + C.SALE_PRICE.toLocaleString('es-CO')}`;
           if (I.pressed('action')) {
             this.cherries -= C.CHERRIES_PER_SALE;
             this.save.money += C.SALE_PRICE;
@@ -668,13 +724,13 @@
             c.icon.visible = false;
             c.wantTimer = 30 + Math.random() * 30;
             c.stop = 1.5;
-            W.HUD.toast(`☕ ¡Venta! +$${C.SALE_PRICE.toLocaleString('es-CO')} · +${C.POINTS_PER_SALE} ★`);
+            W.HUD.toast(`Venta · +$${C.SALE_PRICE.toLocaleString('es-CO')} · +${C.POINTS_PER_SALE} puntos`);
             W.Audio.cash();
           }
           return;
         }
       }
-      if (this.player.ammo === 0 && this.cherries < C.CHERRIES_PER_RELOAD) this.prompt = 'Sin café: cosecha en el HQ 🌱 o abre cajas 📦';
+      if (this.player.ammo === 0 && this.cherries < C.CHERRIES_PER_RELOAD) this.prompt = 'Sin café · cosecha en tu terraza o busca costales';
     },
 
     // ---------- enemigos y zonas ----------
@@ -705,8 +761,8 @@
           this.boss = new Ent.Boss(a.x + 8, a.z - 10);
           this.scene.add(this.boss.mesh);
           this.enemies.push(this.boss);
-          W.HUD.banner(W.BOSS.name.toUpperCase(), 'El jefe de la Federación sale de la sede', 'theirs');
-          this.say(this.boss, '¡Nadie compite con la Federación!');
+          W.HUD.banner(W.BOSS.name, 'El director de Arcadia sale de su torre', 'theirs');
+          this.say(this.boss, 'Nadie compite con Arcadia');
         }
       }
     },
@@ -745,7 +801,7 @@
             const kind = i % 3 === 2 || Math.random() < 0.2 + n * 0.05 ? 'guardia' : 'inspector';
             this.spawnEnemy(kind, pt[0], pt[1], { alerted: true, zoneId: z.id });
           }
-          if (z.waves === 0) W.HUD.banner(z.name.toUpperCase(), '¡Defiende la zona hasta capturarla!', 'theirs');
+          if (z.waves === 0) W.HUD.banner(z.name, 'Defiende la zona hasta liberarla', 'theirs');
           z.waves++;
         }
         const contested = this.enemies.some((e) => !e.dead && Math.hypot(e.pos.x - z.pos.x, e.pos.z - z.pos.z) < C.CAPTURE_RADIUS + 8);
@@ -764,13 +820,13 @@
       this.addZonePlanters(z);
       W.Audio.capture();
       const n = this.capturedCount();
-      W.HUD.banner('¡ZONA CAPTURADA!', `${z.name} ahora es Float Gardens · ${n}/${this.zones.length}`, 'ours');
-      W.HUD.killFeed(`<b class="me">Float Gardens</b> capturó <b>${z.name}</b> 🚩`);
-      for (const e of this.enemies) if (e.zoneId === z.id && !e.dead) { e.hp = 0; e.ko = 0; this.say(e, '¡Retirada!'); }
+      W.HUD.banner('Zona liberada', `${z.name} ahora es de la red · ${n}/${this.zones.length}`, 'ours');
+      W.HUD.killFeed(`<b class="me">Float Gardens</b> liberó <b>${z.name}</b>`);
+      for (const e of this.enemies) if (e.zoneId === z.id && !e.dead) { e.hp = 0; e.ko = 0; this.say(e, 'Retirada'); }
       this.updateZoneColors();
       this.persist();
       if (this.allCaptured()) {
-        setTimeout(() => W.HUD.banner('LA SEDE ESTÁ EXPUESTA', `Ve a la Plaza de Bolívar y derrota a ${W.BOSS.name}`, 'theirs'), 3200);
+        setTimeout(() => W.HUD.banner('La Torre Arcadia quedó expuesta', `Ve a la Plaza de Bolívar y derrota a ${W.BOSS.name}`, 'theirs'), 3200);
       }
     },
 
@@ -779,7 +835,7 @@
       for (const e of this.enemies) if (!e.dead) { e.hp = 0; }
       this.persist();
       W.Audio.capture();
-      W.HUD.banner('¡BOGOTÁ ES DE FLOAT GARDENS!', `${W.BOSS.name} colgó el sombrero`, 'ours');
+      W.HUD.banner('Bogotá es de la red', `${W.BOSS.name} colgó el sombrero`, 'ours');
       setTimeout(() => { if (this.state === 'playing') { this.state = 'paused'; W.Input.unlock(); W.Menus.show('victory'); } }, 3500);
     },
 
@@ -833,13 +889,8 @@
         this.raining = !this.raining;
         this.weatherTimer = this.raining ? rand(35, 60) : rand(50, 90);
         this.rain.visible = this.raining;
-        if (!W.TopDown.active) {
-          const sky = this.raining ? '#8e9ba6' : (C.MAQUETA ? '#e3e9e8' : '#a9bccb');
-          this.scene.background.set(sky);
-          this.scene.fog.color.set(sky);
-          this.scene.fog.far = this.raining ? 300 : 430;
-        }
-        W.HUD.toast(this.raining ? '🌧️ Empezó a llover en Bogotá' : '⛅ Escampó');
+        W.TopDown.sky(this);
+        W.HUD.toast(this.raining ? 'Empezó a llover en Bogotá' : 'Escampó');
       }
     },
 
@@ -865,7 +916,7 @@
       if (!this.currentDistrict) {
         const d = W.World.districtAt(this.player.pos.x, this.player.pos.z);
         this.currentDistrict = d;
-        W.HUD.banner(d.name.toUpperCase(), 'Float Gardens HQ · Bogotá', 'ours');
+        W.HUD.banner(d.name, `${W.HQ.name} · Neo-Bogotá`, 'ours');
       }
       this.updateZoneColors();
     },

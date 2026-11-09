@@ -74,7 +74,7 @@
         if (opts.sealed) return; // Arcadia seca las terrazas que sella
         // café en la jardinera: matas frondosas con cerezas (las mismas de los cultivos), en vez de bolitas
         const lush = W.Ent && W.Ent.planterGeo;
-        for (let t = -s / 2 + 0.7; t < s / 2 - 0.4; t += lush ? 1.3 : 0.75) {
+        for (let t = -s / 2 + 0.7; t < s / 2 - 0.4; t += lush ? 1.5 : 0.75) {
           const [qx, qz] = at(ca, sa, t, s / 2 - 0.1);
           if (lush) {
             const m = M(qx, y + 1.0, qz, rnd() * 6.28, 0.62, 0.62, 0.62);
@@ -105,15 +105,20 @@
     }
     const top = y + 0.44;
     const mesh = new THREE.Mesh(W.Geom.merge(parts), W.Geom.vcMat());
+    mesh.castShadow = true;
     scene.add(mesh);
     if (blobs.length) {
-      const im = new THREE.InstancedMesh(BLOB, new THREE.MeshLambertMaterial({ flatShading: true }), blobs.length);
+      // geometría propia con la esfera envolvente de la torre: así el descarte por cámara funciona por torre
+      // (con la geometría compartida, la esfera quedaba en el origen del mapa y las enredaderas aparecían o no según hacia dónde miraras)
+      const bg = BLOB.clone();
+      bg.boundingSphere = new THREE.Sphere(new THREE.Vector3(cx, y / 2, cz), Math.hypot(S0, y) * 0.75 + 4);
+      const im = new THREE.InstancedMesh(bg, new THREE.MeshLambertMaterial({ flatShading: true }), blobs.length);
       blobs.forEach(([m, c], i) => { im.setMatrixAt(i, m); im.setColorAt(i, c); });
       scene.add(im);
     }
     if (plants.length) {
+      // son cientos de matas pequeñas y altas: no proyectan sombra (la torre sí)
       const pm = new THREE.Mesh(W.Geom.mergeColored(plants), W.Geom.vcMat({ flatShading: true }));
-      pm.castShadow = true;
       scene.add(pm);
     }
     if (opts.sealed) {

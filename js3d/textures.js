@@ -180,7 +180,7 @@
     return toTexture(c);
   }
 
-  // Letreros con texto (neón de Float Gardens, banderas de la Federación...)
+  // Letreros con texto (neón de Float Gardens, banderas de Arcadia...)
   function sign(text, bg, fg, w, h, font) {
     const [c, ctx] = canvas(w || 512, h || 128);
     ctx.fillStyle = bg;

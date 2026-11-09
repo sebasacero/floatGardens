@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Float Gardens: Bogotá</title>
-  <meta name="description" content="Shooter de mundo abierto en tercera persona inspirado en Bogotá: farmea café hidropónico, conquista barrios y gana Puntos Float para tomar café gratis en Float Gardens.">
+  <title>Float Gardens · Kennedy</title>
+  <meta name="description" content="Mundo abierto en Neo-Bogotá: cosecha café hidropónico en tu terraza de Kennedy, libera barrios de Arcadia y gana Puntos Float para tomar café gratis en Float Gardens.">
   <meta name="theme-color" content="#c9cfcb">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta property="og:title" content="Float Gardens: La Conquista del Café — Bogotá mundo abierto">
   <meta property="og:description" content="Farmea café, conquista Bogotá y tómate un café gratis en Float Gardens.">
   <meta property="og:image" content="promo/banner-redes-1200x628.svg">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' fill='white'/><path d='M12 3c4.500 2.500 6.500 6 6 10.500-.3 3.400-2.900 6.200-6 7.500-3.100-1.300-5.700-4.100-6-7.500C5.500 9 7.500 5.500 12 3z' fill='%232c302e'/><path d='M12 6v13' stroke='white' stroke-width='.9'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=JetBrains+Mono:wght@500&display=swap">
   <link rel="stylesheet" href="css/world.css">
@@ -30,7 +30,7 @@
       <canvas id="compass" width="360" height="34"></canvas>
       <div class="objective"><b id="objTitle"></b><span id="objSub"></span></div>
       <div id="capture" class="capture hidden"><div id="capName"></div><div class="bar"><i id="capFill"></i></div></div>
-      <div id="bossbar" class="bossbar hidden"><div>☠ DON MONOPOLIO</div><div class="bar"><i id="bossFill"></i></div></div>
+      <div id="bossbar" class="bossbar hidden"><div>Don Monopolio · Arcadia</div><div class="bar"><i id="bossFill"></i></div></div>
       <div id="toast" class="toast"></div>
     </div>
     <div class="hud-tr">
@@ -39,16 +39,17 @@
     </div>
     <div class="hud-bl">
       <div class="hp-card">
-        <div class="player-tag">Vida · Barista <small>FLOAT GARDENS</small></div>
+        <div class="player-tag">vida · barista <small>red Kennedy</small></div>
         <div class="hp"><div class="hp-bar"><i id="hpFill"></i></div><b id="hpText">100</b></div>
-        <div class="cherry-count"><small>Cerezas</small> <b id="cherries">0</b></div>
+        <div class="en-row"><span>impulso <kbd>Q</kbd></span><div class="en-bar"><i id="enFill"></i></div></div>
+        <div class="cherry-count"><small>cerezas</small> <b id="cherries">0</b></div>
       </div>
     </div>
     <div class="hud-br">
       <div class="weapon">
         <div class="w-name">AeroPress X-1 · carga</div>
         <div class="w-ammo"><b id="ammo">12</b><span id="ammoMax">/ 12</span></div>
-        <div id="reloadBar" class="reload hidden"><i id="reloadFill"></i><span>PRENSANDO...</span></div>
+        <div id="reloadBar" class="reload hidden"><i id="reloadFill"></i><span>prensando…</span></div>
       </div>
     </div>
     <div id="crosshair"><i></i><i></i><i></i><i></i></div>
@@ -56,7 +57,7 @@
     <div id="prompt" class="prompt hidden"></div>
     <div id="banner" class="banner"></div>
     <div id="numbers"></div>
-    <div class="bigmap hidden"><canvas id="bigmap"></canvas><div class="bigmap-hint">M / 🗺 para cerrar</div></div>
+    <div class="bigmap hidden"><canvas id="bigmap"></canvas><div class="bigmap-hint">M para cerrar</div></div>
     <!-- vista cenital: telemetría, cápsula, energía y radar (estilo devlog) -->
     <div id="td" class="td">
       <div class="td-tele">
@@ -68,8 +69,9 @@
         <div><i>café</i><b id="tdAmmo">12 / 12</b></div>
         <div><i>enemigos</i><b id="tdFoes">0</b></div>
       </div>
-      <div class="td-cap"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19 13 11"/></svg>Float Gardens <span id="tdPlace">Chapinero</span></div>
-      <div class="td-energy"><div class="l"><span>vida</span><b id="tdHpBig">100</b></div><div class="bar"><i id="tdHpFill"></i></div></div>
+      <div class="td-cap"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19 13 11"/></svg>Float Gardens <span id="tdPlace">Kennedy</span></div>
+      <div class="td-energy"><div class="l"><span>vida</span><b id="tdHpBig">100</b></div><div class="bar"><i id="tdHpFill"></i></div>
+        <div class="l en"><span>energía</span><b id="tdEn">100</b></div><div class="bar thin"><i id="tdEnFill"></i></div></div>
       <div id="tdTags"></div>
       <div class="td-radar"><div class="t"><span>radar</span><span id="tdRadarN">0 enem.</span></div><canvas id="tdRadar" width="130" height="82"></canvas><div class="t"><span>-180°</span><span>0°</span><span>+180°</span></div></div>
     </div>
@@ -80,17 +82,17 @@
   <div id="touch">
     <div id="lookArea"></div>
     <div id="stick"><div id="knob"></div></div>
-    <button id="tFire" class="tb fire">💥</button>
-    <button id="tAim" class="tb aim">🎯</button>
-    <button id="tJump" class="tb jump">⤒</button>
-    <button id="tReload" class="tb reload">↻</button>
-    <button id="tAction" class="tb action">E</button>
-    <button id="tMap" class="tb small map">🗺</button>
-    <button id="tPause" class="tb small pause">❚❚</button>
+    <button id="tFire" class="tb fire">disparar</button>
+    <button id="tAim" class="tb aim">apuntar</button>
+    <button id="tJump" class="tb jump">saltar</button>
+    <button id="tReload" class="tb reload">recargar</button>
+    <button id="tAction" class="tb action">acción</button>
+    <button id="tMap" class="tb small map" aria-label="mapa"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
+    <button id="tPause" class="tb small pause" aria-label="pausa"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
   </div>
 
   <div id="menu" class="menu hidden"></div>
-  <div id="loading">Cargando Bogotá...</div>
+  <div id="loading">Cargando Kennedy…</div>
 
   <script src="vendor/three.min.js"></script>
   <script src="js/config.js"></script>

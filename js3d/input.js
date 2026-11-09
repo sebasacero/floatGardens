@@ -2,7 +2,7 @@
 (function () {
   const KEYS = {
     up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
-    sprint: ['ShiftLeft', 'ShiftRight'], jump: ['Space'], action: ['KeyE'], reload: ['KeyR'],
+    sprint: ['ShiftLeft', 'ShiftRight'], jump: ['Space'], dash: ['KeyQ'], action: ['KeyE'], reload: ['KeyR'],
     map: ['KeyM', 'Tab'], pause: ['Escape', 'KeyP'], fire: [], aim: [],
   };
 
