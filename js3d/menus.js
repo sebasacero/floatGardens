@@ -161,6 +161,8 @@
             <div><b>Impulso</b>La mochila de prensas te lanza en la dirección en que te mueves. Gasta energía y, mientras dura, los sellos no te tocan.</div>
             <div><b>Vende</b>Los peatones con una taza quieren café, pero solo te compran en barrios de la red. 2 cerezas = $8.000.</div>
             <div><b>Libera</b>Entra a las zonas azules, apaga las oleadas de drones y quédate dentro hasta liberarlas. Cada zona abre un barrio para vender y cultivar.</div>
+            <div><b>Plagas</b>La roya, la broca y las hormigas arrieras no van por ti: van por tus matas. Apágalas antes de que lleguen. Si una fila amarillea, acércate y trata la roya.</div>
+            <div><b>Variedades</b>En el vivero (Mejoras) siembras Caturra, Castillo, Borbón amarillo, Tabi o Geisha. Castillo y Tabi resisten la roya; Geisha paga más por cosecha.</div>
             <div><b>Arcadia</b>Con las 6 zonas libres, ve a la Plaza de Bolívar y derrota a Don Monopolio. Si caes, vuelves a tu terraza y pierdes la mitad de las cerezas.</div>
           </div>
           <div class="keys">${W.TopDown.active
@@ -186,10 +188,30 @@
             <button class="btn-buy" data-a="buy" data-id="${u.id}" ${maxed || s.money < cost ? 'disabled' : ''}>${maxed ? 'máx.' : money(cost)}</button>
           </div>`;
         }).join('');
+        // vivero: qué variedad lleva cada fila de la terraza
+        const rows = s.world.rows || W.ROWS_DEFAULT;
+        const trait = (v) => [
+          v.roya >= 0.7 ? '<i class="ok">resiste la roya</i>' : '<i class="bad">susceptible a la roya</i>',
+          v.grow >= 1.2 ? '<i>crece rápido</i>' : v.grow <= 0.85 ? '<i>crece lento</i>' : '',
+          v.yield ? `<i>+${v.yield} cereza</i>` : '',
+          v.bonus ? `<i>+${money(v.bonus)} por cosecha</i>` : '',
+        ].join('');
+        const vcards = Object.keys(W.VARIEDADES).map((id) => {
+          const v = W.VARIEDADES[id];
+          const btns = ['A', 'B', 'C'].map((r) => `<button class="btn-row ${rows[r] === id ? 'on' : ''}" data-a="plant" data-id="${id}" data-row="${r}" ${rows[r] === id || s.money < v.cost ? 'disabled' : ''} title="Sembrar ${v.name} en la fila ${r}">${r}</button>`).join('');
+          return `<div class="vcard">
+            <div class="vdot" style="background:${v.cherry[0]}"></div>
+            <div class="ubody"><b>${v.name}</b><p>${v.desc}</p><div class="traits">${trait(v)}</div></div>
+            <div class="vbuy"><small>${money(v.cost)} por fila</small><div class="vrows">${btns}</div></div>
+          </div>`;
+        }).join('');
         return `<div class="panel wide">
-          <h2>Mejoras</h2>
+          <h2>Mejoras y vivero</h2>
           <p class="sub">Tienes <b>${money(s.money)}</b> · gana plata vendiendo café, liberando zonas y apagando drones</p>
           <div class="ucards">${cards}</div>
+          <h3 class="vh">Vivero · variedades de café</h3>
+          <p class="sub">Elige qué sembrar en las filas A, B y C de tu terraza. La fila resembrada arranca de cero. Las resistentes aguantan la roya; las delicadas pagan mejor.</p>
+          <div class="vcards">${vcards}</div>
           <div class="row"><button class="btn-y" data-a="${d.from === 'game' ? 'resume' : 'back'}">${d.from === 'game' ? 'Volver al juego' : 'Volver'}</button></div>
         </div>`;
       },
@@ -288,6 +310,16 @@
         case 'back':
           this.show(this.returnTo === 'lobbyTd' ? 'lobby' : (this.returnTo || (G.state === 'lobby' ? 'lobby' : 'pause')));
           break;
+        case 'plant': {
+          const v = W.VARIEDADES[d.id];
+          if (v && s.money >= v.cost && (s.world.rows || {})[d.row] !== d.id) {
+            s.money -= v.cost;
+            G.replantRow(d.row, d.id);
+            W.Audio.cash();
+          }
+          this.show('shop', this.data);
+          break;
+        }
         case 'buy': {
           const u = W.UPGRADES.find((x) => x.id === d.id);
           const lvl = s.world.upgrades[u.id] || 0;

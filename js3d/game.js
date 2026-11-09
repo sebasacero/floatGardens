@@ -58,6 +58,7 @@
       sun.matrixAutoUpdate = sun.target.matrixAutoUpdate = true;
       this.save = FG.Save.load();
       this.save.world = Object.assign({ captured: [], upgrades: {}, kos: 0, sales: 0, bossDefeated: false }, this.save.world || {});
+      this.save.world.rows = Object.assign({}, W.ROWS_DEFAULT, this.save.world.rows || {});
 
       this.buildRain();
       this.partPool = new Ent.Particles(161);
@@ -143,7 +144,11 @@
     },
 
     createPlanters() {
-      for (const spot of W.World.planterSpots.hq) this.addPlanter(spot);
+      // cada fila de la terraza (A, B, C) lleva la variedad que el jugador sembró en el vivero
+      for (const spot of W.World.planterSpots.hq) {
+        const row = (spot.label || '')[0] || '';
+        this.addPlanter(Object.assign({}, spot, { row, group: 'hq', variety: this.save.world.rows[row] }));
+      }
       for (const z of this.zones) if (z.owner === 'fg') this.addZonePlanters(z);
     },
     addPlanter(spot) {
@@ -152,7 +157,18 @@
       this.planters.push(pl);
     },
     addZonePlanters(z) {
-      for (const s of W.World.planterSpots[z.id] || []) this.addPlanter(s);
+      for (const s of W.World.planterSpots[z.id] || []) this.addPlanter(Object.assign({}, s, { group: z.id, variety: W.ZONE_VARIETY[z.id] }));
+    },
+    // Vivero: resiembra una fila de la terraza con otra variedad (la fila arranca de cero)
+    replantRow(row, id) {
+      this.save.world.rows[row] = id;
+      for (const pl of this.planters) if (pl.group === 'hq' && pl.row === row) pl.replant(id);
+      this.persist();
+    },
+    // Cerezas que da una mata hoy: mejora de cultivo + variedad; la roya avanzada se come la mitad
+    plantYield(pl) {
+      const n = this.stats().yield + (pl.variety.yield || 0);
+      return pl.roya > 0.5 ? Math.max(1, Math.floor(n / 2)) : n;
     },
 
     spawnPed() {
@@ -261,6 +277,7 @@
       this.updateWeapon(dt);
       this.updateInteraction();
       this.updateSpawns(dt);
+      W.Plagas.update(dt, this);
       for (const e of this.enemies) {
         if (e.update(dt, this)) e.remove = true;
       }
@@ -482,6 +499,12 @@
       const minT = ray.minT;
       for (const e of this.enemies) {
         if (e.dead) continue;
+        if (e.pest) {
+          // plaga: una sola esfera a la altura a la que vuela o camina
+          const rp = this.raySphere(cam, dir, e.pos.x, e.mesh.position.y + e.alt, e.pos.z, e.hitR);
+          if (rp > minT && rp < tHit) { tHit = rp; target = e; head = false; }
+          continue;
+        }
         if (e.h.drone) {
           // dron: una esfera para el cuerpo y, dentro, el núcleo (el ojo): pasar por el núcleo es golpe crítico
           const cy = e.mesh.position.y + 1.3;
@@ -573,6 +596,18 @@
 
     onKO(e, head) {
       W.Audio.ko();
+      if (e.pest) {
+        // plaga apagada: polvo del color de la plaga y, si era una broca cargada, suelta la cosecha
+        this.save.world.plagas = (this.save.world.plagas || 0) + 1;
+        this.addPoints(e.t.points);
+        this.save.money += e.t.money;
+        W.HUD.killFeed(`<b class="me">Barista</b> controló <b class="foe plaga">${e.name}</b>`);
+        const at = { x: e.pos.x, y: e.mesh.position.y + e.alt, z: e.pos.z };
+        this.burst(at, e.t.color, 12, 4);
+        this.burst(at, '#6b3b1f', 5, 2.5);
+        if (e.stolen) this.spawnCrate(e.pos.x, e.pos.z, e.stolen, 'orb');
+        return;
+      }
       this.save.world.kos++;
       this.addPoints(e.boss ? C.POINTS_PER_BOSS : C.POINTS_PER_KO);
       this.save.money += e.boss ? 50000 : C.KO_MONEY;
@@ -687,14 +722,30 @@
       const near = (o, r) => Math.hypot(o.x - p.pos.x, o.z - p.pos.z) < r;
       // cultivo
       for (const pl of this.planters) {
-        if (pl.ripe && near(pl.pos, pl.reach)) {
-          this.prompt = `<kbd>E</kbd> Cosechar ${pl.label ? `fila ${pl.label}` : 'café hidropónico'}`;
+        if (pl.roya > 0 && near(pl.pos, pl.reach)) {
+          // la roya se trata a mano (caldo bordelés); mientras antes, menos cosecha se pierde
+          this.prompt = `<kbd>E</kbd> Tratar la roya${pl.label ? ` · fila ${pl.label}` : ''}`;
           if (I.pressed('action')) {
-            const n = this.stats().yield;
+            pl.cure();
+            pl.pop = 1;
+            this.addPoints(2);
+            W.HUD.toast(`Roya tratada${pl.label ? ` en la fila ${pl.label}` : ''} · +2 puntos`);
+            W.HUD.gain(pl.pos.x, pl.mesh.position.y + 1.6, pl.pos.z, 'sana');
+            W.Audio.pickup();
+            this.burst({ x: pl.pos.x, y: pl.mesh.position.y + 1, z: pl.pos.z }, '#8ecfd0', 12, 3);
+          }
+          return;
+        }
+        if (pl.ripe && near(pl.pos, pl.reach)) {
+          this.prompt = `<kbd>E</kbd> Cosechar ${pl.label ? `fila ${pl.label}` : 'café hidropónico'} · ${pl.variety.name}`;
+          if (I.pressed('action')) {
+            const n = this.plantYield(pl);
+            const bonus = pl.variety.bonus || 0;
             pl.harvest();
             this.cherries += n;
             this.addPoints(n * C.POINTS_PER_CHERRY);
-            W.HUD.toast(`Cosecha · +${n} cerezas · +${n} puntos`);
+            this.save.money += bonus;
+            W.HUD.toast(`${pl.variety.name} · +${n} cerezas · +${n} puntos${bonus ? ` · +$${bonus.toLocaleString('es-CO')}` : ''}`);
             W.HUD.gain(pl.pos.x, pl.mesh.position.y + 1.6, pl.pos.z, `+${n}`);
             W.Audio.harvest();
             this.burst({ x: pl.pos.x, y: pl.mesh.position.y + 0.9, z: pl.pos.z }, '#b3121a', 12, 3.5);
@@ -739,7 +790,7 @@
       const owned = this.ownedDistricts();
       this.spawnTimer -= dt;
       const cap = 3 + this.capturedCount();
-      const patrols = this.enemies.filter((e) => !e.zoneId && !e.boss && !e.dead).length;
+      const patrols = this.enemies.filter((e) => !e.zoneId && !e.boss && !e.pest && !e.dead).length;
       if (this.spawnTimer <= 0 && patrols < cap) {
         this.spawnTimer = 2.5;
         for (let tries = 0; tries < 12; tries++) {
@@ -752,7 +803,7 @@
       }
       // despawn de patrullas lejanas
       for (const e of this.enemies) {
-        if (!e.zoneId && !e.boss && !e.alerted && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > 150) e.remove = true;
+        if (!e.zoneId && !e.boss && !e.pest && !e.alerted && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > 150) e.remove = true;
       }
       // jefe final
       if (this.allCaptured() && !this.save.world.bossDefeated && !this.boss) {
@@ -804,7 +855,7 @@
           if (z.waves === 0) W.HUD.banner(z.name, 'Defiende la zona hasta liberarla', 'theirs');
           z.waves++;
         }
-        const contested = this.enemies.some((e) => !e.dead && Math.hypot(e.pos.x - z.pos.x, e.pos.z - z.pos.z) < C.CAPTURE_RADIUS + 8);
+        const contested = this.enemies.some((e) => !e.dead && !e.pest && Math.hypot(e.pos.x - z.pos.x, e.pos.z - z.pos.z) < C.CAPTURE_RADIUS + 8);
         if (!contested) z.progress = Math.min(1, z.progress + dt / C.CAPTURE_TIME);
         this.capturing = { zone: z, contested };
         if (z.progress >= 1) this.captureZone(z);

@@ -262,7 +262,7 @@
       const dir = new THREE.Vector3(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
       if (this.target) {
         // apunta al torso del objetivo asistido, también en altura
-        dir.set(this.target.pos.x - origin.x, this.target.mesh.position.y + (this.target.boss ? 3 : 1.3) - origin.y, this.target.pos.z - origin.z).normalize();
+        dir.set(this.target.pos.x - origin.x, this.target.mesh.position.y + (this.target.pest ? this.target.alt : this.target.boss ? 3 : 1.3) - origin.y, this.target.pos.z - origin.z).normalize();
       }
       return { origin, dir, minT: 0.7 };
     },
@@ -376,11 +376,13 @@
         if (!near(pl.pos, 24)) continue;
         const pct = Math.round(Math.min(1, pl.growth) * 100);
         const name = pl.label ? `${pl.label} · ` : '';
-        put(pl, pl.pos.x, pl.mesh.position.y + 1.7, pl.pos.z, pl.ripe ? `${name}lista` : `${name}${pct} %`, pl.ripe ? 'green' : '');
+        if (pl.roya > 0) put(pl, pl.pos.x, pl.mesh.position.y + 1.7, pl.pos.z, `${name}roya ${Math.round(pl.roya * 100)} %`, 'plaga');
+        else put(pl, pl.pos.x, pl.mesh.position.y + 1.7, pl.pos.z, pl.ripe ? `${name}${pl.variety.name} lista` : `${name}${pl.variety.name} ${pct} %`, pl.ripe ? 'green' : '');
       }
       for (const e of G.enemies) {
         if (e.dead || e.boss || !near(e.pos, 40)) continue;
-        put(e, e.pos.x, e.mesh.position.y + 2.2, e.pos.z, `${e.serial} · ${Math.ceil(e.hp)}`, 'blue');
+        if (e.pest) put(e, e.pos.x, e.mesh.position.y + e.alt + 0.9, e.pos.z, `${e.serial} · ${Math.ceil(e.hp)}`, 'plaga');
+        else put(e, e.pos.x, e.mesh.position.y + 2.2, e.pos.z, `${e.serial} · ${Math.ceil(e.hp)}`, 'blue');
       }
       for (const l of G.loot) {
         if (l.kind !== 'crate' || !near(l.pos, 24)) continue;
@@ -417,7 +419,7 @@
       for (const pl of G.planters) if (pl.ripe) dot(pl.pos.x, pl.pos.z, '#8fbf45', 4);
       for (const l of G.loot) dot(l.pos.x, l.pos.z, '#d6e48a', 4);
       for (const z of G.zones) dot(z.pos.x, z.pos.z, z.owner === 'fg' ? '#4f8f2c' : '#2a22f5', 6);
-      for (const e of G.enemies) if (!e.dead) { n++; dot(e.pos.x, e.pos.z, '#2a22f5', e.boss ? 9 : 6); }
+      for (const e of G.enemies) if (!e.dead) { n++; dot(e.pos.x, e.pos.z, e.pest ? '#e8791c' : '#2a22f5', e.boss ? 9 : e.pest ? 5 : 6); }
       ctx.fillStyle = night ? '#ffffff' : '#2c302e';
       ctx.fillRect(cx - 3, cz - 3, 6, 6);
       const label = document.getElementById('tdRadarN');

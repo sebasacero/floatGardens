@@ -512,7 +512,14 @@
     const CH = ['#b3121a', '#b3121a', '#e0471c', '#e8a31f'];
     for (let i = 0; i < 16; i++) {
       const a = rnd() * 6.28, h = 0.4 + rnd() * 0.6, r = 0.18 + rnd() * 0.25, c = CH[i % 4];
-      for (let k = 0; k < 3; k++) cherries.push({ geo: cg, matrix: M(Math.cos(a) * r + k * 0.05, h + k * 0.03, Math.sin(a) * r), color: c });
+      for (let k = 0; k < 3; k++) cherries.push({ geo: cg, matrix: M(Math.cos(a) * r + k * 0.05, h + k * 0.03, Math.sin(a) * r), color: c, ci: i % 4 });
+    }
+    // pústulas de roya: polvo naranja sobre las hojas (se muestran cuando la mata está infectada)
+    const spotGeo = new THREE.SphereGeometry(0.15, 5, 3);
+    const spots = [];
+    for (let i = 0; i < 26; i++) {
+      const a = rnd() * 6.28, h = 0.4 + rnd() * 0.8, r = 0.3 + rnd() * 0.42 * (1.15 - h * 0.4);
+      spots.push({ geo: spotGeo, matrix: M(Math.cos(a) * r, h + 0.1, Math.sin(a) * r, 0, 0, 0, 0.7 + rnd() * 0.8), color: i % 3 ? '#d9601a' : '#e8791c' });
     }
     // variante liviana para las jardineras de las torres (muchas matas por torre): 9 hojas y 5 racimos
     // (se ven de lejos: sin tronco, 7 hojas, un brote y 4 racimos)
@@ -523,12 +530,26 @@
     for (let i = 0; i < 4; i++) loCh.push({ geo: cgLo, matrix: cherries[i * 9].matrix, color: cherries[i * 9].color });
     // tramo de una fila de cultivo: 2 x 3 matas que se cosechan juntas (las filas A, B y C de la terraza)
     const full = W.Geom.merge(plant), fullCh = W.Geom.merge(cherries);
-    const seg = [], segCh = [];
+    const seg = [], segCh = [], segM = [];
     for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
       const m = M((j - 0.5) * 1.5 + (rnd() - 0.5) * 0.2, 0, (i - 1) * 1.5 + (rnd() - 0.5) * 0.2, 0, rnd() * 6.28, 0, 0.95 + rnd() * 0.2);
-      seg.push({ geo: full, matrix: m }); segCh.push({ geo: fullCh, matrix: m });
+      seg.push({ geo: full, matrix: m }); segCh.push({ geo: fullCh, matrix: m }); segM.push(m);
     }
+    const fullSpots = W.Geom.merge(spots);
+    // cerezas con la paleta de cada variedad (rojas, amarillas, vinotinto…); se arman una vez por variedad
+    const chCache = {};
+    const cherriesFor = (key, pal, bed) => {
+      const k = key + (bed ? ':b' : ':p');
+      if (!chCache[k]) {
+        const one = W.Geom.merge(cherries.map((d) => ({ geo: cg, matrix: d.matrix, color: pal[d.ci] })));
+        chCache[k] = bed ? W.Geom.mergeColored(segM.map((m) => ({ geo: one, matrix: m }))) : one;
+      }
+      return chCache[k];
+    };
     return {
+      cherriesFor,
+      spots: fullSpots,
+      segSpots: W.Geom.mergeColored(segM.map((m) => ({ geo: fullSpots, matrix: m }))),
       seg: W.Geom.mergeColored(seg),
       segCherries: W.Geom.mergeColored(segCh),
       plantLo: W.Geom.merge(lo),
@@ -541,38 +562,84 @@
       cherries: fullCh,
     };
   })();
+  const royaMat = new THREE.MeshLambertMaterial({ vertexColors: true, emissive: '#5a2000', emissiveIntensity: 0.5, flatShading: true });
+  const LEAF_SICK = new THREE.Color('#ffc861');
   class Planter {
     constructor(spot) {
       this.pos = { x: spot.x, z: spot.z };
       this.mesh = new THREE.Group();
       this.bed = !!spot.bed;
       this.label = spot.label || '';
+      this.row = spot.row || '';
+      this.group = spot.group || 'hq';
       this.reach = this.bed ? 3.5 : spot.water ? 4 : 3.3;
       // base, planta y cerezas: tres mallas fusionadas (antes eran 16 piezas sueltas)
       if (!this.bed) this.mesh.add(new THREE.Mesh(planterGeo.base, W.Geom.vcMat()));
       this.plant = new THREE.Group();
       this.plant.position.y = this.bed ? 0 : 0.4;
-      this.plant.add(new THREE.Mesh(this.bed ? planterGeo.seg : planterGeo.plant, W.Geom.vcMat({ flatShading: true })));
-      this.cherries = new THREE.Mesh(this.bed ? planterGeo.segCherries : planterGeo.cherries, W.Geom.vcMat({ emissive: '#3a0805' }));
+      // el follaje tiene material propio: se tiñe según la variedad y amarillea con la roya
+      this.leafMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+      this.plant.add(new THREE.Mesh(this.bed ? planterGeo.seg : planterGeo.plant, this.leafMat));
+      this.cherries = new THREE.Mesh(planterGeo.cherries, W.Geom.vcMat({ emissive: '#3a0805' }));
       this.plant.add(this.cherries);
+      this.spots = new THREE.Mesh(this.bed ? planterGeo.segSpots : planterGeo.spots, royaMat);
+      this.spots.visible = false;
+      this.plant.add(this.spots);
       this.mesh.add(this.plant);
       this.mesh.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      this.spots.castShadow = false;
       this.mesh.position.set(spot.x, spot.y || (spot.water ? 0.3 : 0.3), spot.z);
       this.growth = Math.random() * 0.6;
       this.bob = Math.random() * 6;
       this.water = spot.water;
       this.baseY = this.mesh.position.y;
+      this.roya = 0;   // 0 sana · 1 roya total (se cae la hoja)
+      this.leaf = 1;   // follaje: lo recortan las hormigas arrieras y la roya
+      this.spore = 0;
+      this.setVariety(spot.variety || 'caturra');
     }
+    setVariety(id) {
+      this.varietyId = W.VARIEDADES[id] ? id : 'caturra';
+      this.variety = W.VARIEDADES[this.varietyId];
+      this.cherries.geometry = planterGeo.cherriesFor(this.varietyId, this.variety.cherry, this.bed);
+      this.leafBase = new THREE.Color(this.variety.leaf || '#ffffff');
+      this.leafMat.color.copy(this.leafBase);
+    }
+    replant(id) { this.setVariety(id); this.growth = 0; this.roya = 0; this.leaf = 1; this.pop = 1; }
     get ripe() { return this.growth >= 1; }
+    get sick() { return this.roya > 0; }
+    // La roya llega a la mata: las variedades resistentes (Castillo, Tabi) casi siempre la rechazan.
+    infect() {
+      if (this.roya > 0) return 'ya';
+      if (Math.random() < this.variety.roya) return 'resiste';
+      this.roya = 0.04;
+      return 'infectada';
+    }
+    cure() { this.roya = 0; this.spore = 0; }
     update(dt, G, rate) {
-      if (this.growth < 1) this.growth = Math.min(1, this.growth + (dt / C.REGROW_TIME) * rate);
+      const v = this.variety, P = W.PLAGAS;
+      if (this.roya > 0) {
+        this.roya = Math.min(1, this.roya + dt / P.roya.time);
+        if (this.roya >= 1) {
+          // roya total: se cae la hoja y la cosecha que estaba lista se pierde
+          this.leaf = Math.max(0.35, this.leaf - dt * 0.05);
+          this.growth = Math.max(0.3, this.growth - dt * 0.04);
+        }
+      } else if (this.leaf < 1) this.leaf = Math.min(1, this.leaf + dt * 0.02);
+      const r = rate * v.grow * (0.3 + 0.7 * this.leaf) * (1 - 0.85 * this.roya);
+      if (this.growth < 1) this.growth = Math.min(1, this.growth + (dt / C.REGROW_TIME) * r);
       const g = Math.min(1, this.growth);
       // recién cosechada rebota un momento (pop) y luego vuelve a crecer
       this.pop = Math.max(0, (this.pop || 0) - dt * 3);
-      const k = 1 + Math.sin(this.pop * Math.PI) * 0.12;
-      if (this.bed) this.plant.scale.set((0.66 + g * 0.34) * k, (0.45 + g * 0.55) * k, (0.8 + g * 0.2) * k);
-      else this.plant.scale.setScalar((0.35 + g * 0.65) * k);
+      const k = (1 + Math.sin(this.pop * Math.PI) * 0.12) * (0.6 + 0.4 * this.leaf);
+      const hy = v.height || 1;
+      if (this.bed) this.plant.scale.set((0.66 + g * 0.34) * k, (0.45 + g * 0.55) * k * hy, (0.8 + g * 0.2) * k);
+      else this.plant.scale.set((0.35 + g * 0.65) * k, (0.35 + g * 0.65) * k * hy, (0.35 + g * 0.65) * k);
       this.cherries.visible = this.ripe;
+      this.spots.visible = this.roya > 0.1;
+      // la hoja con roya amarillea: el tinte le quita verde y el brillo propio le suma amarillo
+      this.leafMat.color.copy(this.leafBase).lerp(LEAF_SICK, this.roya * 0.8);
+      this.leafMat.emissive.setRGB(0.4 * this.roya, 0.25 * this.roya, 0);
       if (this.water && !this.bed) this.mesh.position.y = this.baseY + Math.sin(G.time * 1.5 + this.bob) * 0.05;
     }
     harvest() { this.growth = 0; this.pop = 1; }
@@ -706,5 +773,5 @@
     }
   }
 
-  W.Ent = { tracerMat, makeHuman, makeBarista, makeBaristaBlanco, makeDrone, planterGeo, Enemy, Boss, Pedestrian, Planter, Loot, Zone, makeTracer, makeStamp, Particles, iconSprite, lerpAngle, makeBar, setBar };
+  W.Ent = { steer, tracerMat, makeHuman, makeBarista, makeBaristaBlanco, makeDrone, planterGeo, Enemy, Boss, Pedestrian, Planter, Loot, Zone, makeTracer, makeStamp, Particles, iconSprite, lerpAngle, makeBar, setBar };
 })();

@@ -126,5 +126,35 @@ W.UPGRADES = [
   { id: 'cultivo', name: 'Hidroponía avanzada', desc: '+1 cereza por cosecha y crecen más rápido.', max: 3, cost: 16000 },
 ];
 
+// Variedades de café (rasgos reales, simplificados): roya = probabilidad de resistir una infección,
+// grow = velocidad de crecimiento, yield = cerezas extra por cosecha, bonus = plata extra por cosecha (café de especialidad),
+// height = porte de la mata, cherry = colores de la cereza, leaf = tinte del follaje.
+W.VARIEDADES = {
+  caturra: { name: 'Caturra', desc: 'Porte bajo y cosecha rápida. Muy susceptible a la roya.', roya: 0, grow: 1.3, yield: 0, bonus: 0, height: 0.82, cost: 4000,
+    cherry: ['#b3121a', '#b3121a', '#e0471c', '#e8a31f'], leaf: '#ffffff' },
+  castillo: { name: 'Castillo', desc: 'La variedad de Cenicafé: resistente a la roya.', roya: 0.9, grow: 1, yield: 0, bonus: 0, height: 1, cost: 8000,
+    cherry: ['#8f0f1c', '#b3121a', '#b3121a', '#e0471c'], leaf: '#c9e2c4' },
+  borbon: { name: 'Borbón amarillo', desc: 'Cereza amarilla y dulce, una cereza más por cosecha. Susceptible a la roya.', roya: 0.05, grow: 1, yield: 1, bonus: 0, height: 1.05, cost: 6000,
+    cherry: ['#f2c21b', '#f2c21b', '#e8a31f', '#f6dc5a'], leaf: '#f1ffd8' },
+  tabi: { name: 'Tabi', desc: 'Porte alto y resistente a la roya. Crece despacio y da una cereza más.', roya: 0.75, grow: 0.82, yield: 1, bonus: 0, height: 1.25, cost: 10000,
+    cherry: ['#b3121a', '#e0471c', '#b3121a', '#e8a31f'], leaf: '#d9f0c8' },
+  geisha: { name: 'Geisha', desc: 'Café de especialidad: cada cosecha paga $6.000 extra. Lenta y delicada.', roya: 0.1, grow: 0.68, yield: 0, bonus: 6000, height: 1.18, cost: 18000,
+    cherry: ['#7d0e2a', '#a3122e', '#7d0e2a', '#c2334a'], leaf: '#ffe9cf' },
+};
+// Qué hay sembrado: las filas de la terraza al empezar (se cambian en el vivero) y la variedad de cada zona liberada
+W.ROWS_DEFAULT = { A: 'caturra', B: 'castillo', C: 'borbon' };
+W.ZONE_VARIETY = { teusaquillo: 'tabi', simon: 'borbon', zonat: 'geisha', centro: 'castillo', candelaria: 'caturra', aranda: 'tabi' };
+
+// Plagas y enfermedades del café: no van por el barista, van por las matas.
+W.PLAGAS = {
+  roya: { name: 'Nube de roya', short: 'roya', hp: 26, speed: 3.1, color: '#e8791c', time: 38, settle: 2.6, points: 3, money: 300,
+    tip: 'Hongo que amarillea y tumba la hoja. Apaga la nube antes de que se pose.' },
+  broca: { name: 'Broca del café', short: 'broca', hp: 20, speed: 6.4, color: '#2a1a12', bore: 3.6, points: 3, money: 300,
+    tip: 'Cucarrón que perfora la cereza madura y se lleva la cosecha.' },
+  arriera: { name: 'Hormiga arriera', short: 'arrieras', hp: 42, speed: 3.3, color: '#8a3317', cut: 2.4, bite: 5, points: 3, money: 300,
+    tip: 'Corta las hojas y se las lleva en fila. La mata crece más despacio.' },
+};
+W.PLAGA_LINES = { roya: ['Esporas al viento', 'Hoja amarilla'], broca: ['Cereza perforada'], arriera: ['Hoja al hormiguero'] };
+
 W.KO_LINES = ['Señal perdida', 'Batería crítica', 'Reportando a Arcadia…', 'Error 27-B'];
 W.ENEMY_LINES = ['Café sin sello', 'Escaneando terraza', 'Cosecha sin licencia', 'Propiedad de Arcadia', 'Sello en curso'];

@@ -156,7 +156,7 @@
       dot(hq.x, hq.z, '#4f8f2c', 6);
       for (const l of G.loot) dot(l.pos.x, l.pos.z, '#d18e63', 2.5);
       for (const c of G.peds) if (c.icon.visible) dot(c.pos.x, c.pos.z, '#7b817e', 2.5);
-      for (const e of G.enemies) if (!e.dead && (e.alerted || Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 45)) dot(e.pos.x, e.pos.z, '#2a22f5', e.boss ? 6 : 3.5);
+      for (const e of G.enemies) if (!e.dead && (e.alerted || Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 45)) dot(e.pos.x, e.pos.z, e.pest ? '#e8791c' : '#2a22f5', e.boss ? 6 : 3.5);
       ctx.restore();
       // jugador (siempre mirando hacia arriba)
       ctx.fillStyle = '#2c302e';
