@@ -205,8 +205,13 @@
     if (kind === 'guardia') b.push([0.3, 0.1, 0.5, '#1b14c0', 0, 1.1, 0.2], [0.08, 0.3, 0.08, '#2c302e', 0, 1.0, 0.45]); // escáner y sello
     else b.push([0.5, 0.08, 0.3, '#1b14c0', 0, 1.1, 0]);
     // la matriz usa [w,h,d,color,x,y,z,rz]; para la rotación en y de los brazos reusamos el campo rz como ry
-    const body = new THREE.Mesh(W.Geom.merge(b.map(([w, h, d, color, x, y, z, ry]) => ({ geo: boxGeo, matrix: W.Geom.matrix(x, y, z, 0, ry || 0, 0, w, h, d), color }))), W.Geom.vcMat());
+    const body = new THREE.Mesh(W.Geom.merge(b.map(([w, h, d, color, x, y, z, ry]) => ({ geo: boxGeo, matrix: W.Geom.matrix(x, y, z, 0, ry || 0, 0, w, h, d), color }))), W.Geom.vcMat({ emissive: '#1b14c0', emissiveIntensity: 0.3 }));
     root.add(body);
+    // cono de luz azul del escáner sobre el piso
+    const cone = new THREE.Mesh(new THREE.CircleGeometry(1.4, 28), new THREE.MeshBasicMaterial({ color: '#4a44ff', transparent: true, opacity: 0.14, depthWrite: false }));
+    cone.rotation.x = -Math.PI / 2;
+    cone.position.y = 0.04;
+    root.add(cone);
     const rotors = [];
     for (const [dx, dz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
       const r = box(0.56, 0.02, 0.1, '#aab0ff', dx * 0.62, 1.4, dz * 0.62);
@@ -550,7 +555,15 @@
       const a = rnd() * 6.28, h = 0.4 + rnd() * 0.6, r = 0.18 + rnd() * 0.25, c = CH[i % 4];
       for (let k = 0; k < 3; k++) cherries.push({ geo: cg, matrix: M(Math.cos(a) * r + k * 0.05, h + k * 0.03, Math.sin(a) * r), color: c });
     }
+    // variante liviana para las jardineras de las torres (muchas matas por torre): 9 hojas y 5 racimos
+    const lo = [plant[0]];
+    for (let i = 0; i < 9; i++) lo.push(plant[1 + i * 2]);
+    lo.push(plant[25]);
+    const loCh = [];
+    for (let i = 0; i < 5; i++) loCh.push(cherries[i * 9]);
     return {
+      plantLo: W.Geom.merge(lo),
+      cherriesLo: W.Geom.merge(loCh),
       base: W.Geom.merge([
         { geo: new THREE.CylinderGeometry(1.1, 1.1, 0.25, 14), matrix: M(0, 0.12, 0), color: '#f2f2ee' },
         { geo: new THREE.CylinderGeometry(0.35, 0.3, 0.3, 10), matrix: M(0, 0.3, 0), color: '#2d2d2d' },

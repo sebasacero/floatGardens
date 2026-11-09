@@ -1,6 +1,14 @@
 // Menús estilo lobby de shooter móvil.
 (function () {
   const money = (n) => '$' + Math.round(n).toLocaleString('es-CO');
+  // íconos de las pestañas del lobby cenital (trazo fino, como la web)
+  const svg = (p) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">${p}</svg>`;
+  const TAB = {
+    home: svg('<path d="M4 11 12 4l8 7v9H4z"/>'),
+    shop: svg('<path d="M5 8h14l-1 13H6z"/><path d="M9 8a3 3 0 0 1 6 0"/>'),
+    net: svg('<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8 7l8 1M7 8l2 8M16 10l-4 6"/>'),
+    gear: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>'),
+  };
 
   const Menus = {
     init(G) {
@@ -13,6 +21,8 @@
     },
     hide() { this.el.classList.add('hidden'); this.el.innerHTML = ''; },
     show(name, data) {
+      // en la vista cenital, el lobby del celular es el de la maqueta (título, tarjetas, Jugar, pestañas)
+      if (name === 'lobby' && W.TopDown && W.TopDown.active && (W.Input.isTouch || window.innerWidth < 760)) name = 'lobbyTd';
       this.current = name;
       this.data = data || {};
       this.el.innerHTML = this.screens[name].call(this, this.G.save, this.data);
@@ -46,6 +56,44 @@
     },
 
     screens: {
+      lobbyTd(s) {
+        const G = this.G;
+        const n = G.capturedCount();
+        const started = n > 0 || s.world.kos > 0;
+        const d = W.World.districtAt(W.World.hqSpot.spawn.x, W.World.hqSpot.spawn.z);
+        return `<div class="tdl">
+          <div class="tdl-top"><span class="tdl-k">temporada 01 · ${s.world.bossDefeated ? 'red libre' : 'cosecha'}</span><span class="td-cap"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19 13 11"/></svg>Float Gardens <span>Kennedy 2089</span></span></div>
+          <div class="tdl-title"><div class="tdl-k">devlog #001 · ${d.name}</div><h1>Defiende tu<br><b>terraza</b></h1></div>
+          <div class="tdl-cards">
+            <div><label>cerezas</label><p>${G.cherries}<small>🍒</small></p></div>
+            <div><label>zonas</label><p>${n}<small>/ ${G.zones.length}</small></p></div>
+            <div><label>puntos</label><p>${s.puntos}<small>★</small></p></div>
+          </div>
+          <button class="tdl-play" data-a="play"><b>${started ? 'Continuar' : 'Jugar'}</b><span>${d.name} · ${W.TopDown.theme === 'noche' ? 'noche' : 'día'}</span></button>
+          <div class="tdl-tabs">
+            <button class="on" data-a="play-noop"><i>${TAB.home}</i>inicio</button>
+            <button data-a="shop"><i>${TAB.shop}</i>mejoras</button>
+            <button data-a="rewards"><i>${TAB.net}</i>puntos</button>
+            <button data-a="ajustes"><i>${TAB.gear}</i>ajustes</button>
+          </div>
+        </div>`;
+      },
+
+      ajustes() {
+        return `<div class="panel narrow">
+          <h2>Ajustes</h2>
+          <div class="col">
+            ${this.viewButtons('btn-g')}
+            <button class="btn-g" data-a="sound">${W.Audio.muted ? '🔇 Sonido: no' : '🔊 Sonido: sí'}</button>
+            <button class="btn-g" data-a="howto">📖 Cómo jugar</button>
+            <a class="btn-g" href="clasico.html">🕹️ Modo clásico 2D</a>
+            <button class="btn-g" data-a="reset">Reiniciar mundo</button>
+            <button class="btn-y" data-a="back">Volver</button>
+          </div>
+          <p class="sub small">Juego de ficción y parodia · no afiliado a ninguna organización real</p>
+        </div>`;
+      },
+
       lobby(s) {
         const G = this.G;
         const n = G.capturedCount();
@@ -207,11 +255,13 @@
         case 'rewards':
         case 'howto':
         case 'reset':
-          this.returnTo = prev === 'rewards' || prev === 'howto' || prev === 'shop' || prev === 'reset' ? this.returnTo : prev;
+        case 'ajustes':
+          this.returnTo = prev === 'rewards' || prev === 'howto' || prev === 'shop' || prev === 'reset' || prev === 'ajustes' ? this.returnTo : prev;
+          if (prev === 'ajustes' && a !== 'ajustes') this.returnTo = 'ajustes';
           this.show(a);
           break;
         case 'back':
-          this.show(this.returnTo || (G.state === 'lobby' ? 'lobby' : 'pause'));
+          this.show(this.returnTo === 'lobbyTd' ? 'lobby' : (this.returnTo || (G.state === 'lobby' ? 'lobby' : 'pause')));
           break;
         case 'buy': {
           const u = W.UPGRADES.find((x) => x.id === d.id);
@@ -240,15 +290,17 @@
         }
         case 'sound':
           W.Audio.muted = !W.Audio.muted;
-          this.show('lobby');
+          this.show(prev === 'ajustes' ? 'ajustes' : 'lobby');
           break;
         case 'camera':
           W.TopDown.set(G, !W.TopDown.active);
-          this.show(prev);
+          this.show(prev === 'lobbyTd' ? 'lobby' : prev);
           break;
         case 'theme':
           W.TopDown.toggleTheme(G);
-          this.show(prev);
+          this.show(prev === 'lobbyTd' ? 'lobby' : prev);
+          break;
+        case 'play-noop':
           break;
         case 'reset-ok':
           s.world = { captured: [], upgrades: {}, kos: 0, sales: 0, bossDefeated: false, cherries: W.CONFIG.START_CHERRIES };

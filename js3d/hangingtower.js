@@ -33,7 +33,7 @@
     const rnd = opts.rnd || Math.random;
     const rr = (a, b) => a + rnd() * (b - a);
     const pick = (a) => a[Math.floor(rnd() * a.length)];
-    const parts = [], blobs = [];
+    const parts = [], blobs = [], plants = [];
     const box = (x, y, z, sx, sy, sz, color, ry) => parts.push({ geo: BOX, matrix: M(x, y, z, ry, sx, sy, sz), color });
     const blob = (x, y, z, sx, sy, sz, color) => blobs.push([M(x, y, z, rnd() * 6.28, sx, sy, sz), new THREE.Color(color)]);
     const faces = (fn) => { for (let f = 0; f < 4; f++) { const a = f * Math.PI / 2; fn(a, Math.cos(a), Math.sin(a)); } };
@@ -72,9 +72,15 @@
         const [wx, wz] = at(ca, sa, 0, s / 2 - 0.9);
         box(wx, y + 0.5, wz, s - 1, 0.06, 0.35, WATER, a);
         if (opts.sealed) return; // Arcadia seca las terrazas que sella
-        // café en la jardinera, con cerezas
-        for (let t = -s / 2 + 0.7; t < s / 2 - 0.4; t += 0.75) {
+        // café en la jardinera: matas frondosas con cerezas (las mismas de los cultivos), en vez de bolitas
+        const lush = W.Ent && W.Ent.planterGeo;
+        for (let t = -s / 2 + 0.7; t < s / 2 - 0.4; t += lush ? 1.3 : 0.75) {
           const [qx, qz] = at(ca, sa, t, s / 2 - 0.1);
+          if (lush) {
+            const m = M(qx, y + 1.0, qz, rnd() * 6.28, 0.62, 0.62, 0.62);
+            plants.push({ geo: lush.plantLo, matrix: m }, { geo: lush.cherriesLo, matrix: m });
+            continue;
+          }
           blob(qx, y + 1.65, qz, rr(0.38, 0.5), rr(0.4, 0.55), rr(0.38, 0.5), pick(LEAVES));
           if (rnd() < 0.3) blob(qx + rr(-0.2, 0.2), y + 1.5, qz + rr(-0.2, 0.2), 0.08, 0.09, 0.08, '#b3121a');
         }
@@ -104,6 +110,11 @@
       const im = new THREE.InstancedMesh(BLOB, new THREE.MeshLambertMaterial({ flatShading: true }), blobs.length);
       blobs.forEach(([m, c], i) => { im.setMatrixAt(i, m); im.setColorAt(i, c); });
       scene.add(im);
+    }
+    if (plants.length) {
+      const pm = new THREE.Mesh(W.Geom.mergeColored(plants), W.Geom.vcMat({ flatShading: true }));
+      pm.castShadow = true;
+      scene.add(pm);
     }
     if (opts.sealed) {
       // sello de Arcadia: caja de vidrio azul al 9 % con aristas azules y líneas cada 0,7 m

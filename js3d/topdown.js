@@ -11,12 +11,12 @@
     noche: {
       sky: '#23272c', fogNear: 90, fogFar: 520,
       ground: '#262b30', paving: '#3a4046', grid: 'rgba(255,255,255,0.09)',
-      hemi: { sky: '#aab4c8', ground: '#15181b', intensity: 0.42 }, sun: 0.72,
+      hemi: { sky: '#aab4c8', ground: '#15181b', intensity: 0.42 }, sun: 0.85, sunColor: '#ffdcb4',
     },
     dia: {
       sky: '#e3e9e8', fogNear: 110, fogFar: 650,
       ground: '#ffffff', paving: '#ffffff', grid: 'rgba(44,48,46,0.14)',
-      hemi: { sky: '#eef4ff', ground: '#8f9a88', intensity: 0.75 }, sun: 1.0,
+      hemi: { sky: '#eef4ff', ground: '#8f9a88', intensity: 0.75 }, sun: 1.05, sunColor: '#fff1dc',
     },
   };
 
@@ -118,7 +118,17 @@
         if (on) { G.hemi.color.set(T.hemi.sky); G.hemi.groundColor.set(T.hemi.ground); G.hemi.intensity = T.hemi.intensity; }
         else { G.hemi.color.copy(G.hemiBase.color); G.hemi.groundColor.copy(G.hemiBase.ground); G.hemi.intensity = G.hemiBase.intensity; }
       }
-      if (G.sun) G.sun.intensity = on ? T.sun : G.sunBase;
+      if (G.sun) { G.sun.intensity = on ? T.sun : G.sunBase; G.sun.color.set(on ? T.sunColor : '#fff4e0'); }
+      // tonemapping de cine solo en la cenital (los materiales se recompilan)
+      if (G.renderer) {
+        const tm = on ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+        if (G.renderer.toneMapping !== tm) {
+          G.renderer.toneMapping = tm;
+          G.renderer.toneMappingExposure = on ? 1.15 : 1;
+          G.scene.traverse((o) => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.needsUpdate = true; }); });
+        }
+      }
+      if (!on) this.clearTags();
       if (W.World.ground) W.World.ground.material.color.set(on ? T.ground : '#ffffff');
       // andenes, adoquín y pasto: de noche son "la mesa oscura" bajo la maqueta blanca
       const mats = W.World.mats || {};
@@ -302,7 +312,7 @@
       p.mesh.rotation.y = 0.5 + Math.sin(G.time * 0.3) * 0.25;
       p.h.animate(G.time * 2, 0.05, true);
       const cam = G.camera;
-      const d = 44, tilt = 14 * Math.PI / 180;
+      const d = 56, tilt = 14 * Math.PI / 180;
       const a = Math.sin(G.time * 0.18) * 0.5;
       cam.position.set(sp.x + Math.sin(a) * Math.sin(tilt) * d, 0.25 + Math.cos(tilt) * d, sp.z + Math.cos(a) * Math.sin(tilt) * d);
       cam.lookAt(this.camVec.set(sp.x, 0.6, sp.z - 1.5));
@@ -334,6 +344,44 @@
       H.set('tdHpFill', 'width', `${Math.max(0, p.hp / p.maxHp) * 100}%`);
       H.set('tdHpFill', 'class', p.hp / p.maxHp < 0.3 ? 'low' : '');
       this.drawRadar(G);
+      this.updateTags(G);
+    },
+
+    // Etiquetas sobre el mundo (como en la maqueta): madurez de cada mata, serie y vida de cada dron, cerezas de cada costal
+    tags: new Map(),
+    clearTags() { for (const el of this.tags.values()) el.remove(); this.tags.clear(); },
+    updateTags(G) {
+      const root = document.getElementById('tdTags');
+      if (!root) return;
+      const p = G.player;
+      const cam = G.camera;
+      const v = this.tagVec || (this.tagVec = new THREE.Vector3());
+      const W2 = window.innerWidth / 2, H2 = window.innerHeight / 2;
+      const seen = new Set();
+      const put = (key, x, y, z, html, cls) => {
+        let el = this.tags.get(key);
+        if (!el) { el = document.createElement('div'); el.className = 'td-tag'; root.appendChild(el); this.tags.set(key, el); }
+        if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; }
+        if (el.dataset.c !== cls) { el.className = `td-tag ${cls}`; el.dataset.c = cls; }
+        v.set(x, y, z).project(cam);
+        el.style.transform = `translate(${(v.x * W2 + W2).toFixed(1)}px, ${(-v.y * H2 + H2).toFixed(1)}px) translate(-50%, -100%)`;
+        seen.add(key);
+      };
+      const near = (o, r) => Math.abs(o.x - p.pos.x) < r && Math.abs(o.z - p.pos.z) < r;
+      for (const pl of G.planters) {
+        if (!near(pl.pos, 24)) continue;
+        const pct = Math.round(Math.min(1, pl.growth) * 100);
+        put(pl, pl.pos.x, pl.mesh.position.y + 1.7, pl.pos.z, pl.ripe ? 'lista · 100 %' : `${pct} %`, pl.ripe ? 'green' : '');
+      }
+      for (const e of G.enemies) {
+        if (e.dead || e.boss || !near(e.pos, 40)) continue;
+        put(e, e.pos.x, e.mesh.position.y + 2.2, e.pos.z, `${e.serial} · ${Math.ceil(e.hp)}`, 'blue');
+      }
+      for (const l of G.loot) {
+        if (l.kind !== 'crate' || !near(l.pos, 24)) continue;
+        put(l, l.pos.x, 1.3, l.pos.z, `${l.amount} <small>cerezas</small>`, 'big');
+      }
+      for (const [key, el] of this.tags) if (!seen.has(key)) { el.remove(); this.tags.delete(key); }
     },
 
     drawRadar(G) {
