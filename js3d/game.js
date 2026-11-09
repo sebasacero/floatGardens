@@ -31,10 +31,14 @@
       this.scene.background = this.skyColor.clone();
       this.scene.fog = new THREE.Fog(this.skyColor.clone(), 40, 430);
       this.camera = new THREE.PerspectiveCamera(70, 1, 0.1, 900);
-      this.scene.add(C.MAQUETA ? new THREE.HemisphereLight('#eef4ff', '#8f9a88', 0.75) : new THREE.HemisphereLight('#e8f0f7', '#4a4f45', 0.95));
+      this.hemi = C.MAQUETA ? new THREE.HemisphereLight('#eef4ff', '#8f9a88', 0.75) : new THREE.HemisphereLight('#e8f0f7', '#4a4f45', 0.95);
+      this.hemiBase = { color: this.hemi.color.clone(), ground: this.hemi.groundColor.clone(), intensity: this.hemi.intensity };
+      this.scene.add(this.hemi);
       const sun = new THREE.DirectionalLight('#fff4e0', C.MAQUETA ? 1.0 : 0.55);
       sun.position.set(-120, 200, 80);
       this.scene.add(sun);
+      this.sun = sun;
+      this.sunBase = sun.intensity;
 
       W.Tex.init();
       W.World.build(this.scene);
@@ -51,8 +55,10 @@
       for (let i = 0; i < 18; i++) this.spawnCrate();
 
       W.Input.init(canvas);
-      canvas.addEventListener('click', () => { if (this.state === 'playing' && !W.Input.locked) W.Input.lock(); });
-      W.Input.onLockChange = (locked) => { if (!locked && this.state === 'playing' && !W.Input.isTouch) this.pause(); };
+      W.TopDown.load(W.Input.isTouch);
+      W.TopDown.build(this);
+      canvas.addEventListener('click', () => { if (this.state === 'playing' && !W.Input.locked && !W.TopDown.active) W.Input.lock(); });
+      W.Input.onLockChange = (locked) => { if (!locked && this.state === 'playing' && !W.Input.isTouch && !W.TopDown.active) this.pause(); };
       W.HUD.init();
       W.Menus.init(this);
       window.addEventListener('resize', () => this.resize());
@@ -196,6 +202,8 @@
         else this.update(dt);
       } else if (this.state === 'paused' && I.pressed('pause') && W.Input.isTouch) {
         this.resume();
+      } else if (this.state === 'lobby' && W.TopDown.active) {
+        W.TopDown.lobbyCamera(this);
       } else if (this.state === 'lobby') {
         // cámara de lobby: el barista posa frente al HQ
         const sp = W.World.hqSpot.spawn;
@@ -216,7 +224,10 @@
       for (const l of this.loot) l.update(dt);
       this.updateRain(dt);
       this.renderer.render(this.scene, this.camera);
-      if (this.state === 'playing' || this.state === 'dead') W.HUD.update(this, dt);
+      if (this.state === 'playing' || this.state === 'dead') {
+        W.HUD.update(this, dt);
+        if (W.TopDown.active) W.TopDown.hud(this, dt);
+      }
       this.updateBubbles();
       I.endFrame();
       requestAnimationFrame((t) => this.loop(t));
@@ -226,7 +237,7 @@
       const I = W.Input;
       const p = this.player;
       this.updatePlayer(dt);
-      this.updateCamera(dt);
+      if (W.TopDown.active) W.TopDown.camera(this, dt); else this.updateCamera(dt);
       this.updateWeapon(dt);
       this.updateInteraction();
       this.updateSpawns(dt);
@@ -276,15 +287,23 @@
     updatePlayer(dt) {
       const I = W.Input;
       const p = this.player;
+      const td = W.TopDown.active;
       const look = I.look();
       const aimMul = p.aiming ? 0.55 : 1;
-      p.yaw -= look.x * aimMul;
-      p.pitch = Math.max(-1.1, Math.min(0.75, p.pitch - look.y * aimMul));
+      if (td) {
+        // cenital: el yaw es la mira (joystick derecho, mouse o asistida); la cámara no gira
+        p.yaw = W.TopDown.aim(this, dt);
+        p.pitch = 0;
+      } else {
+        p.yaw -= look.x * aimMul;
+        p.pitch = Math.max(-1.1, Math.min(0.75, p.pitch - look.y * aimMul));
+      }
       p.aiming = I.held('aim');
 
       const mv = I.move();
-      const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
-      const rx = Math.cos(p.yaw), rz = -Math.sin(p.yaw);
+      const cy = td ? 0 : p.yaw; // en cenital el joystick va con la pantalla (arriba = norte)
+      const fx = -Math.sin(cy), fz = -Math.cos(cy);
+      const rx = Math.cos(cy), rz = -Math.sin(cy);
       let dx = fx * mv.y + rx * mv.x, dz = fz * mv.y + rz * mv.x;
       const len = Math.hypot(dx, dz);
       const sprint = I.held('sprint') && mv.y > 0.3 && !p.aiming && p.reloading <= 0;
@@ -311,7 +330,7 @@
 
       p.moving = Math.min(1, len);
       p.phase += dt * (sprint ? 13 : 9) * p.moving;
-      const combat = p.aiming || this.time - p.lastShot < 0.8 || I.held('fire');
+      const combat = p.aiming || this.time - p.lastShot < 0.8 || I.held('fire') || (td && W.TopDown.target);
       let face = p.yaw + Math.PI;
       if (!combat && len > 0.1) face = Math.atan2(dx, dz);
       p.mesh.rotation.y = Ent.lerpAngle(p.mesh.rotation.y, face, Math.min(1, dt * 14));
@@ -397,8 +416,9 @@
       p.recoil = Math.min(0.035, p.recoil + 0.006);
       p.spread += 0.008;
       W.Audio.shot();
-      const cam = this.camera.position.clone();
-      const dir = this.aimDir.clone();
+      const ray = W.TopDown.active ? W.TopDown.shotRay(this) : { origin: this.camera.position.clone(), dir: this.aimDir.clone(), minT: this.camDist || 1 };
+      const cam = ray.origin;
+      const dir = ray.dir;
       dir.x += (Math.random() - 0.5) * p.spread * 2;
       dir.y += (Math.random() - 0.5) * p.spread * 2;
       dir.z += (Math.random() - 0.5) * p.spread * 2;
@@ -406,7 +426,7 @@
       // primero lo que corta el rayo desde la cámara (paredes o enemigos)
       let tHit = W.World.raycast(cam, dir, C.RANGE);
       let target = null, head = false;
-      const minT = this.camDist || 1;
+      const minT = ray.minT;
       for (const e of this.enemies) {
         if (e.dead) continue;
         const sc = e.boss ? 2.6 : 1;
@@ -801,10 +821,12 @@
         this.raining = !this.raining;
         this.weatherTimer = this.raining ? rand(35, 60) : rand(50, 90);
         this.rain.visible = this.raining;
-        const sky = this.raining ? '#8e9ba6' : '#a9bccb';
-        this.scene.background.set(sky);
-        this.scene.fog.color.set(sky);
-        this.scene.fog.far = this.raining ? 300 : 430;
+        if (!W.TopDown.active) {
+          const sky = this.raining ? '#8e9ba6' : (C.MAQUETA ? '#e3e9e8' : '#a9bccb');
+          this.scene.background.set(sky);
+          this.scene.fog.color.set(sky);
+          this.scene.fog.far = this.raining ? 300 : 430;
+        }
         W.HUD.toast(this.raining ? '🌧️ Empezó a llover en Bogotá' : '⛅ Escampó');
       }
     },
@@ -825,7 +847,7 @@
       W.Menus.hide();
       W.HUD.show(true);
       document.body.classList.add('playing');
-      W.Input.lock();
+      if (!W.TopDown.active) W.Input.lock();
       W.Input.endFrame();
       W.Audio.ensure();
       if (!this.currentDistrict) {

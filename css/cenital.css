@@ -1,0 +1,122 @@
+/* Vista cenital de Float Gardens (estilo devlog): telemetría monoespaciada arriba a la izquierda,
+   cápsula de marca, barra de vida fina, radar de puntos y botones cuadrados con etiqueta.
+   Dos temas: noche (piso carbón, texto claro) y día (maqueta blanca, texto tinta).
+   Solo aplica con body.cenital; se puede quitar sin tocar el juego. */
+body.cenital { --td-txt: #e9ecea; --td-txt2: #9aa3a0; --td-txt3: #6c7572; --td-panel: rgba(16, 19, 22, 0.82); --td-btn: rgba(255, 255, 255, 0.1); --td-line: rgba(255, 255, 255, 0.1); }
+body.cenital-dia { --td-txt: #2c302e; --td-txt2: #7b817e; --td-txt3: #a9aeab; --td-panel: rgba(246, 248, 247, 0.86); --td-btn: rgba(255, 255, 255, 0.6); --td-line: rgba(44, 48, 46, 0.12); }
+body.cenital-noche { background: #23272c; }
+body.cenital-noche #loading { background: #23272c; color: #e9ecea; }
+
+/* ---------- lo que se oculta en cenital ---------- */
+body.cenital .hud-tl, body.cenital #compass, body.cenital .hud-bl, body.cenital .hud-br, body.cenital #crosshair { display: none !important; }
+
+/* ---------- lo que se queda, en el tema ---------- */
+body.cenital #hud { color: var(--td-txt); text-shadow: none; }
+body.cenital .hud-tc { top: 44px; width: min(360px, 70vw); }
+body.cenital .objective { background: none; padding: 0; }
+body.cenital .objective b { font: 500 12px var(--font); letter-spacing: 0; text-transform: none; color: var(--td-txt); }
+body.cenital .objective span { font: 500 10.5px var(--mono); color: var(--td-txt2); }
+body.cenital .toast { background: var(--alert); color: #fff; border: 0; font: 600 13px var(--font); padding: 9px 14px; }
+body.cenital .capture, body.cenital .bossbar { font: 500 10.5px var(--mono); letter-spacing: 0.02em; color: var(--td-txt2); }
+body.cenital .capture .bar, body.cenital .bossbar .bar { transform: none; height: 4px; border: 0; background: var(--td-line); }
+body.cenital .capture .bar i { background: var(--leaf-2); }
+body.cenital .bossbar .bar i { background: var(--alert); }
+body.cenital .bossbar div:first-child { color: var(--td-txt); font: 600 12px var(--font); }
+body.cenital .hud-tr { top: 44px; right: 14px; }
+body.cenital .wallet span { background: none; color: var(--td-txt2); font: 500 10.5px var(--mono); padding: 0 0 0 10px; clip-path: none; }
+body.cenital .feed-item { background: var(--td-panel); border: 0; color: var(--td-txt); font: 500 11px var(--font); padding: 4px 9px; }
+body.cenital .feed-item .me { color: var(--leaf-2); }
+body.cenital .feed-item .foe { color: #8f8aff; }
+body.cenital .prompt { background: var(--td-panel); color: var(--td-txt); border: 0; font: 500 13px var(--font); bottom: 31%; }
+body.cenital .prompt kbd { background: var(--leaf); color: #fff; border: 0; }
+body.cenital .banner .b-title { background: none; color: var(--td-txt); font: 300 clamp(26px, 5vw, 44px)/1.05 var(--font); letter-spacing: -0.02em; text-transform: none; }
+body.cenital .banner .b-sub { color: var(--td-txt2); font: 500 11px var(--mono); }
+body.cenital .banner.ours .b-title { color: var(--leaf-2); }
+body.cenital .banner.theirs .b-title { color: #8f8aff; }
+body.cenital-dia .banner.theirs .b-title, body.cenital-dia .feed-item .foe { color: var(--alert); }
+body.cenital .dmg { font: 700 15px var(--font); color: #fff; text-shadow: 0 1px 0 #000, 0 0 8px rgba(110, 104, 255, 0.9); }
+body.cenital .dmg.crit { color: #d6e48a; font-size: 18px; }
+body.cenital .bubble { background: var(--td-panel); color: var(--td-txt); border: 0; border-radius: 0; font: 500 11px var(--font); }
+body.cenital #vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(42, 34, 245, 0.55) 100%); }
+body.cenital .bigmap canvas { border: 0; }
+
+/* ---------- bloque cenital ---------- */
+#td { display: none; position: absolute; inset: 0; pointer-events: none; font-family: var(--font); color: var(--td-txt); }
+body.cenital.playing #td { display: block; }
+.td-tele { position: absolute; top: 14px; left: 16px; font: 400 9.5px/1.6 var(--mono); color: var(--td-txt2); }
+.td-tele .h { display: block; color: var(--leaf-2); font-weight: 500; letter-spacing: 0.04em; margin-bottom: 1px; }
+.td-tele .h.threat { color: #8f8aff; }
+body.cenital-dia .td-tele .h.threat { color: var(--alert); }
+.td-tele div { display: flex; gap: 0; white-space: nowrap; }
+.td-tele i { font-style: normal; width: 74px; }
+.td-tele b { color: var(--td-txt); font-weight: 500; }
+.td-tele u { text-decoration: none; margin-left: 4px; }
+.td-cap { position: absolute; top: 12px; right: 14px; height: 30px; padding: 0 12px 0 9px; border-radius: 15px; background: var(--td-btn); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); display: flex; align-items: center; gap: 7px; font: 600 11.5px var(--font); color: var(--td-txt); }
+.td-cap span { font-weight: 300; color: var(--td-txt2); }
+.td-energy { position: absolute; left: 16px; bottom: 92px; width: min(188px, 40vw); }
+.td-energy .l { display: flex; justify-content: space-between; font: 400 10px var(--mono); color: var(--td-txt2); margin-bottom: 5px; }
+.td-energy .l b { color: var(--td-txt); font-weight: 500; }
+.td-energy .bar { height: 4px; background: var(--td-line); }
+.td-energy .bar i { display: block; height: 100%; width: 100%; background: var(--leaf-2); transition: width 0.15s; }
+.td-energy .bar i.low { background: var(--alert); }
+.td-radar { position: absolute; right: 16px; bottom: 92px; width: 150px; background: var(--td-panel); padding: 9px 10px 8px; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.td-radar .t { display: flex; justify-content: space-between; font: 400 8.5px var(--mono); color: var(--td-txt2); letter-spacing: 0.03em; }
+.td-radar .t:first-child { margin-bottom: 6px; }
+.td-radar canvas { display: block; width: 130px; height: 82px; }
+
+/* ---------- controles táctiles en cenital: cuadrados con etiqueta ---------- */
+body.cenital #stick { left: 30px; bottom: 150px; width: 104px; height: 104px; background: none; border: 1.5px solid var(--td-line); -webkit-backdrop-filter: none; backdrop-filter: none; }
+body.cenital #knob { left: 30px; top: 30px; width: 40px; height: 40px; background: var(--td-btn); box-shadow: none; }
+body.cenital .tb { border-radius: 0; border: 0; background: var(--td-btn); color: var(--td-txt); font: 500 10px var(--font); width: 66px; height: 66px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 9px; }
+body.cenital .tb.on { background: var(--leaf-2); color: #1f2a14; }
+body.cenital .tb.fire { right: 26px; bottom: 150px; width: 78px; height: 78px; background: var(--alert); color: #fff; }
+body.cenital .tb.fire.on { background: #4a44ff; color: #fff; }
+body.cenital .tb.jump { right: 26px; bottom: 240px; }
+body.cenital .tb.reload { right: 104px; bottom: 150px; }
+body.cenital .tb.action { right: 104px; bottom: 228px; background: var(--leaf); color: #fff; }
+body.cenital .tb.aim { display: none; }
+body.cenital .tb.small { width: 36px; height: 36px; top: auto; bottom: 330px; padding: 0; align-items: center; font-size: 14px; border-radius: 0; }
+body.cenital .tb.map { left: auto; right: 26px; }
+body.cenital .tb.pause { left: auto; right: 68px; }
+body.cenital .tb.fire::before, body.cenital .tb.action::before, body.cenital .tb.jump::before, body.cenital .tb.reload::before { content: ''; position: absolute; top: 14px; left: 50%; width: 18px; height: 18px; margin-left: -9px; background-repeat: no-repeat; background-size: contain; }
+body.cenital .tb.fire::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='7'/%3E%3Cpath d='M12 2v5M12 17v5M2 12h5M17 12h5'/%3E%3C/svg%3E"); }
+body.cenital .tb.action::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8'%3E%3Cpath d='M5 19c0-8 5-13 14-14-1 9-6 14-14 14z'/%3E%3Cpath d='M5 19 13 11'/%3E%3C/svg%3E"); }
+body.cenital .tb.jump::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e9ecea' stroke-width='1.8'%3E%3Crect x='7' y='4' width='10' height='12'/%3E%3Cpath d='M12 1v3M9 20l-1 3M15 20l1 3M12 16v6'/%3E%3C/svg%3E"); }
+body.cenital .tb.reload::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e9ecea' stroke-width='1.8'%3E%3Cpath d='M20 12a8 8 0 1 1-2.3-5.7'/%3E%3Cpath d='M20 4v5h-5'/%3E%3C/svg%3E"); }
+body.cenital-dia .tb.jump::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c302e' stroke-width='1.8'%3E%3Crect x='7' y='4' width='10' height='12'/%3E%3Cpath d='M12 1v3M9 20l-1 3M15 20l1 3M12 16v6'/%3E%3C/svg%3E"); }
+body.cenital-dia .tb.reload::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c302e' stroke-width='1.8'%3E%3Cpath d='M20 12a8 8 0 1 1-2.3-5.7'/%3E%3Cpath d='M20 4v5h-5'/%3E%3C/svg%3E"); }
+
+/* ---------- menús sobre la cenital de noche: el lobby a la izquierda sigue siendo claro ---------- */
+body.cenital-noche .menu-lobby { background: linear-gradient(90deg, rgba(35, 39, 44, 0.92) 0%, rgba(35, 39, 44, 0.7) 50%, rgba(35, 39, 44, 0.1) 100%); color: #e9ecea; }
+body.cenital-noche .menu-lobby .title, body.cenital-noche .menu-lobby .brand, body.cenital-noche .menu-lobby .mode-tag { color: #e9ecea; }
+body.cenital-noche .menu-lobby .mode-tag { border-color: rgba(233, 236, 234, 0.3); }
+body.cenital-noche .menu-lobby .pitch { color: #9aa3a0; }
+body.cenital-noche .menu-lobby .lobby-foot, body.cenital-noche .menu-lobby .lobby-foot a, body.cenital-noche .menu-lobby .link { color: #9aa3a0; }
+body.cenital-noche .menu-lobby .brand .leaf { background: rgba(255, 255, 255, 0.1); }
+
+/* pantallas angostas: la telemetría y el radar se encogen */
+@media (max-width: 760px), (max-height: 520px) {
+  body.cenital .hud-tc { top: 136px; }
+  .td-tele { font-size: 9px; }
+  .td-tele i { width: 64px; }
+  .td-radar { width: 132px; padding: 7px 8px 6px; }
+  .td-radar canvas { width: 116px; height: 73px; }
+  body.cenital .tb { width: 58px; height: 58px; font-size: 9.5px; }
+  body.cenital .tb.fire { width: 70px; height: 70px; }
+  body.cenital .tb.jump { bottom: 228px; }
+  body.cenital .tb.reload { right: 96px; }
+  body.cenital .tb.action { right: 96px; bottom: 218px; }
+  body.cenital .tb.small { bottom: 300px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  body.cenital #stick { bottom: 70px; left: 40px; }
+  body.cenital .tb.fire { bottom: 60px; }
+  body.cenital .tb.jump { bottom: 140px; }
+  body.cenital .tb.reload { bottom: 60px; }
+  body.cenital .tb.action { bottom: 130px; }
+  body.cenital .tb.small { bottom: auto; top: 10px; right: auto; }
+  body.cenital .tb.map { left: 200px; }
+  body.cenital .tb.pause { left: 244px; }
+  .td-energy, .td-radar { bottom: 10px; }
+  .td-energy { left: 160px; width: 140px; }
+}

@@ -176,6 +176,7 @@
       T.asphalt.repeat.set(90, 90);
       ground.rotation.x = -Math.PI / 2;
       scene.add(ground);
+      this.ground = ground; // la vista cenital lo oscurece en el tema noche
 
       this.zoneCells = new Map(W.ZONES.map((z) => [`${z.row},${z.col}`, z]));
       for (let row = 0; row < C.GRID; row++) {

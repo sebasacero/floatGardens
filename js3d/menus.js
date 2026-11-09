@@ -29,6 +29,14 @@
       </div>`;
     },
 
+    // Cámara (cenital / tercera persona) y tema de la cenital (noche / día)
+    viewButtons(cls) {
+      const c = cls || 'btn-side';
+      const td = W.TopDown.active;
+      return `<button class="${c}" data-a="camera">📷 Cámara: ${td ? 'cenital' : 'tercera persona'}</button>` +
+        (td ? `<button class="${c}" data-a="theme">${W.TopDown.theme === 'noche' ? '🌙 Tema: noche' : '☀️ Tema: día'}</button>` : '');
+    },
+
     pointsMeter(s) {
       const cost = FG.CONFIG.REDEEM_COST;
       const frac = Math.min(1, s.puntos / cost);
@@ -56,12 +64,13 @@
               ${this.pointsMeter(s)}
             </div>
             <div class="lobby-right">
-              <button class="btn-play" data-a="play">${started ? 'CONTINUAR' : 'JUGAR'}<small>Bogotá · Tercera persona</small></button>
+              <button class="btn-play" data-a="play">${started ? 'CONTINUAR' : 'JUGAR'}<small>Bogotá · ${W.TopDown.active ? `Vista cenital · ${W.TopDown.theme === 'noche' ? 'noche' : 'día'}` : 'Tercera persona'}</small></button>
               <div class="side-buttons">
                 <button class="btn-side" data-a="shop">🛠️ Mejoras</button>
                 <button class="btn-side" data-a="rewards">🎟️ Puntos Float</button>
                 <button class="btn-side" data-a="howto">📖 Cómo jugar</button>
                 <a class="btn-side" href="clasico.html">🕹️ Modo clásico 2D</a>
+                ${this.viewButtons()}
                 <button class="btn-side" data-a="sound">${W.Audio.muted ? '🔇 Sonido: no' : '🔊 Sonido: sí'}</button>
               </div>
             </div>
@@ -81,7 +90,10 @@
             <div><b>☠ Jefe final</b>Con las 6 zonas, ve a la Plaza de Bolívar y derrota a Don Monopolio.</div>
             <div><b>❤️ Vida</b>Se regenera si te cubres unos segundos. Si caes, vuelves al HQ y pierdes la mitad de tus cerezas.</div>
           </div>
-          <div class="keys">${touch
+          <div class="keys">${W.TopDown.active
+            ? (touch ? 'Vista cenital · Joystick: moverte · Arrastra a la derecha o sobre <b>disparar</b>: apuntar (la mira se pega al enemigo más cercano) · impulso: saltar · cosechar: acción · recargar · 🗺 mapa'
+              : 'Vista cenital · <kbd>WASD</kbd> moverte · <kbd>Mouse</kbd> apuntar · <kbd>Clic</kbd> disparar · <kbd>Shift</kbd> correr · <kbd>Espacio</kbd> saltar · <kbd>R</kbd> recargar · <kbd>E</kbd> acción · <kbd>M</kbd> mapa · <kbd>Esc</kbd> pausa')
+            : touch
             ? 'Joystick: moverte (al fondo = correr) · Desliza a la derecha: mirar · 💥 disparar (arrastra para apuntar) · 🎯 apuntar · ⤒ saltar · ↻ recargar · E acción · 🗺 mapa'
             : '<kbd>WASD</kbd> moverte · <kbd>Mouse</kbd> mirar · <kbd>Clic</kbd> disparar · <kbd>Clic der.</kbd> apuntar · <kbd>Shift</kbd> correr · <kbd>Espacio</kbd> saltar · <kbd>R</kbd> recargar · <kbd>E</kbd> acción · <kbd>M</kbd> mapa · <kbd>Esc</kbd> pausa'}</div>
           <div class="row"><button class="btn-y" data-a="back">Volver</button></div>
@@ -135,9 +147,10 @@
             <button class="btn-g" data-a="shop-game">🛠️ Mejoras</button>
             <button class="btn-g" data-a="rewards">🎟️ Puntos Float</button>
             <button class="btn-g" data-a="howto">📖 Cómo jugar</button>
+            ${this.viewButtons('btn-g')}
             <button class="btn-g" data-a="lobby">Volver al lobby</button>
           </div>
-          <p class="sub small">${W.Input.isTouch ? '' : 'Haz clic en "Seguir jugando" para volver a capturar el mouse.'}</p>
+          <p class="sub small">${W.Input.isTouch || W.TopDown.active ? '' : 'Haz clic en "Seguir jugando" para volver a capturar el mouse.'}</p>
         </div>`;
       },
 
@@ -228,6 +241,14 @@
         case 'sound':
           W.Audio.muted = !W.Audio.muted;
           this.show('lobby');
+          break;
+        case 'camera':
+          W.TopDown.set(G, !W.TopDown.active);
+          this.show(prev);
+          break;
+        case 'theme':
+          W.TopDown.toggleTheme(G);
+          this.show(prev);
           break;
         case 'reset-ok':
           s.world = { captured: [], upgrades: {}, kos: 0, sales: 0, bossDefeated: false, cherries: W.CONFIG.START_CHERRIES };

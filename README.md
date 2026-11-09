@@ -30,6 +30,12 @@ incluido en `vendor/` (licencia MIT).
 | Cosechar, vender, tienda | `E` | **E** |
 | Mapa / pausa | `M` / `Esc` | 🗺 / ❚❚ |
 
+**Vista cenital.** En celular el juego arranca en vista cenital (cámara casi vertical de lente larga, como un devlog
+top-down): el joystick mueve con la pantalla (arriba = norte), arrastrar a la derecha o sobre **disparar** apunta, y la
+mira se pega sola al enemigo más cercano. En PC se activa en el lobby o en pausa (**📷 Cámara**) y se apunta con el mouse.
+Tiene dos temas (**🌙 noche**: piso carbón, maqueta a media luz; **☀️ día**: maqueta blanca). Código en `js3d/topdown.js` y
+`css/cenital.css`; se puede quitar sin tocar el resto.
+
 ### El mapa: Bogotá
 
 Una cuadrícula de manzanas con calles y carreras reales (Calle 72, Carrera 7, Av. Caracas, Av. Jiménez...) y un
@@ -122,6 +128,7 @@ js3d/entities.js      personajes low-poly, enemigos, jefe, peatones, cultivos, b
 js3d/game.js          bucle principal: jugador, cámara, disparo, zonas, economía, clima
 js3d/hud.js           minimapa, brújula, kill feed, vida, munición, hitmarkers
 js3d/menus.js         lobby, tienda, Puntos Float, pausa, derrota y victoria
+js3d/topdown.js       vista cenital: cámara, mira asistida, retícula, radar, temas noche/día (css/cenital.css)
 js3d/input.js         teclado + mouse (pointer lock) y controles táctiles
 js3d/audio.js         efectos de sonido sintetizados
 vendor/three.min.js   motor 3D Three.js r149 (MIT)
