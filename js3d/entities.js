@@ -93,6 +93,15 @@
     if (o.hat === 'tophat') b.push([0.62, 0.04, 0.62, '#111', 0, 1.99, 0], [0.38, 0.5, 0.38, '#111', 0, 2.25, 0], [0.39, 0.07, 0.39, '#c0392b', 0, 2.05, 0]);
     if (o.sash) b.push([0.08, 0.85, 0.36, o.sash, 0, 1.22, 0, 0.6]);
     if (o.badge) b.push([0.1, 0.1, 0.03, '#e6c34a', 0.17, 1.4, 0.18]);
+    if (o.helmet) {
+      // casco blanco con visor oscuro y la hoja verde de la red encima (vista cenital)
+      b.push([0.42, 0.44, 0.42, o.helmet, 0, 1.8, 0], [0.3, 0.14, 0.06, '#1a1f22', 0, 1.82, 0.2], [0.14, 0.03, 0.22, '#8fbf45', 0, 2.03, -0.02]);
+      b.push([0.7, 0.14, 0.4, o.helmet, 0, 1.6, 0]); // hombreras
+    }
+    if (o.jetpack) {
+      // mochila: dos prensas de café (cámara, tapa y émbolo)
+      for (const sx of [-0.15, 0.15]) b.push([0.22, 0.56, 0.22, '#3a2618', sx, 1.22, -0.3], [0.26, 0.06, 0.26, '#1f2224', sx, 1.52, -0.3], [0.05, 0.2, 0.05, '#1f2224', sx, 1.64, -0.3], [0.26, 0.05, 0.26, '#1f2224', sx, 0.93, -0.3]);
+    }
     const body = parts(b);
     root.add(body);
     body.add(legL, legR, armL, armR);
@@ -172,6 +181,53 @@
     return h;
   }
 
+  // Barista de la vista cenital: armadura blanca (maqueta) con mochila de prensas de café
+  function makeBaristaBlanco() {
+    const h = makeHuman({ shirt: '#f2f3f1', pants: '#c9ccca', skin: '#f2f3f1', helmet: '#f2f3f1', jetpack: true });
+    const gun = makeAeroPress();
+    gun.position.set(0, -0.6, 0.18);
+    gun.rotation.x = Math.PI / 2;
+    h.armR.add(gun);
+    h.gun = gun;
+    return h;
+  }
+
+  // Dron de Arcadia (vista cenital): caja azul con cuatro rotores; flota a la altura del torso
+  // para que las esferas de impacto del enemigo sigan funcionando igual.
+  function makeDrone(kind) {
+    const root = new THREE.Group();
+    const blue = '#2a22f5';
+    const b = [
+      [0.95, 0.32, 0.95, blue, 0, 1.3, 0], [0.4, 0.12, 0.4, '#e9ecea', 0, 1.52, 0],
+      [0.14, 0.14, 0.06, '#ffffff', 0, 1.22, 0.49], // ojo
+    ];
+    for (const [dx, dz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) b.push([0.55, 0.06, 0.08, '#2c302e', dx * 0.38, 1.35, dz * 0.38, 0, dx * dz * Math.PI / 4]);
+    if (kind === 'guardia') b.push([0.3, 0.1, 0.5, '#1b14c0', 0, 1.1, 0.2], [0.08, 0.3, 0.08, '#2c302e', 0, 1.0, 0.45]); // escáner y sello
+    else b.push([0.5, 0.08, 0.3, '#1b14c0', 0, 1.1, 0]);
+    // la matriz usa [w,h,d,color,x,y,z,rz]; para la rotación en y de los brazos reusamos el campo rz como ry
+    const body = new THREE.Mesh(W.Geom.merge(b.map(([w, h, d, color, x, y, z, ry]) => ({ geo: boxGeo, matrix: W.Geom.matrix(x, y, z, 0, ry || 0, 0, w, h, d), color }))), W.Geom.vcMat());
+    root.add(body);
+    const rotors = [];
+    for (const [dx, dz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const r = box(0.56, 0.02, 0.1, '#aab0ff', dx * 0.62, 1.4, dz * 0.62);
+      body.add(r);
+      rotors.push(r);
+    }
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.02;
+    root.add(shadow);
+    const noop = new THREE.Group();
+    return {
+      root, body, legL: noop, legR: noop, armL: noop, armR: noop, drone: true,
+      animate(phase, amount, aiming) {
+        body.position.y = Math.sin(phase * 0.35) * 0.08;
+        for (let i = 0; i < 4; i++) rotors[i].rotation.y = phase * 3 + i;
+        body.rotation.z = aiming ? 0 : Math.sin(phase * 0.5) * 0.04;
+      },
+    };
+  }
+
   // ---------- Enemigos ----------
   class Enemy {
     constructor(kind, x, z, opts) {
@@ -193,18 +249,44 @@
       this.alerted = !!(opts && opts.alerted);
       this.ko = 0;
       this.strafe = Math.random() < 0.5 ? 1 : -1;
-      const look = { shirt: t.color, pants: '#26282d', hat: t.hat, tie: '#c0392b', badge: true, mustache: Math.random() < 0.5, skin: Math.random() < 0.5 ? '#d9a273' : '#a8714a' };
-      // el guardia lleva una pila de sellos; el inspector, su carpeta
-      if (kind === 'guardia') look.holdR = [[0.25, 0.12, 0.25, '#c0392b', 0, -0.72, 0.1]];
-      else look.holdL = [[0.28, 0.36, 0.04, '#9a6b3f', 0, -0.62, 0.15]];
-      this.h = makeHuman(look);
-      this.bar = makeBar(0.9, '#ff4b3a');
-      this.bar.position.y = 2.45;
-      this.h.root.add(this.bar);
-      this.mesh = this.h.root;
+      this.serial = `AR-${2080 + Math.floor(Math.random() * 19)}`;
+      this.buildMesh();
       this.mesh.position.set(x, 0, z);
       this.radius = 0.45;
       this.headY = 1.79;
+    }
+
+    // Aspecto: humano de la Federación, o dron de Arcadia en la vista cenital. Se puede volver a llamar
+    // al cambiar de vista (reskin) sin perder posición ni vida.
+    buildMesh() {
+      const t = this.t, kind = this.kind;
+      const cenital = W.TopDown && W.TopDown.active;
+      if (cenital) {
+        this.h = makeDrone(kind);
+        this.name = `Dron ${this.serial}`;
+      } else {
+        const look = { shirt: t.color, pants: '#26282d', hat: t.hat, tie: '#c0392b', badge: true, mustache: Math.random() < 0.5, skin: Math.random() < 0.5 ? '#d9a273' : '#a8714a' };
+        // el guardia lleva una pila de sellos; el inspector, su carpeta
+        if (kind === 'guardia') look.holdR = [[0.25, 0.12, 0.25, '#c0392b', 0, -0.72, 0.1]];
+        else look.holdL = [[0.28, 0.36, 0.04, '#9a6b3f', 0, -0.62, 0.15]];
+        this.h = makeHuman(look);
+        this.name = t.name;
+      }
+      this.bar = makeBar(0.9, cenital ? '#2a22f5' : '#ff4b3a');
+      this.bar.position.y = 2.45;
+      this.h.root.add(this.bar);
+      this.mesh = this.h.root;
+      this.h.root.traverse((o) => { if (o.isMesh && o.material !== shadowMat) o.castShadow = true; });
+    }
+    reskin() {
+      if (this.boss) return;
+      const parent = this.mesh.parent;
+      const pos = this.mesh.position.clone(), rot = this.mesh.rotation.y;
+      if (parent) parent.remove(this.mesh);
+      this.buildMesh();
+      this.mesh.position.copy(pos);
+      this.mesh.rotation.y = rot;
+      if (parent) parent.add(this.mesh);
     }
 
     get dead() { return this.hp <= 0; }
@@ -449,12 +531,25 @@
   // ---------- Cultivo hidropónico flotante ----------
   const planterGeo = (() => {
     const M = W.Geom.matrix;
-    const leafGeo = new THREE.IcosahedronGeometry(0.45, 0);
-    const cg = new THREE.SphereGeometry(0.09, 6, 5);
-    const plant = [{ geo: boxGeo, matrix: M(0, 0.5, 0, 0, 0, 0, 0.08, 1, 0.08), color: '#2a7a41' }];
-    for (let i = 0; i < 4; i++) plant.push({ geo: leafGeo, matrix: M(Math.cos(i * 1.6) * 0.3, 0.6 + i * 0.15, Math.sin(i * 1.6) * 0.3), color: i % 2 ? '#3fa35b' : '#2a7a41' });
+    // mata de café frondosa (guía v2): hojas en cuatro verdes, brotes lima y cerezas rojas/pintonas/amarillas
+    const leafGeo = new THREE.SphereGeometry(0.5, 7, 5);
+    leafGeo.scale(1, 0.32, 0.55);
+    const cg = new THREE.SphereGeometry(0.07, 6, 5);
+    const LEAF = ['#1f5f27', '#2c7a2f', '#357f30', '#24682a'];
+    let seed = 11;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const plant = [{ geo: new THREE.CylinderGeometry(0.05, 0.07, 0.9, 6), matrix: M(0, 0.45, 0), color: '#6b4a2e' }];
+    for (let i = 0; i < 24; i++) {
+      const a = rnd() * 6.28, h = 0.35 + rnd() * 0.85, r = 0.25 + rnd() * 0.5 * (1.15 - h * 0.4);
+      plant.push({ geo: leafGeo, matrix: M(Math.cos(a) * r, h, Math.sin(a) * r, rnd() * 0.6 - 0.3, -a, rnd() * 0.5, 0.7 + rnd() * 0.5), color: LEAF[i % 4] });
+    }
+    for (let i = 0; i < 4; i++) { const a = rnd() * 6.28; plant.push({ geo: leafGeo, matrix: M(Math.cos(a) * 0.15, 1.25 + rnd() * 0.12, Math.sin(a) * 0.15, 0, -a, 0, 0.45), color: '#8cc84a' }); }
     const cherries = [];
-    for (let i = 0; i < 9; i++) cherries.push({ geo: cg, matrix: M(Math.cos(i * 2.1) * 0.45, 0.55 + (i % 3) * 0.22, Math.sin(i * 2.1) * 0.45), color: '#d6423a' });
+    const CH = ['#b3121a', '#b3121a', '#e0471c', '#e8a31f'];
+    for (let i = 0; i < 16; i++) {
+      const a = rnd() * 6.28, h = 0.4 + rnd() * 0.6, r = 0.18 + rnd() * 0.25, c = CH[i % 4];
+      for (let k = 0; k < 3; k++) cherries.push({ geo: cg, matrix: M(Math.cos(a) * r + k * 0.05, h + k * 0.03, Math.sin(a) * r), color: c });
+    }
     return {
       base: W.Geom.merge([
         { geo: new THREE.CylinderGeometry(1.1, 1.1, 0.25, 14), matrix: M(0, 0.12, 0), color: '#f2f2ee' },
@@ -476,6 +571,7 @@
       this.cherries = new THREE.Mesh(planterGeo.cherries, W.Geom.vcMat({ emissive: '#3a0805' }));
       this.plant.add(this.cherries);
       this.mesh.add(this.plant);
+      this.mesh.traverse((o) => { if (o.isMesh) o.castShadow = true; });
       this.mesh.position.set(spot.x, spot.y || (spot.water ? 0.3 : 0.3), spot.z);
       this.growth = Math.random() * 0.6;
       this.bob = Math.random() * 6;
@@ -500,7 +596,12 @@
       this.amount = amount;
       this.kind = kind || 'crate';
       this.mesh = new THREE.Group();
-      if (this.kind === 'crate') {
+      const cenital = W.TopDown && W.TopDown.active;
+      if (this.kind === 'crate' && cenital) {
+        // costal de café (caja durazno del video)
+        this.mesh.add(box(1.0, 0.8, 1.0, '#e9a77c', 0, 0.4, 0));
+        this.mesh.add(box(1.02, 0.1, 1.02, '#d18e63', 0, 0.55, 0));
+      } else if (this.kind === 'crate') {
         this.mesh.add(box(0.8, 0.6, 0.8, '#8b5a2b', 0, 0.3, 0));
         this.mesh.add(box(0.82, 0.12, 0.82, '#2fbf71', 0, 0.45, 0));
       } else {
@@ -508,7 +609,8 @@
         orb.position.y = 0.4;
         this.mesh.add(orb);
       }
-      const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.9, 20), new THREE.MeshBasicMaterial({ color: this.kind === 'crate' ? '#ffd34d' : '#ff6b5b', transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.9, 20), new THREE.MeshBasicMaterial({ color: cenital ? '#d6e48a' : this.kind === 'crate' ? '#ffd34d' : '#ff6b5b', transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+      this.mesh.children[0].castShadow = true;
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = 0.05;
       this.ring = ring;
@@ -518,7 +620,7 @@
     }
     update(dt) {
       this.t += dt;
-      this.mesh.rotation.y += dt;
+      this.mesh.rotation.y += dt * (W.TopDown && W.TopDown.active ? 0.25 : 1);
       this.mesh.children[0].position.y = (this.kind === 'crate' ? 0.3 : 0.4) + Math.sin(this.t * 3) * 0.1;
       this.ring.material.opacity = 0.4 + Math.sin(this.t * 4) * 0.3;
     }
@@ -619,5 +721,5 @@
     }
   }
 
-  W.Ent = { makeHuman, makeBarista, Enemy, Boss, Pedestrian, Planter, Loot, Zone, makeTracer, makeStamp, Particles, iconSprite, lerpAngle, makeBar, setBar };
+  W.Ent = { makeHuman, makeBarista, makeBaristaBlanco, makeDrone, planterGeo, Enemy, Boss, Pedestrian, Planter, Loot, Zone, makeTracer, makeStamp, Particles, iconSprite, lerpAngle, makeBar, setBar };
 })();

@@ -39,6 +39,8 @@ body.cenital .dmg.crit { color: #d6e48a; font-size: 18px; }
 body.cenital .bubble { background: var(--td-panel); color: var(--td-txt); border: 0; border-radius: 0; font: 500 11px var(--font); }
 body.cenital #vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(42, 34, 245, 0.55) 100%); }
 body.cenital .bigmap canvas { border: 0; }
+body.cenital #hitmarker { transform: scale(0.55); }
+body.cenital #hitmarker::before, body.cenital #hitmarker::after { box-shadow: none; background: var(--td-txt); }
 
 /* ---------- bloque cenital ---------- */
 #td { display: none; position: absolute; inset: 0; pointer-events: none; font-family: var(--font); color: var(--td-txt); }

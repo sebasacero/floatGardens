@@ -192,7 +192,7 @@
       this.muralGeo.forEach((g, i) => { if (g.pos.length) scene.add(g.mesh(new THREE.MeshLambertMaterial({ map: T.murals[i] }))); });
       // la ciudad no se mueve: fijamos sus matrices para no recalcularlas en cada cuadro
       const moving = new Set([...this.buses.map((b) => b.mesh), this.cabin]);
-      for (const o of scene.children) if (!moving.has(o)) W.Geom.freeze(o);
+      for (const o of scene.children) if (!moving.has(o)) { W.Geom.freeze(o); if (o.isMesh) o.receiveShadow = true; }
       this.buildMinimap();
     },
 
@@ -359,6 +359,36 @@
       for (const [tx, tz] of [[-16, -16], [16, -16], [-16, 16], [16, 16]]) this.treeSpots.push({ x: x + tx, z: z + tz });
     },
 
+    // Cama de café: caja de pizarra con tierra y matas frondosas en dos filas (una sola malla por cama)
+    // Caja con su propio color (no pasa por el blanqueo de la maqueta): camas, tierra, costales
+    solidBox(x, z, y0, w, h, d, color) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+      m.position.set(x, y0 + h / 2, z);
+      m.castShadow = m.receiveShadow = true;
+      this.scene.add(m);
+      return m;
+    },
+
+    coffeeBed(x, z, w, d) {
+      this.solidBox(x, z, 0.25, w, 0.45, d, '#3d444a');
+      this.solidBox(x, z, 0.7, w - 0.2, 0.04, d - 0.2, '#3a2a20');
+      const parts = [];
+      const along = Math.max(w, d), across = Math.min(w, d), horizontal = w >= d;
+      const n = Math.floor(along / 1.5);
+      for (let i = 0; i < n; i++) for (let j = 0; j < 2; j++) {
+        const a = -along / 2 + 0.9 + i * 1.5, b = -across / 4 + j * across / 2 + (rnd() - 0.5) * 0.2;
+        const px = horizontal ? x + a : x + b, pz = horizontal ? z + b : z + a;
+        const s = 0.95 + rnd() * 0.25;
+        const m = W.Geom.matrix(px, 0.72, pz, 0, rnd() * 6.28, 0, s);
+        parts.push({ geo: W.Ent.planterGeo.plant, matrix: m, color: '#ffffff' }, { geo: W.Ent.planterGeo.cherries, matrix: m, color: '#ffffff' });
+      }
+      // las geometrías ya traen color por vértice: la fusión lo conserva porque no pasamos color
+      const mesh = new THREE.Mesh(W.Geom.mergeColored(parts), W.Geom.vcMat());
+      mesh.castShadow = true;
+      this.scene.add(mesh);
+      addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2, 0.9, 'bed');
+    },
+
     hq(x, z) {
       const g = this.geo;
       g.cobble.box(x, z, 0.25, C.BLOCK - 4, 0.05, C.BLOCK - 4, col('#ffffff'), 8, 8);
@@ -370,6 +400,7 @@
       pool.rotation.x = -Math.PI / 2;
       pool.position.set(x - 4, 0.92, z + 7);
       this.scene.add(pool);
+      this.pool = pool;
       this.planterSpots.hq = [];
       for (let i = 0; i < 6; i++) this.planterSpots.hq.push({ x: x - 12 + (i % 3) * 8, z: z + 4.5 + Math.floor(i / 3) * 5, water: true, y: 0.95 });
       // kiosco de la tienda
@@ -378,6 +409,14 @@
       for (const [px, pz] of [[-3.2, -1.8], [3.2, -1.8], [-3.2, 1.8], [3.2, 1.8]]) g.plain.box(x + 13 + px, z + 7 + pz, 0.3, 0.2, 3.1, 0.2, col('#ddd'));
       addCollider(x + 10, x + 16, z + 5.5, z + 8.5, 1.5, 'kiosk');
       this.hqSpot = { x, z, shop: { x: x + 13, z: z + 10 }, spawn: { x: x - 2, z: z + 16 } };
+      // camas de café de la terraza (lo vivo con color): a los lados de la torre y en el borde sur
+      this.coffeeBed(x + 14.5, z - 9, 3.2, 16);
+      this.coffeeBed(x - 14.5, z - 9, 3.2, 16);
+      this.coffeeBed(x + 5.5, z + 15.5, 8, 3);
+      this.coffeeBed(x - 9.5, z + 15.5, 8, 3);
+      // costales de la cosecha junto al punto de partida
+      for (const [sx, sz, sy] of [[x + 0.6, z + 18.6, 0], [x + 1.9, z + 18.8, 0], [x + 1.2, z + 18.7, 0.9]]) { this.solidBox(sx, sz, 0.3 + sy, 1.15, 0.9, 1.15, '#e9a77c'); this.solidBox(sx, sz, 0.3 + sy + 0.5, 1.17, 0.1, 1.17, '#d18e63'); }
+      addCollider(x - 0.1, x + 2.6, z + 17.9, z + 19.5, 2, 'sacks');
       this.treeSpots = this.treeSpots || [];
       this.treeSpots.push({ x: x - 17, z: z + 17 });
     },

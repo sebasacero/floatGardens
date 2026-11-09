@@ -26,6 +26,10 @@
       const mobile = W.Input.isTouch || /Mobi|Android/i.test(navigator.userAgent);
       this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: 'high-performance' });
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.25 : 1.75));
+      // sombras reales solo en la vista cenital (el sol deja de proyectar al salir de ella)
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.mobile = mobile;
       this.scene = new THREE.Scene();
       this.skyColor = new THREE.Color(C.MAQUETA ? '#e3e9e8' : '#a9bccb');
       this.scene.background = this.skyColor.clone();
@@ -37,11 +41,18 @@
       const sun = new THREE.DirectionalLight('#fff4e0', C.MAQUETA ? 1.0 : 0.55);
       sun.position.set(-120, 200, 80);
       this.scene.add(sun);
+      this.scene.add(sun.target);
+      sun.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048);
+      const sc = sun.shadow.camera;
+      sc.left = -34; sc.right = 34; sc.top = 34; sc.bottom = -34; sc.near = 20; sc.far = 260;
+      sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03; sun.shadow.radius = 4;
       this.sun = sun;
       this.sunBase = sun.intensity;
 
       W.Tex.init();
       W.World.build(this.scene);
+      // World.build congela las matrices de todo lo que ya estaba en la escena; el sol sí se mueve en la cenital
+      sun.matrixAutoUpdate = sun.target.matrixAutoUpdate = true;
       this.save = FG.Save.load();
       this.save.world = Object.assign({ captured: [], upgrades: {}, kos: 0, sales: 0, bossDefeated: false }, this.save.world || {});
 
@@ -97,6 +108,7 @@
 
     createPlayer() {
       const h = Ent.makeBarista();
+      h.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
       this.scene.add(h.root);
       const s = this.stats();
       const spawn = W.World.hqSpot.spawn;

@@ -24,7 +24,7 @@
     enabled: false,
     theme: 'noche',
     // cámara
-    FOV: 24, DIST: 58, TILT: 9 * Math.PI / 180,
+    FOV: 24, DIST: 54, TILT: 9 * Math.PI / 180,
     AUTO_AIM_RANGE: 42, AUTO_AIM_CONE: Math.PI / 5, SNAP_CONE: 0.2,
     GRID: 8,
 
@@ -103,7 +103,9 @@
       body.classList.toggle('cenital-dia', on && this.theme === 'dia');
       W.Input.topdown = on;
       if (this.grid) this.grid.visible = on;
-      if (this.blob) this.blob.visible = on;
+      if (this.blob) this.blob.visible = false; // con sombras reales no hace falta
+      if (G.sun) G.sun.castShadow = on;
+      this.reskin(G, on);
       if (this.aimLine) this.aimLine.visible = false;
       if (on) this.drawGrid(T.grid);
       // luces, cielo, niebla y piso
@@ -121,6 +123,7 @@
       // andenes, adoquín y pasto: de noche son "la mesa oscura" bajo la maqueta blanca
       const mats = W.World.mats || {};
       for (const k of ['sidewalk', 'cobble', 'grass']) if (mats[k]) mats[k].color.set(on ? T.paving : '#ffffff');
+      if (W.World.pool) W.World.pool.material.color.set(on && this.theme === 'noche' ? '#2f363b' : '#8e9c9d');
       if (G.camera) {
         G.camera.fov = on ? this.FOV : 70;
         G.camera.updateProjectionMatrix();
@@ -128,6 +131,32 @@
       this.follow = null;
       this.labelButtons(on);
       if (on) W.Input.unlock();
+    },
+
+    // Arte de la cenital: barista de armadura blanca con mochila de prensas, drones de Arcadia y costales durazno.
+    // Al volver a tercera persona vuelve el barista de delantal y los inspectores humanos.
+    reskin(G, on) {
+      const p = G.player;
+      if (p && (!!p.h.cenital !== on)) {
+        const h = on ? W.Ent.makeBaristaBlanco() : W.Ent.makeBarista();
+        h.cenital = on;
+        h.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+        h.root.position.copy(p.mesh.position);
+        h.root.rotation.y = p.mesh.rotation.y;
+        G.scene.remove(p.mesh);
+        G.scene.add(h.root);
+        p.h = h;
+        p.mesh = h.root;
+      }
+      for (const e of G.enemies || []) if (!e.dead && e.reskin && (!!e.h.drone !== on)) e.reskin();
+      if (G.loot) {
+        G.loot = G.loot.map((l) => {
+          G.scene.remove(l.mesh);
+          const n = new W.Ent.Loot(l.pos.x, l.pos.z, l.amount, l.kind);
+          G.scene.add(n.mesh);
+          return n;
+        });
+      }
     },
 
     // Los botones táctiles cambian de texto: en cenital son cuadrados con etiqueta, como en el video.
@@ -248,6 +277,8 @@
       const targetFov = p.aiming || this.target ? 22 : p.sprinting ? 26 : this.FOV;
       if (Math.abs(targetFov - cam.fov) > 0.01) { cam.fov += (targetFov - cam.fov) * Math.min(1, dt * 6); cam.updateProjectionMatrix(); }
       this.placeDecor(G);
+      // el sol acompaña al jugador para que su sombra siempre caiga dentro del mapa de sombras
+      if (G.sun) { G.sun.position.set(p.pos.x - 60, p.y + 100, p.pos.z - 40); G.sun.target.position.set(p.pos.x, p.y, p.pos.z); }
       G.aimDir = this.shotRay(G).dir;
     },
 
@@ -277,8 +308,7 @@
       cam.lookAt(this.camVec.set(sp.x, 0.6, sp.z - 1.5));
       if (cam.fov !== this.FOV) { cam.fov = this.FOV; cam.updateProjectionMatrix(); }
       this.grid.position.set(Math.round(sp.x / this.GRID) * this.GRID, 0.02, Math.round(sp.z / this.GRID) * this.GRID);
-      this.blob.position.set(sp.x, 0.28, sp.z);
-      this.blob.scale.set(1, 1, 1);
+      if (G.sun) { G.sun.position.set(sp.x - 60, 100, sp.z - 40); G.sun.target.position.set(sp.x, 0, sp.z); }
     },
 
     // ---------- HUD ----------
