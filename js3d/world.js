@@ -71,6 +71,7 @@
       (topGeo || this).top(x, z, y0 + h, w, d, topColor || color);
     }
     mesh(material) {
+      if (C.MAQUETA) maquetaColors(this.col);
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
       g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nor, 3));
@@ -82,6 +83,25 @@
   }
 
   const col = (hex) => new THREE.Color(hex);
+  const WHITE = new THREE.Color('#ffffff');
+
+  // ---------- Maqueta blanca (guía v2) ----------
+  // Las texturas pasan a gris claro (el detalle queda como relieve suave) y los colores de fachada a blancos cálidos y fríos.
+  const TONES = ['#f3f3f0', '#eeebe6', '#f1efe9', '#e9ece8', '#efe8e1', '#f5f4f1', '#ebe7e0'].map((h) => new THREE.Color(h));
+  function maquetaColors(arr) {
+    for (let i = 0; i < arr.length; i += 3) { // el tono sale del color original: cada edificio queda parejo
+      const r = arr[i], g = arr[i + 1], b = arr[i + 2];
+      const t = TONES[Math.floor((r * 7 + g * 13 + b * 17) * 100) % 7], f = 0.9 + 0.1 * (0.3 * r + 0.59 * g + 0.11 * b);
+      arr[i] = t.r * f; arr[i + 1] = t.g * f; arr[i + 2] = t.b * f;
+    }
+  }
+  function maquetaTexture(tex, lo, tint) {
+    const img = tex.image; if (!img || !img.getContext) return;
+    const x = img.getContext('2d'); const d = x.getImageData(0, 0, img.width, img.height); const a = d.data;
+    const t = new THREE.Color(tint || '#ffffff');
+    for (let i = 0; i < a.length; i += 4) { const l = (0.3 * a[i] + 0.59 * a[i + 1] + 0.11 * a[i + 2]) / 255; const v = lo + (1 - lo) * l; a[i] = 255 * v * t.r; a[i + 1] = 255 * v * t.g; a[i + 2] = 255 * v * t.b; }
+    x.putImageData(d, 0, 0); tex.needsUpdate = true;
+  }
   const tint = (hex, amt) => {
     const c = new THREE.Color(hex);
     const k = 1 + (rnd() - 0.5) * (amt || 0.15);
@@ -133,12 +153,21 @@
         sidewalk: new THREE.MeshLambertMaterial({ map: T.sidewalk, vertexColors: true }),
         grass: new THREE.MeshLambertMaterial({ map: T.grass, vertexColors: true }),
         cobble: new THREE.MeshLambertMaterial({ map: T.cobble, vertexColors: true }),
+        tile: new THREE.MeshLambertMaterial({ map: T.tile, vertexColors: true }),
         plain: new THREE.MeshLambertMaterial({ vertexColors: true }),
       };
       this.mats = mats;
+      if (C.MAQUETA) {
+        // ventanas oscuras quedan en gris vidrio (#8E9C9D aprox.) y los muros en yeso
+        for (const k of ['brick', 'stucco', 'concrete', 'warehouse']) maquetaTexture(T[k], 0.6);
+        maquetaTexture(T.glass, 0.55, '#eef2f2');
+        maquetaTexture(T.roof, 0.82); maquetaTexture(T.sidewalk, 0.85); maquetaTexture(T.cobble, 0.82);
+        maquetaTexture(T.asphalt, 0.72, '#e4e7e3'); maquetaTexture(T.grass, 0.55, '#c3d0b7');
+      }
       const geo = {};
       for (const k in mats) geo[k] = new Geo();
       this.geo = geo;
+      this.muralGeo = T.murals.map(() => new Geo());
 
       // Suelo de asfalto
       const ground = new THREE.Mesh(
@@ -148,6 +177,7 @@
       T.asphalt.repeat.set(90, 90);
       ground.rotation.x = -Math.PI / 2;
       scene.add(ground);
+      this.ground = ground; // la vista cenital lo oscurece en el tema noche
 
       this.zoneCells = new Map(W.ZONES.map((z) => [`${z.row},${z.col}`, z]));
       for (let row = 0; row < C.GRID; row++) {
@@ -158,7 +188,15 @@
       this.buildMountains();
       this.buildTrees();
 
-      for (const k in geo) if (geo[k].pos.length) scene.add(geo[k].mesh(mats[k]));
+      // la ciudad proyecta sombra (edificios y torres); pisos y marcas viales solo la reciben
+      const casters = [];
+      for (const k in geo) if (geo[k].pos.length) { const m = geo[k].mesh(mats[k]); if (k !== 'sidewalk' && k !== 'grass' && k !== 'cobble' && k !== 'tile') casters.push(m); scene.add(m); }
+      if (this.superParts && this.superParts.length) { const m = new THREE.Mesh(W.Geom.merge(this.superParts), W.Geom.vcMat()); casters.push(m); scene.add(m); this.superParts = null; }
+      for (const m of casters) m.castShadow = true;
+      this.muralGeo.forEach((g, i) => { if (g.pos.length) scene.add(g.mesh(new THREE.MeshLambertMaterial({ map: T.murals[i] }))); });
+      // la ciudad no se mueve: fijamos sus matrices para no recalcularlas en cada cuadro
+      const moving = new Set([...this.buses.map((b) => b.mesh), this.cabin]);
+      for (const o of scene.children) if (!moving.has(o)) { W.Geom.freeze(o); if (o.isMesh) o.receiveShadow = true; }
       this.buildMinimap();
     },
 
@@ -192,6 +230,7 @@
       if (isHQ) { this.hq(x, z); return; }
       if (zone) { this.zonePlaza(zone, x, z, false); return; }
       if (row === 7 && c === 10) { this.torre(x, z); return; }
+      if (W.HANGING_TOWERS.some(([r, k]) => r === row && k === c)) { this.hangingTower(x, z); return; }
       this.buildings(style, x, z);
     },
 
@@ -201,7 +240,7 @@
       g.roof.top(x, z, h + 0.25, w, d, roofColor || col('#ffffff'));
       addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2, h + 0.25, 'building');
       // Toldos de colores en algunos locales del primer piso
-      if (h < 40 && rnd() < 0.35) {
+      if (!C.MAQUETA && h < 40 && rnd() < 0.35) {
         const side = Math.floor(rnd() * 4);
         const color = col(pickR(['#d6423a', '#2fbf71', '#f2a541', '#47b5e0', '#e85d75']));
         const aw = Math.min(w, d) * 0.6;
@@ -209,17 +248,19 @@
         g.plain.box(x + off[0], z + off[1], 3, off[2], 0.25, off[3], color);
       }
       // Murales
-      if (h >= 6 && rnd() < 0.08 && (mat === 'brick' || mat === 'warehouse' || mat === 'concrete')) {
-        const tex = pickR(W.Tex.murals);
+      if (!C.MAQUETA && h >= 6 && rnd() < 0.08 && (mat === 'brick' || mat === 'warehouse' || mat === 'concrete')) {
+        const ti = Math.floor(rnd() * W.Tex.murals.length);
         const mw = Math.min(10, Math.max(w, d) * 0.7);
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(mw, mw / 2), new THREE.MeshLambertMaterial({ map: tex }));
         const side = Math.floor(rnd() * 4);
         const y = 1.2 + mw / 4;
-        if (side === 0) { m.position.set(x + w / 2 + 0.05, y, z); m.rotation.y = Math.PI / 2; }
-        if (side === 1) { m.position.set(x - w / 2 - 0.05, y, z); m.rotation.y = -Math.PI / 2; }
-        if (side === 2) { m.position.set(x, y, z + d / 2 + 0.05); }
-        if (side === 3) { m.position.set(x, y, z - d / 2 - 0.05); m.rotation.y = Math.PI; }
-        this.scene.add(m);
+        // todos los murales con la misma textura van en una sola malla: [normal, derecha, centro]
+        const [n, r, cx, cz] = [
+          [[1, 0, 0], [0, 0, -1], x + w / 2 + 0.05, z], [[-1, 0, 0], [0, 0, 1], x - w / 2 - 0.05, z],
+          [[0, 0, 1], [1, 0, 0], x, z + d / 2 + 0.05], [[0, 0, -1], [-1, 0, 0], x, z - d / 2 - 0.05],
+        ][side];
+        const hw = mw / 2, y0 = y - mw / 4, y1 = y + mw / 4;
+        const bl = [cx - r[0] * hw, y0, cz - r[2] * hw], br = [cx + r[0] * hw, y0, cz + r[2] * hw];
+        this.muralGeo[ti].quad(bl, br, [br[0], y1, br[2]], [bl[0], y1, bl[2]], n, 0, 0, 1, 1, WHITE);
       }
     },
 
@@ -232,6 +273,8 @@
           for (let j = 0; j < n; j++) fn(x - L + s * (i + 0.5), z - L + s * (j + 0.5), s - 0.02);
         }
       };
+      // Kennedy 2089: Zona T y Centro Internacional pasan a súper torres con acentos de color
+      if (C.MAQUETA && C.SUPER_TORRES && (style === 'glass' || style === 'tower')) { this.superBlock(style, x, z); return; }
       switch (style) {
         case 'glass':
           if (rnd() < 0.5) this.building('glass', x, z, 30, floors(33, 75), 30, tint('#ffffff'), col('#9aa3ab'));
@@ -320,43 +363,99 @@
       for (const [tx, tz] of [[-16, -16], [16, -16], [-16, 16], [16, 16]]) this.treeSpots.push({ x: x + tx, z: z + tz });
     },
 
+    // Cama de café: caja de pizarra con tierra y matas frondosas en dos filas (una sola malla por cama)
+    // Caja con su propio color (no pasa por el blanqueo de la maqueta): camas, tierra, costales
+    solidBox(x, z, y0, w, h, d, color) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+      m.position.set(x, y0 + h / 2, z);
+      m.castShadow = m.receiveShadow = true;
+      this.scene.add(m);
+      return m;
+    },
+
+    coffeeBed(x, z, w, d) {
+      this.solidBox(x, z, 0.25, w, 0.45, d, '#f4f5f3');
+      this.solidBox(x, z, 0.7, w - 0.2, 0.04, d - 0.2, '#3a2a20');
+      const parts = [];
+      const along = Math.max(w, d), across = Math.min(w, d), horizontal = w >= d;
+      const n = Math.floor(along / 1.5);
+      for (let i = 0; i < n; i++) for (let j = 0; j < 2; j++) {
+        const a = -along / 2 + 0.9 + i * 1.5, b = -across / 4 + j * across / 2 + (rnd() - 0.5) * 0.2;
+        const px = horizontal ? x + a : x + b, pz = horizontal ? z + b : z + a;
+        const s = 0.95 + rnd() * 0.25;
+        const m = W.Geom.matrix(px, 0.72, pz, 0, rnd() * 6.28, 0, s);
+        parts.push({ geo: W.Ent.planterGeo.plant, matrix: m, color: '#ffffff' }, { geo: W.Ent.planterGeo.cherries, matrix: m, color: '#ffffff' });
+      }
+      // las geometrías ya traen color por vértice: la fusión lo conserva porque no pasamos color
+      const mesh = new THREE.Mesh(W.Geom.mergeColored(parts), W.Geom.vcMat());
+      mesh.castShadow = true;
+      this.scene.add(mesh);
+      addCollider(x - w / 2, x + w / 2, z - d / 2, z + d / 2, 0.9, 'bed');
+    },
+
+    // Fila de cultivo hidropónico: cama de pizarra con dos canales de agua. Las matas de la fila se cosechan
+    // por tramos (cada tramo es un Planter con spot.bed).
+    cropRow(x, z, len, name) {
+      const w = 3.4;
+      // jardinera blanca (estructura de la maqueta) con tierra y canal de agua a los lados
+      this.solidBox(x, z, 0.25, w, 0.45, len, '#f4f5f3');
+      this.solidBox(x, z, 0.7, w - 0.24, 0.03, len - 0.24, '#3a2a20');
+      for (const dx of [-w / 2 + 0.3, w / 2 - 0.3]) this.solidBox(x + dx, z, 0.7, 0.2, 0.05, len - 0.24, '#8e9c9d');
+      addCollider(x - w / 2, x + w / 2, z - len / 2, z + len / 2, 0.9, 'bed');
+      return [-1, 1].map((k, i) => ({ x, z: z + k * len / 4, y: 0.72, bed: true, label: `${name}${i + 1}` }));
+    },
+
+    // Sede: la torre colgante de Kennedy y, a sus pies, la terraza de cultivo (filas A, B y C, tienda y costales)
     hq(x, z) {
       const g = this.geo;
-      g.cobble.box(x, z, 0.25, C.BLOCK - 4, 0.05, C.BLOCK - 4, col('#ffffff'), 8, 8);
-      // edificio de ladrillo con jardín en la azotea
-      this.building('brick', x, z - 12, 34, 15, 14, col('#ffffff'), col('#5a8f4a'));
-      for (let i = -3; i <= 3; i++) g.plain.box(x + i * 4.5, z - 12, 15.25, 3, 1.4, 10, col(i % 2 ? '#3fa35b' : '#2a7a41'));
-      const signMat = new THREE.MeshBasicMaterial({ map: W.Tex.sign('FLOAT GARDENS', '#0f3d2e', '#7dffb0'), side: THREE.DoubleSide });
-      const sign = new THREE.Mesh(new THREE.PlaneGeometry(20, 4), signMat);
-      sign.position.set(x, 11, z - 4.9);
-      this.scene.add(sign);
-      // piscina hidropónica
-      g.plain.box(x - 4, z + 7, 0.3, 22, 0.6, 11, col('#9fb7a8'));
-      const pool = new THREE.Mesh(new THREE.PlaneGeometry(20.5, 9.5), new THREE.MeshLambertMaterial({ map: W.Tex.water }));
-      pool.rotation.x = -Math.PI / 2;
-      pool.position.set(x - 4, 0.92, z + 7);
-      this.scene.add(pool);
+      // piso de baldosa blanca (una baldosa = 2 m), como la terraza del rediseño
+      g.tile.box(x, z, 0.25, C.BLOCK - 4, 0.05, C.BLOCK - 4, col('#ffffff'), (C.BLOCK - 4) / 2, (C.BLOCK - 4) / 2);
+      // torre de terrazas colgantes (guía v2): la sede de la red, al norte de la plaza
+      W.HangingTower.build(this.scene, x, z - 9, { terraces: 7, floorH: 6, base: 20, setback: 1.1, y0: 0.25, rnd, addCollider });
+      // filas de cultivo, de norte a sur, con pasillos entre ellas (como la maqueta de la vista cenital)
       this.planterSpots.hq = [];
-      for (let i = 0; i < 6; i++) this.planterSpots.hq.push({ x: x - 12 + (i % 3) * 8, z: z + 4.5 + Math.floor(i / 3) * 5, water: true, y: 0.95 });
+      [['A', -11], ['B', -3.5], ['C', 4]].forEach(([name, dx]) => { this.planterSpots.hq.push(...this.cropRow(x + dx, z + 8.4, 10.4, name)); });
       // kiosco de la tienda
       g.plain.box(x + 13, z + 7, 0.3, 6, 1.2, 3, col('#5a3a24'));
       g.plain.box(x + 13, z + 7, 3.4, 7, 0.3, 4, col('#2fbf71'));
       for (const [px, pz] of [[-3.2, -1.8], [3.2, -1.8], [-3.2, 1.8], [3.2, 1.8]]) g.plain.box(x + 13 + px, z + 7 + pz, 0.3, 0.2, 3.1, 0.2, col('#ddd'));
       addCollider(x + 10, x + 16, z + 5.5, z + 8.5, 1.5, 'kiosk');
-      this.hqSpot = { x, z, shop: { x: x + 13, z: z + 10 }, spawn: { x: x - 2, z: z + 16 } };
+      this.hqSpot = { x, z, shop: { x: x + 13, z: z + 10 }, spawn: { x: x + 0.3, z: z + 16.6 } };
+      // camas de café a los lados de la torre (adorno: lo vivo con color)
+      this.coffeeBed(x + 14.5, z - 9, 3.2, 16);
+      this.coffeeBed(x - 14.5, z - 9, 3.2, 16);
+      // costales de fique de la cosecha junto a la tienda (claros, con la franja verde de la red)
+      for (const [sx, sz, sy] of [[x + 9.2, z + 16.6, 0], [x + 10.5, z + 16.8, 0], [x + 9.8, z + 16.7, 0.66]]) { this.solidBox(sx, sz, 0.3 + sy, 1.15, 0.62, 0.8, '#efe8e1'); this.solidBox(sx, sz, 0.3 + sy + 0.5, 1.17, 0.05, 0.82, '#8f8576'); this.solidBox(sx + 0.32, sz, 0.3 + sy + 0.63, 0.12, 0.03, 0.82, '#4f8f2c'); }
+      addCollider(x + 8.5, x + 11.2, z + 15.9, z + 17.5, 2, 'sacks');
       this.treeSpots = this.treeSpots || [];
-      this.treeSpots.push({ x: x - 17, z: z + 17 });
+      this.treeSpots.push({ x: x - 17, z: z + 17 }, { x: x + 17, z: z + 13 });
     },
 
     torre(x, z) {
-      this.building('concrete', x, z, 36, 9, 36, col('#ffffff'));
-      this.building('glass', x, z, 22, 140, 22, col('#d0dcea'));
-      this.crownMat = new THREE.MeshBasicMaterial({ color: '#ff3366' });
-      const crown = new THREE.Mesh(new THREE.BoxGeometry(23, 10, 23), this.crownMat);
-      crown.position.set(x, 136, z);
-      this.scene.add(crown);
+      // torre colgante sellada por Arcadia: el azul es el único color que no es café
+      W.HangingTower.build(this.scene, x, z, { terraces: 11, floorH: 6.4, base: 36, setback: 1.3, plinth: 9, y0: 0.25, sealed: true, rnd, addCollider });
       this.landmarks = this.landmarks || [];
-      this.landmarks.push({ name: 'Torre del Centro', x, z });
+      this.landmarks.push({ name: 'Torre sellada de Arcadia', x, z });
+    },
+
+    // Kennedy 2089: torres colgantes de la red en los barrios del occidente
+    hangingTower(x, z) {
+      W.HangingTower.build(this.scene, x, z, { terraces: 8, floorH: 6, base: 34, setback: 1.6, y0: 0.25, rnd, addCollider });
+      this.landmarks = this.landmarks || [];
+      this.landmarks.push({ name: 'Torre colgante', x, z });
+    },
+
+    superBlock(style, x, z) {
+      const ST = W.SuperTower;
+      const lots = style === 'tower'
+        ? [[x, z, rr(24, 28), rr(24, 28), Math.round(rr(65, 105))]]
+        : [[x - 9, z, 17, rr(30, 34), Math.round(rr(40, 80))], [x + 9, z, 17, rr(30, 34), Math.round(rr(40, 80))]];
+      const styles = ST.blockStyles(lots.length, rnd);
+      this.superParts = this.superParts || [];
+      lots.forEach(([lx, lz, w, d, fl], k) => {
+        const t = ST.parts(lx, lz, Object.assign({ w, d, floors: fl, y0: 0.25, slabEvery: 2, rnd, addCollider }, styles[k]));
+        for (const p of t.parts) this.superParts.push(p);
+      });
     },
 
     plazaBolivar(x, z) {
@@ -374,30 +473,26 @@
       g.roof.top(x, z - 4, 18.25, 36, 26, col('#ffffff'));
       addCollider(x - 18, x + 18, z - 17, z + 9, 18.25, 'sede');
       // columnas y frontón
+      // columnas y frontón: una sola malla
       const colGeo = new THREE.CylinderGeometry(0.9, 1, 14, 10);
-      const colMat = new THREE.MeshLambertMaterial({ color: '#e8e3d8' });
+      const portico = [];
       for (let i = 0; i < 8; i++) {
-        const cm = new THREE.Mesh(colGeo, colMat);
-        cm.position.set(x - 14 + i * 4, 7.25, z + 12);
-        this.scene.add(cm);
-        addCollider(cm.position.x - 1, cm.position.x + 1, z + 11, z + 13, 14, 'column');
+        const cx = x - 14 + i * 4;
+        portico.push({ geo: colGeo, matrix: W.Geom.matrix(cx, 7.25, z + 12), color: '#e8e3d8' });
+        addCollider(cx - 1, cx + 1, z + 11, z + 13, 14, 'column');
       }
       g.plain.box(x, z + 11, 14.25, 34, 2, 5, col('#ddd6c8'));
       const shape = new THREE.Shape();
       shape.moveTo(-17, 0); shape.lineTo(17, 0); shape.lineTo(0, 5); shape.lineTo(-17, 0);
-      const ped = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 5, bevelEnabled: false }), colMat);
-      ped.position.set(x, 16.25, z + 8.5);
-      this.scene.add(ped);
+      portico.push({ geo: new THREE.ExtrudeGeometry(shape, { depth: 5, bevelEnabled: false }), matrix: W.Geom.matrix(x, 16.25, z + 8.5), color: '#e8e3d8' });
+      this.scene.add(new THREE.Mesh(W.Geom.merge(portico), W.Geom.vcMat()));
       const frieze = new THREE.Mesh(new THREE.PlaneGeometry(26, 1.8),
-        new THREE.MeshBasicMaterial({ map: W.Tex.sign('LA FEDERACIÓN', '#8f1f1a', '#fff3dc', 512, 64) }));
+        new THREE.MeshBasicMaterial({ map: W.Tex.sign('ARCADIA BEAN CORP.', '#2a22f5', '#ffffff', 512, 64) }));
       frieze.position.set(x, 15.25, z + 13.55);
       this.scene.add(frieze);
-      const banMat = new THREE.MeshLambertMaterial({ map: W.Tex.sign('★', '#c0392b', '#ffd34d', 128, 256, '900 120px system-ui'), side: THREE.DoubleSide });
-      for (const bx of [-16, 16]) {
-        const ban = new THREE.Mesh(new THREE.PlaneGeometry(3, 8), banMat);
-        ban.position.set(x + bx, 9, z + 9.1);
-        this.scene.add(ban);
-      }
+      const banMat = new THREE.MeshLambertMaterial({ map: W.Tex.sign('A', '#2a22f5', '#ffffff', 128, 256, '300 150px Manrope, system-ui'), side: THREE.DoubleSide });
+      const banGeo = new THREE.PlaneGeometry(3, 8);
+      this.scene.add(new THREE.Mesh(W.Geom.merge([-16, 16].map((bx) => ({ geo: banGeo, matrix: W.Geom.matrix(x + bx, 9, z + 9.1) }))), banMat));
       this.sedeSpot = { x, z: z + 16 };
     },
 
@@ -435,32 +530,28 @@
       g.top(x - 4.6, 0, 0.04, 0.3, HALF * 2, col('#f0f0f0'));
       g.top(x + 4.6, 0, 0.04, 0.3, HALF * 2, col('#f0f0f0'));
       this.stations = [];
+      const glassBox = new THREE.BoxGeometry(2.2, 2.8, 25);
+      const glassParts = [];
       for (const row of [1, 4, 7, 10]) {
         const z = cellCenter(row, 6).z;
         g.box(x, z, 0, 2.4, 0.4, 26, col('#9a9a9a'));
         g.box(x, z, 3.2, 2.8, 0.3, 26, col('#c0392b'));
-        const glassMat = new THREE.MeshLambertMaterial({ color: '#9fd0e8', transparent: true, opacity: 0.45 });
-        const gm = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.8, 25), glassMat);
-        gm.position.set(x, 1.8, z);
-        this.scene.add(gm);
+        glassParts.push({ geo: glassBox, matrix: W.Geom.matrix(x, 1.8, z) });
         addCollider(x - 1.2, x + 1.2, z - 13, z + 13, 3.5, 'station');
         this.stations.push(z);
       }
-      const busMat = new THREE.MeshLambertMaterial({ color: '#c62828' });
-      const winMat = new THREE.MeshLambertMaterial({ color: '#1d2b36' });
-      const joint = new THREE.MeshLambertMaterial({ color: '#333' });
+      // vidrios de las 4 estaciones en una malla
+      this.scene.add(new THREE.Mesh(W.Geom.merge(glassParts), new THREE.MeshLambertMaterial({ color: '#9fd0e8', transparent: true, opacity: 0.45 })));
+      // bus articulado: carrocería, ventanas y fuelle en una sola geometría compartida por los 4 buses
+      const M = W.Geom.matrix;
+      const busParts = [{ geo: new THREE.BoxGeometry(2.3, 2.6, 1), matrix: M(0, 1.8, 0), color: '#333' }];
+      for (const off of [-5.2, 5.2]) {
+        busParts.push({ geo: new THREE.BoxGeometry(2.5, 3, 9.6), matrix: M(0, 1.9, off), color: C.MAQUETA ? '#f4f5f3' : '#c62828' });
+        busParts.push({ geo: new THREE.BoxGeometry(2.56, 1, 8.6), matrix: M(0, 2.3, off), color: C.MAQUETA ? '#8e9c9d' : '#1d2b36' });
+      }
+      const busGeo = W.Geom.merge(busParts);
       for (let i = 0; i < 4; i++) {
-        const bus = new THREE.Group();
-        for (const off of [-5.2, 5.2]) {
-          const body = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3, 9.6), busMat);
-          body.position.set(0, 1.9, off);
-          const win = new THREE.Mesh(new THREE.BoxGeometry(2.56, 1, 8.6), winMat);
-          win.position.set(0, 2.3, off);
-          bus.add(body, win);
-        }
-        const j = new THREE.Mesh(new THREE.BoxGeometry(2.3, 2.6, 1), joint);
-        j.position.y = 1.8;
-        bus.add(j);
+        const bus = new THREE.Mesh(busGeo, W.Geom.vcMat());
         const dir = i % 2 ? 1 : -1;
         const lane = x + (dir > 0 ? 2.6 : -2.6);
         bus.position.set(lane, 0, -HALF + ((i * 0.27) % 1) * HALF * 2);
@@ -472,26 +563,24 @@
 
     // Cerros orientales con Monserrate, su santuario blanco y el teleférico
     buildMountains() {
-      const mat = new THREE.MeshLambertMaterial({ color: '#3d6b3a', flatShading: true });
-      const mat2 = new THREE.MeshLambertMaterial({ color: '#2f5a33', flatShading: true });
+      const mat = new THREE.MeshLambertMaterial({ color: C.MAQUETA ? '#a2b2a8' : '#3d6b3a', flatShading: true });
+      const mat2 = new THREE.MeshLambertMaterial({ color: C.MAQUETA ? '#b4c2b8' : '#2f5a33', flatShading: true });
       const peaks = [
         [430, -380, 130, 150], [470, -260, 150, 190], [440, -120, 120, 160], [455, 20, 140, 185],
         [440, 150, 130, 210], [470, 300, 150, 180], [430, 430, 120, 140], [560, -200, 160, 230], [580, 150, 170, 240],
       ];
+      // un cerro por material en lugar de una malla por pico
+      const byMat = [[], []];
       peaks.forEach(([px, pz, r, h], i) => {
-        const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), i % 2 ? mat : mat2);
-        m.position.set(px, h / 2 - 2, pz);
-        m.rotation.y = i;
-        this.scene.add(m);
+        byMat[i % 2].push({ geo: new THREE.ConeGeometry(r, h, 7), matrix: W.Geom.matrix(px, h / 2 - 2, pz, 0, i, 0) });
       });
+      this.scene.add(new THREE.Mesh(W.Geom.merge(byMat[1]), mat), new THREE.Mesh(W.Geom.merge(byMat[0]), mat2));
       // Monserrate (pico de 210 m en z=150)
       const white = new THREE.MeshLambertMaterial({ color: '#f5f5f0' });
-      const church = new THREE.Group();
-      const nave = new THREE.Mesh(new THREE.BoxGeometry(14, 8, 8), white);
-      nave.position.y = 4;
-      const tower = new THREE.Mesh(new THREE.BoxGeometry(4, 16, 4), white);
-      tower.position.set(-6, 8, 0);
-      church.add(nave, tower);
+      const church = new THREE.Mesh(W.Geom.merge([
+        { geo: new THREE.BoxGeometry(14, 8, 8), matrix: W.Geom.matrix(0, 4, 0) },
+        { geo: new THREE.BoxGeometry(4, 16, 4), matrix: W.Geom.matrix(-6, 8, 0) },
+      ]), white);
       church.position.set(440, 198, 150);
       this.scene.add(church);
       // teleférico
@@ -499,7 +588,7 @@
       const end = new THREE.Vector3(432, 196, 152);
       const cable = new THREE.Line(new THREE.BufferGeometry().setFromPoints([start, end]), new THREE.LineBasicMaterial({ color: '#222' }));
       this.scene.add(cable);
-      this.cabin = new THREE.Mesh(new THREE.BoxGeometry(3, 2.4, 3), new THREE.MeshLambertMaterial({ color: '#d6423a' }));
+      this.cabin = new THREE.Mesh(new THREE.BoxGeometry(3, 2.4, 3), new THREE.MeshLambertMaterial({ color: C.MAQUETA ? (C.SUPER_TORRES ? '#b3121a' : '#f6f7f6') : '#d6423a' }));
       this.cable = { start, end };
       this.scene.add(this.cabin);
       this.landmarks.push({ name: 'Monserrate', x: 440, z: 150 });
@@ -514,11 +603,11 @@
           spots.push({ x: tx, z: tz });
         }
       }
-      // árboles en los andenes de Teusaquillo y Chapinero
+      // árboles en los andenes de Teusaquillo, Chapinero, la Zona T y Kennedy
       for (let row = 0; row < C.GRID; row++) {
         for (let c = 0; c < C.GRID; c++) {
           const code = districtCode(row, c);
-          if (code !== 'U' && code !== 'C' && code !== 'T') continue;
+          if (code !== 'U' && code !== 'C' && code !== 'T' && code !== 'K') continue;
           const { x, z } = cellCenter(row, c);
           for (const [dx, dz] of [[-19, -10], [-19, 10], [19, -10], [19, 10], [-10, 19], [10, 19]]) {
             if (rnd() < 0.5) spots.push({ x: x + dx, z: z + dz, small: true });
@@ -530,7 +619,7 @@
       const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshLambertMaterial({ color: '#6b4a30' }), spots.length);
       const leaves = new THREE.InstancedMesh(leafGeo, new THREE.MeshLambertMaterial({ color: '#ffffff', flatShading: true }), spots.length);
       const m = new THREE.Matrix4();
-      const leafColors = ['#3f8f3f', '#2f7a3a', '#4f9f45', '#5a8f3a'];
+      const leafColors = C.MAQUETA ? ['#b7c6aa', '#c3d0b7', '#aabd9c', '#9fb491'] : ['#3f8f3f', '#2f7a3a', '#4f9f45', '#5a8f3a'];
       spots.forEach((s, i) => {
         const k = s.small ? 0.7 : rr(0.9, 1.5);
         m.makeScale(k, k, k).setPosition(s.x, 1.5 * k + 0.25, s.z);
@@ -539,6 +628,9 @@
         leaves.setMatrixAt(i, m);
         leaves.setColorAt(i, new THREE.Color(pickR(leafColors)));
       });
+      trunks.castShadow = leaves.castShadow = true;
+      // instancias repartidas por toda la ciudad: la esfera de la geometría base no sirve para descartarlas
+      trunks.frustumCulled = leaves.frustumCulled = false;
       this.scene.add(trunks, leaves);
     },
 
@@ -550,9 +642,11 @@
       cv.width = cv.height = size;
       const ctx = cv.getContext('2d');
       const o = HALF + 20;
-      ctx.fillStyle = '#2b3036';
+      ctx.fillStyle = C.MAQUETA ? '#c9cfcb' : '#2b3036';
       ctx.fillRect(0, 0, size, size);
-      const colors = { glass: '#5d7f99', tower: '#6d8aa3', brick: '#8f5a46', house: '#8a6150', colonial: '#c9a46a', warehouse: '#7c858c', mixed: '#7e6f66', park: '#3f7a3a', plaza: '#a89f90', sede: '#a33a30' };
+      const colors = C.MAQUETA
+        ? { glass: '#f4f5f3', tower: '#f4f5f3', brick: '#f1efe9', house: '#f1efe9', colonial: '#eeebe6', warehouse: '#e9ece8', mixed: '#f1efe9', park: '#b7c6aa', plaza: '#e6e8e4', sede: '#2a22f5' }
+        : { glass: '#5d7f99', tower: '#6d8aa3', brick: '#8f5a46', house: '#8a6150', colonial: '#c9a46a', warehouse: '#7c858c', mixed: '#7e6f66', park: '#3f7a3a', plaza: '#a89f90', sede: '#a33a30' };
       for (let row = 0; row < C.GRID; row++) {
         for (let c = 0; c < C.GRID; c++) {
           const { x, z } = cellCenter(row, c);
@@ -563,17 +657,21 @@
         }
       }
       if (this.lake) {
-        ctx.fillStyle = '#3f8fb3';
+        ctx.fillStyle = C.MAQUETA ? '#8e9c9d' : '#3f8fb3';
         ctx.beginPath();
         ctx.ellipse((this.lake.x + o) * S, (this.lake.z + o) * S, this.lake.rx * S, this.lake.rz * S, 0, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.fillStyle = '#b8443a';
+      ctx.fillStyle = C.MAQUETA ? '#a9aeab' : '#b8443a';
       ctx.fillRect((lineX(6) - 2 + o) * S, 0, 4 * S, size);
       this.minimap = { canvas: cv, offset: o, scale: S };
     },
 
     // ---------- Consultas ----------
+    districtCodeAt(x, z) {
+      const { row, col: c } = cellOf(x, z);
+      return districtCode(row, c);
+    },
     districtAt(x, z) {
       const { row, col: c } = cellOf(x, z);
       const code = districtCode(row, c);

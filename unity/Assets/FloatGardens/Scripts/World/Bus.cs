@@ -1,4 +1,5 @@
 // Bus rojo articulado que recorre el carril exclusivo de la Av. Caracas y para en las estaciones.
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace FloatGardens
@@ -18,30 +19,23 @@ namespace FloatGardens
             var red = FGMaterials.Lit("busRojo", FGMaterials.Hex("#c62828"), null, 0.55f, 0.2f);
             var win = FGMaterials.Lit("busVentana", FGMaterials.Hex("#1d2b36"), null, 0.9f);
             var dark = FGMaterials.Lit("#333333", 0.2f);
+            // Carrocería, ventanas, llantas y fuelle: una sola malla compartida por todos los buses
+            var parts = new List<FGMesh.Part>();
             foreach (float off in new[] { -5.2f, 5.2f })
             {
-                Part(go.transform, new Vector3(0, 1.9f, off), new Vector3(2.5f, 3f, 9.6f), red);
-                Part(go.transform, new Vector3(0, 2.3f, off), new Vector3(2.56f, 1f, 8.6f), win);
-                Part(go.transform, new Vector3(0, 0.45f, off - 3), new Vector3(2.6f, 0.9f, 0.9f), dark);
-                Part(go.transform, new Vector3(0, 0.45f, off + 3), new Vector3(2.6f, 0.9f, 0.9f), dark);
+                parts.Add(FGMesh.P(PrimitiveType.Cube, new Vector3(0, 1.9f, off), new Vector3(2.5f, 3f, 9.6f), red));
+                parts.Add(FGMesh.P(PrimitiveType.Cube, new Vector3(0, 2.3f, off), new Vector3(2.56f, 1f, 8.6f), win));
+                parts.Add(FGMesh.P(PrimitiveType.Cube, new Vector3(0, 0.45f, off - 3), new Vector3(2.6f, 0.9f, 0.9f), dark));
+                parts.Add(FGMesh.P(PrimitiveType.Cube, new Vector3(0, 0.45f, off + 3), new Vector3(2.6f, 0.9f, 0.9f), dark));
             }
-            Part(go.transform, new Vector3(0, 1.8f, 0), new Vector3(2.3f, 2.6f, 1f), dark);
+            parts.Add(FGMesh.P(PrimitiveType.Cube, new Vector3(0, 1.8f, 0), new Vector3(2.3f, 2.6f, 1f), dark));
+            FGMesh.Bake(go.transform, "Carroceria", parts, "busArticulado");
             var bus = go.AddComponent<Bus>();
             bus.dir = dir;
             bus.lane = lane;
             go.transform.position = new Vector3(lane, 0, z);
             go.transform.rotation = Quaternion.Euler(0, dir > 0 ? 0 : 180, 0);
             return bus;
-        }
-
-        static void Part(Transform parent, Vector3 pos, Vector3 size, Material m)
-        {
-            var p = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Object.Destroy(p.GetComponent<Collider>());
-            p.transform.SetParent(parent, false);
-            p.transform.localPosition = pos;
-            p.transform.localScale = size;
-            p.GetComponent<MeshRenderer>().sharedMaterial = m;
         }
 
         void Update()

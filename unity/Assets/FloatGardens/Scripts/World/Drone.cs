@@ -1,5 +1,6 @@
 // Dron fumigador de las agrocorporaciones: patrulla en círculos sobre un barrio con un reflector que barre las calles.
 // Ambientación, no enemigo. De noche el reflector se enciende con fuerza.
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace FloatGardens
@@ -22,17 +23,21 @@ namespace FloatGardens
 
             var dark = FGMaterials.Lit("dronCuerpo", FGMaterials.Hex("#23262b"), null, 0.55f, 0.8f);
             var green = FGMaterials.Lit("dronTanque", FGMaterials.Hex("#5fbf4a"), null, 0.6f, 0.2f);
-            Part(go.transform, PrimitiveType.Cube, new Vector3(0, 0, 0), new Vector3(1.4f, 0.35f, 1.4f), dark);
-            Part(go.transform, PrimitiveType.Cylinder, new Vector3(0, -0.55f, 0), new Vector3(0.9f, 0.35f, 0.9f), green);
+            // Cuerpo, tanque y brazos en una malla compartida; las hélices giran, así que van aparte
+            var body = new List<FGMesh.Part>
+            {
+                FGMesh.P(PrimitiveType.Cube, Vector3.zero, new Vector3(1.4f, 0.35f, 1.4f), dark),
+                FGMesh.P(PrimitiveType.Cylinder, new Vector3(0, -0.55f, 0), new Vector3(0.9f, 0.35f, 0.9f), green),
+            };
             d.rotors = new Transform[4];
             int i = 0;
             foreach (float sx in new[] { -1f, 1f })
                 foreach (float sz in new[] { -1f, 1f })
                 {
-                    Part(go.transform, PrimitiveType.Cube, new Vector3(sx * 0.9f, 0, sz * 0.9f), new Vector3(0.9f, 0.08f, 0.08f), dark)
-                        .localRotation = Quaternion.Euler(0, sz * sx * 45, 0);
+                    body.Add(FGMesh.P(PrimitiveType.Cube, new Vector3(sx * 0.9f, 0, sz * 0.9f), Quaternion.Euler(0, sz * sx * 45, 0), new Vector3(0.9f, 0.08f, 0.08f), dark));
                     d.rotors[i++] = Part(go.transform, PrimitiveType.Cylinder, new Vector3(sx * 1.25f, 0.12f, sz * 1.25f), new Vector3(1.1f, 0.015f, 1.1f), dark);
                 }
+            FGMesh.Bake(go.transform, "Cuerpo", body, "dron");
             var beaconMat = FGMaterials.Instance(FGMaterials.Emissive("baliza", BeaconRed, 3f));
             Part(go.transform, PrimitiveType.Cube, new Vector3(0, 0.28f, -0.5f), new Vector3(0.18f, 0.18f, 0.18f), beaconMat);
             d.beacon = beaconMat;

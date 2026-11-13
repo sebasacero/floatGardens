@@ -11,7 +11,7 @@ namespace FloatGardens
         RectTransform root, mapHolder, compass, numbers, killfeed;
         RawImage mapImage;
         Text locDistrict, locStreet, objTitle, objSub, capName, toast, prompt, bannerTitle, bannerSub, wallet, points, hpText, cherries, ammo, ammoMax, north;
-        Image hpFill, capFill, bossFill, reloadFill, vignette, lowHp, hit1, hit2;
+        Image hpFill, capFill, bossFill, reloadFill, vignette, lowHp, hit1, hit2, capCard;
         GameObject capture, bossBar, reload, bigMap, bannerGo;
         RectTransform[] cross = new RectTransform[4];
         readonly List<Image> dots = new List<Image>();
@@ -42,16 +42,17 @@ namespace FloatGardens
             var mask = UIKit.Image(root, "Minimapa", new Vector2(0, 1), new Vector2(14, -14), new Vector2(MapSize, MapSize), Color.white, UIKit.Circle);
             mask.gameObject.AddComponent<Mask>().showMaskGraphic = true;
             mask.color = new Color32(0x20, 0x24, 0x2a, 255);
-            var border = UIKit.Image(root, "Borde", new Vector2(0, 1), new Vector2(11, -11), new Vector2(MapSize + 6, MapSize + 6), new Color(1, 1, 1, 0.55f), UIKit.Circle);
+            // Tarjeta de vidrio que agrupa el minimapa y la ubicación, como las tarjetas de la web.
+            var border = UIKit.Card(root, "TarjetaMapa", new Vector2(0, 1), new Vector2(6, -6), new Vector2(MapSize + 16, MapSize + 80));
             border.transform.SetSiblingIndex(mask.transform.GetSiblingIndex());
             mapHolder = UIKit.At(mask.transform, "Mapa", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             var mapRT = UIKit.At(mapHolder, "Textura", new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.one * 100);
             mapImage = mapRT.gameObject.AddComponent<RawImage>();
             mapImage.raycastTarget = false;
-            UIKit.Label(mask.transform, "▲", 22, UIKit.Yellow, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(30, 30));
-            north = UIKit.Label(root, "N", 15, Color.white, TextAnchor.MiddleCenter, new Vector2(0, 1), Vector2.zero, new Vector2(20, 20));
-            locDistrict = UIKit.Label(root, "", 19, UIKit.Mint, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(14, -192), new Vector2(320, 26));
-            locStreet = UIKit.Label(root, "", 14, new Color(1, 1, 1, 0.85f), TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(14, -216), new Vector2(320, 22), FontStyle.Normal);
+            UIKit.WorldLabel(mask.transform, "▲", 22, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(30, 30));
+            north = UIKit.WorldLabel(root, "N", 14, Color.white, TextAnchor.MiddleCenter, new Vector2(0, 1), Vector2.zero, new Vector2(20, 20));
+            locDistrict = UIKit.Label(root, "", 15, UIKit.Leaf, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(16, -194), new Vector2(MapSize, 22));
+            locStreet = UIKit.Label(root, "", 12, UIKit.Ink2, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(16, -216), new Vector2(MapSize, 20), FontStyle.Normal);
 
             // ---- Brújula y objetivo (arriba centro) ----
             var compBg = UIKit.Image(root, "Brujula", new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(380, 34), new Color(0, 0, 0, 0.45f));
@@ -68,33 +69,44 @@ namespace FloatGardens
             }
             compassObjective = UIKit.Label(compass, "▼", 14, UIKit.Yellow, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), Vector2.zero, new Vector2(20, 14));
             UIKit.Image(compass, "Centro", new Vector2(0.5f, 1), Vector2.zero, new Vector2(2, 7), UIKit.Yellow);
-            objTitle = UIKit.Label(root, "", 20, UIKit.Yellow, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -46), new Vector2(600, 26));
-            objSub = UIKit.Label(root, "", 15, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -70), new Vector2(600, 22), FontStyle.Normal);
+            UIKit.Card(root, "TarjetaObjetivo", new Vector2(0.5f, 1), new Vector2(0, -44), new Vector2(440, 54));
+            objTitle = UIKit.Label(root, "", 15, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -48), new Vector2(420, 24));
+            objSub = UIKit.Label(root, "", 12, UIKit.Ink2, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -72), new Vector2(420, 20), FontStyle.Normal);
+            // Captura = tarjeta verde de cosecha; se vuelve roja cuando la zona está en disputa.
             capture = UIKit.Stretch(root, "Captura").gameObject;
-            capName = UIKit.Label(capture.transform, "", 15, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -96), new Vector2(600, 22));
-            capFill = UIKit.Bar(capture.transform, "BarraCaptura", new Vector2(0.5f, 1), new Vector2(0, -120), new Vector2(420, 10), UIKit.Green, out _);
+            capCard = UIKit.HarvestCard(capture.transform, "TarjetaCaptura", new Vector2(0.5f, 1), new Vector2(0, -104), new Vector2(440, 50));
+            capName = UIKit.OnColor(UIKit.Label(capture.transform, "", 13, Color.white, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(0, -110), new Vector2(408, 20)));
+            capFill = UIKit.Bar(capture.transform, "BarraCaptura", new Vector2(0.5f, 1), new Vector2(0, -138), new Vector2(408, 4), Color.white, out var capBg);
+            capBg.color = new Color(1, 1, 1, 0.35f);
+            // Jefe = panel de alerta azul, el único acento fuerte.
             bossBar = UIKit.Stretch(root, "Jefe").gameObject;
-            UIKit.Label(bossBar.transform, "DON MONOPOLIO", 18, UIKit.Red, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(500, 24));
-            bossFill = UIKit.Bar(bossBar.transform, "BarraJefe", new Vector2(0.5f, 1), new Vector2(0, -166), new Vector2(460, 14), UIKit.Red, out _);
-            toast = UIKit.Label(root, "", 17, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -196), new Vector2(700, 26));
+            UIKit.Image(bossBar.transform, "TarjetaAlerta", new Vector2(0.5f, 1), new Vector2(0, -162), new Vector2(440, 66), UIKit.Alert);
+            UIKit.OnColor(UIKit.Label(bossBar.transform, "Atención", 11, Color.white, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(0, -168), new Vector2(408, 16), FontStyle.Normal));
+            UIKit.OnColor(UIKit.Label(bossBar.transform, "DON MONOPOLIO", 17, Color.white, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(0, -184), new Vector2(408, 24)));
+            bossFill = UIKit.Bar(bossBar.transform, "BarraJefe", new Vector2(0.5f, 1), new Vector2(0, -214), new Vector2(408, 6), Color.white, out var bossBg);
+            bossBg.color = new Color(1, 1, 1, 0.3f);
+            toast = UIKit.WorldLabel(root, "", 15, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -240), new Vector2(700, 26));
 
             // ---- Billetera y kill feed (arriba derecha) ----
-            wallet = UIKit.Label(root, "", 20, UIKit.Yellow, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(-14, -14), new Vector2(240, 26));
-            points = UIKit.Label(root, "", 18, UIKit.Mint, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(-14, -40), new Vector2(240, 24));
-            killfeed = UIKit.At(root, "KillFeed", new Vector2(1, 1), new Vector2(-14, -70), new Vector2(420, 160));
+            UIKit.Card(root, "TarjetaBilletera", new Vector2(1, 1), new Vector2(-6, -6), new Vector2(250, 66));
+            wallet = UIKit.Label(root, "", 26, UIKit.Ink, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(-18, -12), new Vector2(230, 30), FontStyle.Normal);
+            points = UIKit.Label(root, "", 13, UIKit.Leaf, TextAnchor.MiddleRight, new Vector2(1, 1), new Vector2(-18, -44), new Vector2(230, 20));
+            killfeed = UIKit.At(root, "KillFeed", new Vector2(1, 1), new Vector2(-14, -84), new Vector2(420, 160));
 
             // ---- Vida (abajo izquierda) y arma (abajo derecha) ----
-            UIKit.Label(root, "BARISTA · FLOAT GARDENS", 15, Color.white, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(16, 74), new Vector2(300, 22));
-            hpFill = UIKit.Bar(root, "Vida", new Vector2(0, 0), new Vector2(16, 52), new Vector2(240, 14), new Color32(0x38, 0xd0, 0x7e, 255), out _);
-            hpText = UIKit.Label(root, "100", 20, Color.white, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(264, 48), new Vector2(60, 24));
-            cherries = UIKit.Label(root, "", 20, new Color32(0xff, 0x8a, 0x7a, 255), TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(16, 20), new Vector2(240, 26));
-            UIKit.Image(root, "PanelArma", new Vector2(1, 0), new Vector2(-10, 12), new Vector2(230, 86), new Color(0, 0, 0, 0.5f));
-            UIKit.Label(root, "AEROPRESS X-1", 14, UIKit.Yellow, TextAnchor.MiddleRight, new Vector2(1, 0), new Vector2(-22, 70), new Vector2(200, 20));
-            ammo = UIKit.Label(root, "12", 46, Color.white, TextAnchor.MiddleRight, new Vector2(1, 0), new Vector2(-80, 20), new Vector2(120, 50));
-            ammoMax = UIKit.Label(root, "/ 12", 20, new Color(1, 1, 1, 0.75f), TextAnchor.MiddleLeft, new Vector2(1, 0), new Vector2(-22, 24), new Vector2(56, 26));
+            // Vida: tarjeta de vidrio con el número grande y fino, como "6.750 L" en la web.
+            UIKit.Card(root, "TarjetaVida", new Vector2(0, 0), new Vector2(6, 6), new Vector2(280, 104));
+            UIKit.Label(root, "Vida · Barista", 13, UIKit.Ink2, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(20, 80), new Vector2(240, 18), FontStyle.Normal);
+            hpText = UIKit.Label(root, "100", 44, UIKit.Ink, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(18, 24), new Vector2(110, 50));
+            hpFill = UIKit.Bar(root, "Vida", new Vector2(0, 0), new Vector2(126, 50), new Vector2(144, 4), UIKit.Leaf, out _);
+            cherries = UIKit.Label(root, "", 14, UIKit.Cherry, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(126, 22), new Vector2(150, 20));
+            UIKit.Card(root, "PanelArma", new Vector2(1, 0), new Vector2(-6, 6), new Vector2(230, 104));
+            UIKit.Label(root, "AeroPress X-1 · carga", 13, UIKit.Ink2, TextAnchor.MiddleLeft, new Vector2(1, 0), new Vector2(-20, 80), new Vector2(202, 18), FontStyle.Normal);
+            ammo = UIKit.Label(root, "12", 48, UIKit.Ink, TextAnchor.MiddleLeft, new Vector2(1, 0), new Vector2(-104, 18), new Vector2(118, 56));
+            ammoMax = UIKit.Label(root, "/ 12", 18, UIKit.Ink3, TextAnchor.MiddleLeft, new Vector2(1, 0), new Vector2(-84, 26), new Vector2(80, 24), FontStyle.Normal);
             reload = UIKit.Stretch(root, "Recarga").gameObject;
-            reloadFill = UIKit.Bar(reload.transform, "BarraRecarga", new Vector2(1, 0), new Vector2(-22, 100), new Vector2(200, 12), UIKit.Orange, out _);
-            UIKit.Label(reload.transform, "PRENSANDO...", 12, Color.white, TextAnchor.MiddleRight, new Vector2(1, 0), new Vector2(-22, 116), new Vector2(200, 16));
+            reloadFill = UIKit.Bar(reload.transform, "BarraRecarga", new Vector2(1, 0), new Vector2(-20, 14), new Vector2(202, 4), UIKit.Leaf2, out _);
+            UIKit.Label(reload.transform, "Prensando…", 11, UIKit.Ink2, TextAnchor.MiddleRight, new Vector2(1, 0), new Vector2(-20, 80), new Vector2(202, 18), FontStyle.Normal);
 
             // ---- Mira y marcador de impacto ----
             for (int i = 0; i < 4; i++)
@@ -105,10 +117,10 @@ namespace FloatGardens
             hit1.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
             hit2.rectTransform.localRotation = Quaternion.Euler(0, 0, -45);
 
-            prompt = UIKit.Label(root, "", 20, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 0), new Vector2(0, 170), new Vector2(700, 30));
+            prompt = UIKit.WorldLabel(root, "", 17, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 0), new Vector2(0, 170), new Vector2(700, 30));
             bannerGo = UIKit.Stretch(root, "Anuncio").gameObject;
-            bannerTitle = UIKit.Label(bannerGo.transform, "", 46, UIKit.Mint, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -230), new Vector2(1000, 60));
-            bannerSub = UIKit.Label(bannerGo.transform, "", 19, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -282), new Vector2(900, 26));
+            bannerTitle = UIKit.WorldLabel(bannerGo.transform, "", 52, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -230), new Vector2(1000, 60));
+            bannerSub = UIKit.WorldLabel(bannerGo.transform, "", 16, Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -282), new Vector2(900, 26));
             numbers = UIKit.Stretch(root, "Numeros");
 
             // ---- Mapa completo ----
@@ -192,8 +204,8 @@ namespace FloatGardens
             north.rectTransform.anchoredPosition = new Vector2(14 + MapSize / 2 + Mathf.Cos(na) * (MapSize / 2 - 10), -14 - MapSize / 2 + Mathf.Sin(na) * (MapSize / 2 - 10));
 
             char code = City.DistrictAt(pos);
-            locDistrict.text = FGConfig.DistrictName(code).ToUpperInvariant();
-            locDistrict.color = g.IsMarket(pos) ? UIKit.Mint : new Color32(0xff, 0x8a, 0x7a, 255);
+            locDistrict.text = "● " + FGConfig.DistrictName(code);
+            locDistrict.color = g.IsMarket(pos) ? UIKit.Leaf : UIKit.Red;
             locStreet.text = City.StreetName(pos);
 
             // Brújula
@@ -216,7 +228,7 @@ namespace FloatGardens
                 float diff = Mathf.Clamp(Mathf.DeltaAngle(heading, b), -58, 58);
                 compassObjective.rectTransform.anchoredPosition = new Vector2(diff * pxDeg, -6);
             }
-            objTitle.text = obj.title.ToUpperInvariant();
+            objTitle.text = obj.title;
             objSub.text = obj.hasTarget ? Mathf.RoundToInt(Vector3.Distance(Flat(obj.target), Flat(pos))) + " m · " + obj.sub : obj.sub;
 
             // Captura y jefe
@@ -224,9 +236,9 @@ namespace FloatGardens
             if (g.capturing != null)
             {
                 capName.text = g.capturingContested ? g.capturing.def.name + " · ¡ELIMINA A LOS ENEMIGOS!" : "CAPTURANDO " + g.capturing.def.name.ToUpperInvariant();
-                capName.color = g.capturingContested ? UIKit.Red : Color.white;
                 capFill.fillAmount = g.capturing.progress;
-                capFill.color = g.capturingContested ? UIKit.Red : UIKit.Green;
+                capCard.sprite = g.capturingContested ? UIKit.White : UIKit.Harvest;
+                capCard.color = g.capturingContested ? UIKit.Red : Color.white;
             }
             bossBar.SetActive(g.boss != null && !g.boss.Dead);
             if (g.boss != null) bossFill.fillAmount = Mathf.Clamp01(g.boss.hp / g.boss.maxHp);
@@ -234,11 +246,11 @@ namespace FloatGardens
             // Vida, cerezas, arma
             float frac = Mathf.Clamp01(p.hp / p.maxHp);
             hpFill.fillAmount = frac;
-            hpFill.color = frac < 0.3f ? UIKit.Red : (Color)new Color32(0x38, 0xd0, 0x7e, 255);
+            hpFill.color = frac < 0.3f ? UIKit.Red : UIKit.Leaf;
             hpText.text = Mathf.CeilToInt(Mathf.Max(0, p.hp)).ToString();
-            cherries.text = "Cerezas: " + g.cherries;
+            cherries.text = "Cerezas  " + g.cherries;
             ammo.text = p.ammo.ToString();
-            ammo.color = p.ammo <= 3 ? UIKit.Red : Color.white;
+            ammo.color = p.ammo <= 3 ? UIKit.Red : UIKit.Ink;
             ammoMax.text = "/ " + p.magSize;
             reload.SetActive(p.reloading > 0);
             if (p.reloading > 0) reloadFill.fillAmount = 1 - p.reloading / FGConfig.ReloadTime;
@@ -248,7 +260,7 @@ namespace FloatGardens
 
             // Mira
             float gap = 6 + p.spread * 60;
-            Color cc = p.aiming ? UIKit.Yellow : Color.white;
+            Color cc = p.aiming ? UIKit.Lime : Color.white;
             cross[0].anchoredPosition = new Vector2(0, gap + 4.5f);
             cross[1].anchoredPosition = new Vector2(0, -gap - 4.5f);
             cross[2].anchoredPosition = new Vector2(-gap - 4.5f, 0);
@@ -311,14 +323,15 @@ namespace FloatGardens
         {
             bannerTitle.text = title;
             bannerSub.text = sub;
-            bannerTitle.color = ours ? UIKit.Mint : (Color)new Color32(0xff, 0x8a, 0x7a, 255);
+            bannerTitle.color = Color.white;
+            bannerSub.text = (ours ? "● " : "▲ ") + sub;
             bannerT = 2.8f;
         }
 
         public void HitMarker(bool head, bool ko)
         {
             hitT = 0.25f;
-            Color c = ko ? UIKit.Red : head ? UIKit.Yellow : Color.white;
+            Color c = ko ? UIKit.Red : head ? UIKit.Lime : Color.white;
             hit1.color = hit2.color = c;
         }
 
@@ -326,7 +339,7 @@ namespace FloatGardens
 
         public void DamageNumber(Vector3 world, float amount, bool crit)
         {
-            var t = UIKit.Label(numbers, Mathf.RoundToInt(amount).ToString(), crit ? 30 : 22, crit ? UIKit.Yellow : Color.white, TextAnchor.MiddleCenter,
+            var t = UIKit.WorldLabel(numbers, Mathf.RoundToInt(amount).ToString(), crit ? 30 : 22, crit ? UIKit.Lime : Color.white, TextAnchor.MiddleCenter,
                 new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(80, 34));
             floating.Add(new Floating { text = t, world = world + new Vector3(Random.Range(-0.2f, 0.2f), 0.3f, 0), life = 0.9f });
         }
@@ -343,7 +356,7 @@ namespace FloatGardens
 
         public void KillFeed(string text)
         {
-            var t = UIKit.Label(killfeed, text, 15, Color.white, TextAnchor.MiddleRight, new Vector2(1, 1), Vector2.zero, new Vector2(420, 24));
+            var t = UIKit.WorldLabel(killfeed, text, 14, Color.white, TextAnchor.MiddleRight, new Vector2(1, 1), Vector2.zero, new Vector2(420, 24));
             t.supportRichText = true;
             feed.Add((t, Time.time));
             while (feed.Count > 5) { Destroy(feed[0].t.gameObject); feed.RemoveAt(0); }

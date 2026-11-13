@@ -16,6 +16,9 @@ namespace FloatGardens
         public float Hour = 17.3f;
         /// <summary>0 = pleno día, 1 = noche cerrada.</summary>
         public float Night { get; private set; }
+        /// <summary>0-1: cuánto sol rasante hay (amanecer y atardecer tiñen las nubes).</summary>
+        public float Dusk { get; private set; }
+        Scenery scenery;
         const float HoursPerSecond = 24f / 840f;
 
         ParticleSystem rain;
@@ -29,6 +32,10 @@ namespace FloatGardens
         ScreenSpaceLensFlare flare;
         ReflectionProbe probe;
         float probeTimer;
+        Vector3 probePos = new Vector3(float.MaxValue, 0, 0);
+        float probeNight = -1;
+        bool probeRain;
+        float daylightTimer;
         float lastNight = -1;
         bool wasNight;
 
@@ -43,12 +50,17 @@ namespace FloatGardens
         static readonly Color SkyNight = new Color32(0x2c, 0x1f, 0x4e, 255);
         static readonly Color SplitDay = new Color(0.36f, 0.52f, 0.58f);
         static readonly Color SplitNight = new Color(0.42f, 0.32f, 0.64f);
-        const float DryFogDensity = 0.0042f, WetFogDensity = 0.0068f, NightFogDensity = 0.0052f;
+        static readonly Color LampColor = new Color(1f, 0.82f, 0.58f);
+        // Bruma más ligera que antes: los cerros y las nubes del horizonte se ven desde la ciudad en vez de borrarse
+        const float DryFogDensity = 0.0026f, WetFogDensity = 0.0046f, NightFogDensity = 0.0036f;
         const float DrySaturation = 8f, WetSaturation = -12f, NightSaturation = 16f;
 
         // Luces reales de la calle: un grupo de luces puntuales que se van moviendo a los postes y neones
         // más cercanos a la cámara (así la noche ilumina de verdad sin tener 800 luces en la escena)
         const int LampLights = 14, NeonLights = 10;
+        // En celular cada luz puntual cuesta en todos los objetos que toca: menos luces, sondas más pequeñas y sin los
+        // efectos de cámara más caros (los que menos se notan en una pantalla pequeña).
+        static bool Mobile => Application.isMobilePlatform;
         Light[] lampPool, neonPool;
         float lightTimer;
         readonly List<KeyValuePair<float, int>> nearest = new List<KeyValuePair<float, int>>();
@@ -97,6 +109,8 @@ namespace FloatGardens
                                   "Corre el menú Float Gardens > Configurar todo y crear escena.");
 
             BuildRain(cam.transform);
+            scenery = gameObject.AddComponent<Scenery>();
+            scenery.Setup(cam, City.I);
             UpdateDaylight();
             wasNight = Night > 0.5f;
         }
@@ -119,9 +133,12 @@ namespace FloatGardens
             bloom.scatter.Override(0.72f);
             bloom.tint.Override(new Color(1f, 0.93f, 0.85f));
 
-            // Destellos de lente del sol y los neones (usa el bloom)
-            flare = profile.Add<ScreenSpaceLensFlare>(true);
-            flare.intensity.Override(0.35f);
+            // Destellos de lente del sol y los neones (usa el bloom). En celular se omite: es un pase de pantalla completa.
+            if (!Mobile)
+            {
+                flare = profile.Add<ScreenSpaceLensFlare>(true);
+                flare.intensity.Override(0.35f);
+            }
 
             // Etalonaje: blancos un poco cálidos, sombras verde azulado, luces ámbar
             color = profile.Add<ColorAdjustments>(true);
@@ -156,14 +173,17 @@ namespace FloatGardens
             dof.gaussianStart.Override(70f);
             dof.gaussianEnd.Override(260f);
             dof.gaussianMaxRadius.Override(1f);
-            dof.highQualitySampling.Override(true);
+            dof.highQualitySampling.Override(!Mobile);
 
-            // Barrido de cámara al girar rápido
-            var blur = profile.Add<MotionBlur>(true);
-            blur.mode.Override(MotionBlurMode.CameraOnly);
-            blur.quality.Override(MotionBlurQuality.Medium);
-            blur.intensity.Override(0.25f);
-            blur.clamp.Override(0.04f);
+            // Barrido de cámara al girar rápido (no en celular: cuesta mucho y casi no se nota en pantalla pequeña)
+            if (!Mobile)
+            {
+                var blur = profile.Add<MotionBlur>(true);
+                blur.mode.Override(MotionBlurMode.CameraOnly);
+                blur.quality.Override(MotionBlurQuality.Medium);
+                blur.intensity.Override(0.25f);
+                blur.clamp.Override(0.04f);
+            }
 
             volume.profile = profile;
 
@@ -173,7 +193,7 @@ namespace FloatGardens
             {
                 data.renderPostProcessing = true;
                 data.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
-                data.antialiasingQuality = AntialiasingQuality.High;
+                data.antialiasingQuality = Mobile ? AntialiasingQuality.Low : AntialiasingQuality.High;
                 data.dithering = true;
                 data.stopNaN = true;
             }
@@ -188,7 +208,7 @@ namespace FloatGardens
             probe.mode = ReflectionProbeMode.Realtime;
             probe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
             probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
-            probe.resolution = 128;
+            probe.resolution = Mobile ? 64 : 128;
             probe.size = new Vector3(160, 80, 160);
             probe.nearClipPlane = 0.5f;
             probe.farClipPlane = 260;
@@ -198,13 +218,22 @@ namespace FloatGardens
             probe.importance = 1;
         }
 
+        // La sonda renderiza la ciudad 6 veces (una por cara del cubo): solo se repite cuando algo cambió de verdad
+        // (la cámara se movió, cambió la luz o empezó a llover), y como máximo cada 1,5 s.
         void UpdateReflections(float dt, Camera cam)
         {
             if (probe == null) return;
             probeTimer -= dt;
             if (probeTimer > 0) return;
+            Vector3 pos = cam.transform.position + Vector3.up * 2;
+            bool moved = (pos - probePos).sqrMagnitude > 8f * 8f;
+            bool relit = Mathf.Abs(Night - probeNight) > 0.04f || Raining != probeRain;
+            if (!moved && !relit && probeTimer > -12f) return; // y de todas formas cada ~12 s (nubes, neones)
             probeTimer = 1.5f;
-            probe.transform.position = cam.transform.position + Vector3.up * 2;
+            probePos = pos;
+            probeNight = Night;
+            probeRain = Raining;
+            probe.transform.position = pos;
             probe.RenderProbe();
         }
 
@@ -212,8 +241,8 @@ namespace FloatGardens
         {
             var root = new GameObject("LucesDeCalle").transform;
             root.SetParent(transform, false);
-            lampPool = MakePool(root, LampLights, "Poste", 16f);
-            neonPool = MakePool(root, NeonLights, "Neon", 12f);
+            lampPool = MakePool(root, Mobile ? 6 : LampLights, "Poste", 16f);
+            neonPool = MakePool(root, Mobile ? 4 : NeonLights, "Neon", 12f);
         }
 
         static Light[] MakePool(Transform root, int count, string name, float range)
@@ -249,20 +278,20 @@ namespace FloatGardens
             var lamps = City.I.lampHeads;
             nearest.Clear();
             for (int i = 0; i < lamps.Count; i++) nearest.Add(new KeyValuePair<float, int>((lamps[i] - eye).sqrMagnitude, i));
-            nearest.Sort((a, b) => a.Key.CompareTo(b.Key));
+            nearest.Sort(ByDistance);
             for (int k = 0; k < lampPool.Length; k++)
             {
                 var l = lampPool[k];
                 if (k >= nearest.Count) { l.enabled = false; continue; }
                 l.enabled = true;
                 l.transform.position = lamps[nearest[k].Value] - Vector3.up * 0.5f;
-                l.color = new Color(1f, 0.82f, 0.58f);
+                l.color = LampColor;
                 l.intensity = 3.4f * Night;
             }
             var neons = City.I.neonSpots;
             nearest.Clear();
             for (int i = 0; i < neons.Count; i++) nearest.Add(new KeyValuePair<float, int>((neons[i].pos - eye).sqrMagnitude, i));
-            nearest.Sort((a, b) => a.Key.CompareTo(b.Key));
+            nearest.Sort(ByDistance);
             for (int k = 0; k < neonPool.Length; k++)
             {
                 var l = neonPool[k];
@@ -275,6 +304,8 @@ namespace FloatGardens
             }
         }
 
+        static readonly System.Comparison<KeyValuePair<float, int>> ByDistance = (a, b) => a.Key.CompareTo(b.Key);
+
         void BuildRain(Transform camT)
         {
             var go = new GameObject("Lluvia");
@@ -286,7 +317,7 @@ namespace FloatGardens
             main.startLifetime = 1.4f;
             main.startSpeed = 0;
             main.startSize = 0.05f;
-            main.maxParticles = 4000;
+            main.maxParticles = Mobile ? 2000 : 4000;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.startColor = new Color(0.82f, 0.87f, 0.92f, 0.55f);
             var vel = rain.velocityOverLifetime;
@@ -296,7 +327,7 @@ namespace FloatGardens
             vel.y = new ParticleSystem.MinMaxCurve(-26f);
             vel.z = new ParticleSystem.MinMaxCurve(0f);
             var em = rain.emission;
-            em.rateOverTime = 2200;
+            em.rateOverTime = Mobile ? 1100 : 2200;
             var shape = rain.shape;
             shape.shapeType = ParticleSystemShapeType.Box;
             shape.scale = new Vector3(70, 1, 70);
@@ -317,6 +348,7 @@ namespace FloatGardens
             bool moon = elev < 0;
             sun.transform.rotation = Quaternion.Euler(moon ? angle + 180f : angle, -40f, 0);
             float rainK = Raining ? 0.5f : 1f;
+            Dusk = moon ? 0f : (1 - Mathf.Clamp01(elev / 0.3f)) * (1 - night);
             if (!moon)
             {
                 float strength = Mathf.Clamp01(elev / 0.35f);
@@ -353,7 +385,7 @@ namespace FloatGardens
                 bloom.intensity.Override(Mathf.Lerp(0.9f, 1.6f, night));
                 split.shadows.Override(Color.Lerp(SplitDay, SplitNight, night));
                 vignette.intensity.Override(Mathf.Lerp(0.3f, 0.4f, night));
-                flare.intensity.Override(Mathf.Lerp(0.35f, 0.7f, night));
+                if (flare != null) flare.intensity.Override(Mathf.Lerp(0.35f, 0.7f, night));
             }
 
             if (Mathf.Abs(night - lastNight) > 0.01f)
@@ -368,9 +400,17 @@ namespace FloatGardens
             if (rain != null) rain.transform.position = cam.transform.position + Vector3.up * 22;
             UpdateReflections(dt, cam);
             UpdateStreetLights(dt, cam);
+            if (scenery != null) scenery.Tick(dt, Night, Dusk, Raining, cam);
 
             Hour = Mathf.Repeat(Hour + dt * HoursPerSecond, 24f);
-            UpdateDaylight();
+            // Un día dura 14 minutos: el sol avanza 0,04° en una décima de segundo. Recalcular cielo, niebla, luz
+            // ambiente y posprocesado 10 veces por segundo se ve igual y evita hacerlo 60+ veces.
+            daylightTimer -= dt;
+            if (daylightTimer <= 0)
+            {
+                daylightTimer = 0.1f;
+                UpdateDaylight();
+            }
             bool isNight = Night > 0.5f;
             if (isNight != wasNight)
             {
@@ -383,6 +423,7 @@ namespace FloatGardens
             Raining = !Raining;
             timer = Raining ? Random.Range(35f, 60f) : Random.Range(50f, 90f);
             if (Raining) rain.Play(); else rain.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            daylightTimer = 0; // niebla y luz de lluvia al instante
             if (dof != null) dof.gaussianStart.Override(Raining ? 45f : 70f);
             probeTimer = 0;
             // asfalto mojado: más brillante y reflectivo

@@ -26,7 +26,7 @@ namespace FloatGardens
             // Franjas de cine arriba y abajo
             UIKit.Rect(root, "FranjaArriba", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1), Vector2.zero, new Vector2(0, 54)).gameObject.AddComponent<Image>().color = new Color(0, 0, 0, 0.85f);
             var box = UIKit.Rect(root, "Caja", new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0), Vector2.zero, new Vector2(0, 170));
-            box.gameObject.AddComponent<Image>().color = new Color(0.02f, 0.05f, 0.04f, 0.92f);
+            box.gameObject.AddComponent<Image>().color = UIKit.Glass;
             UIKit.Image(box, "Linea", new Vector2(0.5f, 1), Vector2.zero, new Vector2(4000, 3), UIKit.Yellow);
             portrait = UIKit.Image(box, "Retrato", new Vector2(0, 1), new Vector2(40, -22), new Vector2(14, 14), UIKit.Mint, UIKit.Circle);
             who = UIKit.Label(box, "", 24, UIKit.Yellow, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(64, -16), new Vector2(700, 30));

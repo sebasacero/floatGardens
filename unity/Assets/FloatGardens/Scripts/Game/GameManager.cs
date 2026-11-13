@@ -272,7 +272,15 @@ namespace FloatGardens
         // ---------- Territorio ----------
         public bool IsMarket(Vector3 p) => owned.Contains(City.DistrictAt(p));
         public bool AllCaptured => zones.TrueForAll(z => z.ours);
-        public int CapturedCount => zones.FindAll(z => z.ours).Count;
+        public int CapturedCount
+        {
+            get
+            {
+                int n = 0;
+                foreach (var z in zones) if (z.ours) n++;
+                return n;
+            }
+        }
 
         void RecomputeOwned()
         {
@@ -548,7 +556,8 @@ namespace FloatGardens
             Vector3 p = player.transform.position;
             spawnTimer -= dt;
             int cap = 3 + CapturedCount;
-            int patrols = enemies.FindAll(e => string.IsNullOrEmpty(e.zoneId) && !e.Dead).Count;
+            int patrols = 0;
+            foreach (var e in enemies) if (string.IsNullOrEmpty(e.zoneId) && !e.Dead) patrols++;
             if (spawnTimer <= 0 && patrols < cap)
             {
                 spawnTimer = 2.5f;
