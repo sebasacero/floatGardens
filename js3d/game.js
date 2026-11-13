@@ -26,20 +26,39 @@
       const mobile = W.Input.isTouch || /Mobi|Android/i.test(navigator.userAgent);
       this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: 'high-performance' });
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.25 : 1.75));
+      // sombras reales y exposición de cine (ACES) en las dos cámaras
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = 1.15;
+      this.mobile = mobile;
       this.scene = new THREE.Scene();
-      this.skyColor = new THREE.Color('#a9bccb');
+      this.skyColor = new THREE.Color(C.MAQUETA ? '#e3e9e8' : '#a9bccb');
       this.scene.background = this.skyColor.clone();
       this.scene.fog = new THREE.Fog(this.skyColor.clone(), 40, 430);
       this.camera = new THREE.PerspectiveCamera(70, 1, 0.1, 900);
-      this.scene.add(new THREE.HemisphereLight('#e8f0f7', '#4a4f45', 0.95));
-      const sun = new THREE.DirectionalLight('#fff4e0', 0.55);
+      this.hemi = C.MAQUETA ? new THREE.HemisphereLight('#eef4ff', '#8f9a88', 0.75) : new THREE.HemisphereLight('#e8f0f7', '#4a4f45', 0.95);
+      this.hemiBase = { color: this.hemi.color.clone(), ground: this.hemi.groundColor.clone(), intensity: this.hemi.intensity };
+      this.scene.add(this.hemi);
+      const sun = new THREE.DirectionalLight('#fff4e0', C.MAQUETA ? 1.0 : 0.55);
       sun.position.set(-120, 200, 80);
       this.scene.add(sun);
+      this.scene.add(sun.target);
+      sun.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048);
+      const sc = sun.shadow.camera;
+      sc.left = -34; sc.right = 34; sc.top = 34; sc.bottom = -34; sc.near = 20; sc.far = 260;
+      sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03; sun.shadow.radius = 4;
+      sun.castShadow = true;
+      this.sun = sun;
+      this.sunBase = sun.intensity;
 
       W.Tex.init();
       W.World.build(this.scene);
+      // World.build congela las matrices de todo lo que ya estaba en la escena; el sol sí se mueve en la cenital
+      sun.matrixAutoUpdate = sun.target.matrixAutoUpdate = true;
       this.save = FG.Save.load();
       this.save.world = Object.assign({ captured: [], upgrades: {}, kos: 0, sales: 0, bossDefeated: false }, this.save.world || {});
+      this.save.world.rows = Object.assign({}, W.ROWS_DEFAULT, this.save.world.rows || {});
 
       this.buildRain();
       this.partPool = new Ent.Particles(161);
@@ -51,8 +70,10 @@
       for (let i = 0; i < 18; i++) this.spawnCrate();
 
       W.Input.init(canvas);
-      canvas.addEventListener('click', () => { if (this.state === 'playing' && !W.Input.locked) W.Input.lock(); });
-      W.Input.onLockChange = (locked) => { if (!locked && this.state === 'playing' && !W.Input.isTouch) this.pause(); };
+      W.TopDown.load(W.Input.isTouch);
+      W.TopDown.build(this);
+      canvas.addEventListener('click', () => { if (this.state === 'playing' && !W.Input.locked && !W.TopDown.active) W.Input.lock(); });
+      W.Input.onLockChange = (locked) => { if (!locked && this.state === 'playing' && !W.Input.isTouch && !W.TopDown.active) this.pause(); };
       W.HUD.init();
       W.Menus.init(this);
       window.addEventListener('resize', () => this.resize());
@@ -95,9 +116,10 @@
       const s = this.stats();
       const spawn = W.World.hqSpot.spawn;
       this.player = {
-        h, mesh: h.root, pos: { x: spawn.x, z: spawn.z }, y: 0, vy: 0, yaw: Math.PI, pitch: -0.12,
+        h, mesh: h.root, pos: { x: spawn.x, z: spawn.z }, y: 0, vy: 0, yaw: 0, pitch: -0.05, // mira al norte: su terraza y la torre
         hp: s.hp, maxHp: s.hp, ammo: s.mag, magSize: s.mag, reloading: 0, reloadTime: C.RELOAD_TIME,
         fireCool: 0, spread: 0.02, recoil: 0, aiming: false, dead: false, lastHurt: -99, lastShot: -99, phase: 0, moving: 0,
+        energy: C.ENERGY_MAX, dash: 0, dashDir: { x: 0, z: -1 },
       };
       this.cherries = this.save.world.cherries != null ? this.save.world.cherries : C.START_CHERRIES;
     },
@@ -122,7 +144,11 @@
     },
 
     createPlanters() {
-      for (const spot of W.World.planterSpots.hq) this.addPlanter(spot);
+      // cada fila de la terraza (A, B, C) lleva la variedad que el jugador sembró en el vivero
+      for (const spot of W.World.planterSpots.hq) {
+        const row = (spot.label || '')[0] || '';
+        this.addPlanter(Object.assign({}, spot, { row, group: 'hq', variety: this.save.world.rows[row] }));
+      }
       for (const z of this.zones) if (z.owner === 'fg') this.addZonePlanters(z);
     },
     addPlanter(spot) {
@@ -131,7 +157,18 @@
       this.planters.push(pl);
     },
     addZonePlanters(z) {
-      for (const s of W.World.planterSpots[z.id] || []) this.addPlanter(s);
+      for (const s of W.World.planterSpots[z.id] || []) this.addPlanter(Object.assign({}, s, { group: z.id, variety: W.ZONE_VARIETY[z.id] }));
+    },
+    // Vivero: resiembra una fila de la terraza con otra variedad (la fila arranca de cero)
+    replantRow(row, id) {
+      this.save.world.rows[row] = id;
+      for (const pl of this.planters) if (pl.group === 'hq' && pl.row === row) pl.replant(id);
+      this.persist();
+    },
+    // Cerezas que da una mata hoy: mejora de cultivo + variedad; la roya avanzada se come la mitad
+    plantYield(pl) {
+      const n = this.stats().yield + (pl.variety.yield || 0);
+      return pl.roya > 0.5 ? Math.max(1, Math.floor(n / 2)) : n;
     },
 
     spawnPed() {
@@ -176,12 +213,12 @@
     objective() {
       if (!this.allCaptured()) {
         const z = this.targetZone;
-        return { title: `Captura: ${z ? z.name : ''}`, sub: `Zonas ${this.capturedCount()}/${this.zones.length}`, target: z && z.pos };
+        return { title: `Libera: ${z ? z.name : ''}`, sub: `Zonas ${this.capturedCount()}/${this.zones.length}`, target: z && z.pos };
       }
       if (!this.save.world.bossDefeated) {
         return { title: `Derrota a ${W.BOSS.name}`, sub: 'Plaza de Bolívar', target: W.World.bossArena };
       }
-      return { title: 'Bogotá es de Float Gardens', sub: 'Sigue farmeando Puntos Float', target: null };
+      return { title: 'Bogotá es de la red', sub: 'Sigue cosechando Puntos Float', target: null };
     },
 
     // ---------- bucle ----------
@@ -196,28 +233,38 @@
         else this.update(dt);
       } else if (this.state === 'paused' && I.pressed('pause') && W.Input.isTouch) {
         this.resume();
+      } else if (this.state === 'lobby' && W.TopDown.active) {
+        W.TopDown.lobbyCamera(this);
       } else if (this.state === 'lobby') {
-        // cámara de lobby: el barista posa frente al HQ
+        // cámara de lobby: el barista posa en su terraza, con las filas de café y la torre colgante detrás
         const sp = W.World.hqSpot.spawn;
-        const a = Math.sin(this.time * 0.25) * 0.35;
+        const a = Math.sin(this.time * 0.2) * 0.3;
         this.player.mesh.position.set(sp.x, 0.25, sp.z);
-        this.player.mesh.rotation.y = 0.5;
+        this.player.mesh.rotation.y = 0.45;
         this.player.h.animate(this.time * 2, 0.05, false);
-        this.camera.position.set(sp.x + 1.2 + Math.sin(a) * 4.5, 1.9, sp.z + Math.cos(a) * 4.5);
-        this.camera.lookAt(sp.x - 1.6, 1.5, sp.z);
+        this.camera.position.set(sp.x + 2.6 + Math.sin(a) * 5, 2.5, sp.z + 1.5 + Math.cos(a) * 5.5);
+        this.camera.lookAt(sp.x - 2.6, 3.4, sp.z - 8);
+        if (this.camera.fov !== 58) { this.camera.fov = 58; this.camera.updateProjectionMatrix(); }
       } else if (this.state === 'dead') {
         this.player.h.body.rotation.x = Math.max(-Math.PI / 2, this.player.h.body.rotation.x - dt * 4);
       }
 
+      {
+        const lobby = this.state === 'lobby', sp = W.World.hqSpot.spawn, pp = this.player;
+        W.TopDown.placeSun(this, lobby ? sp.x : pp.pos.x, lobby ? 0 : pp.y, lobby ? sp.z : pp.pos.z);
+      }
       W.World.update(dt, this.time, this.state === 'playing' ? this.player : null);
       this.owned = this.ownedDistricts();
       for (const p of this.peds) p.update(dt, this);
       for (const z of this.zones) z.update(dt, this.time);
       for (const l of this.loot) l.update(dt);
       this.updateRain(dt);
+      this.updateBubbles(dt);
       this.renderer.render(this.scene, this.camera);
-      if (this.state === 'playing' || this.state === 'dead') W.HUD.update(this, dt);
-      this.updateBubbles();
+      if (this.state === 'playing' || this.state === 'dead') {
+        W.HUD.update(this, dt);
+        if (W.TopDown.active) W.TopDown.hud(this, dt);
+      }
       I.endFrame();
       requestAnimationFrame((t) => this.loop(t));
     },
@@ -226,10 +273,11 @@
       const I = W.Input;
       const p = this.player;
       this.updatePlayer(dt);
-      this.updateCamera(dt);
+      if (W.TopDown.active) W.TopDown.camera(this, dt); else this.updateCamera(dt);
       this.updateWeapon(dt);
       this.updateInteraction();
       this.updateSpawns(dt);
+      W.Plagas.update(dt, this);
       for (const e of this.enemies) {
         if (e.update(dt, this)) e.remove = true;
       }
@@ -242,12 +290,20 @@
       for (const pl of this.planters) pl.update(dt, this, rate);
       // botín
       for (const l of this.loot) {
-        if (Math.hypot(l.pos.x - p.pos.x, l.pos.z - p.pos.z) < 1.6) {
+        const ld = Math.hypot(l.pos.x - p.pos.x, l.pos.z - p.pos.z);
+        if (ld < C.MAGNET_RADIUS && ld > 0.01 && !p.dead) {
+          // imán: el botín cercano vuela hacia el barista, más rápido cuanto más cerca
+          const sp = Math.min(ld, (5 + (C.MAGNET_RADIUS - ld) * 4) * dt);
+          l.pos.x += ((p.pos.x - l.pos.x) / ld) * sp; l.pos.z += ((p.pos.z - l.pos.z) / ld) * sp;
+          l.mesh.position.x = l.pos.x; l.mesh.position.z = l.pos.z;
+        }
+        if (ld < 1.3) {
           l.taken = true;
           this.scene.remove(l.mesh);
           this.cherries += l.amount;
           this.addPoints(l.amount * C.POINTS_PER_CHERRY);
-          W.HUD.toast(l.kind === 'crate' ? `📦 Caja de café: +${l.amount} 🍒` : `+${l.amount} 🍒`);
+          W.HUD.gain(p.pos.x, p.y + 2.1, p.pos.z, `+${l.amount}`);
+          if (l.kind === 'crate') W.HUD.toast(`Costal de café · +${l.amount} cerezas`);
           W.Audio.pickup();
           if (l.kind === 'crate') setTimeout(() => this.spawnCrate(), 8000);
         }
@@ -258,7 +314,7 @@
       if (!this.currentDistrict || d.code !== this.currentDistrict.code) {
         if (this.currentDistrict) {
           const ours = this.ownedDistricts().has(d.code);
-          W.HUD.banner(d.name.toUpperCase(), ours ? 'Territorio Float Gardens' : 'Territorio de la Federación', ours ? 'ours' : 'theirs');
+          W.HUD.banner(d.name, ours ? 'Territorio de la red Float Gardens' : 'Territorio de Arcadia', ours ? 'ours' : 'theirs');
         }
         this.currentDistrict = d;
       }
@@ -276,18 +332,27 @@
     updatePlayer(dt) {
       const I = W.Input;
       const p = this.player;
+      const td = W.TopDown.active;
       const look = I.look();
       const aimMul = p.aiming ? 0.55 : 1;
-      p.yaw -= look.x * aimMul;
-      p.pitch = Math.max(-1.1, Math.min(0.75, p.pitch - look.y * aimMul));
+      if (td) {
+        // cenital: el yaw es la mira (joystick derecho, mouse o asistida); la cámara no gira
+        p.yaw = W.TopDown.aim(this, dt);
+        p.pitch = 0;
+      } else {
+        p.yaw -= look.x * aimMul;
+        p.pitch = Math.max(-1.1, Math.min(0.75, p.pitch - look.y * aimMul));
+      }
       p.aiming = I.held('aim');
 
       const mv = I.move();
-      const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
-      const rx = Math.cos(p.yaw), rz = -Math.sin(p.yaw);
+      const cy = td ? 0 : p.yaw; // en cenital el joystick va con la pantalla (arriba = norte)
+      const fx = -Math.sin(cy), fz = -Math.cos(cy);
+      const rx = Math.cos(cy), rz = -Math.sin(cy);
       let dx = fx * mv.y + rx * mv.x, dz = fz * mv.y + rz * mv.x;
       const len = Math.hypot(dx, dz);
-      const sprint = I.held('sprint') && mv.y > 0.3 && !p.aiming && p.reloading <= 0;
+      // en tercera persona solo se corre hacia adelante; en cenital, hacia cualquier lado
+      const sprint = I.held('sprint') && (td ? len > 0.3 : mv.y > 0.3) && !p.aiming && p.reloading <= 0;
       p.sprinting = sprint && len > 0.1;
       let speed = (sprint ? C.SPRINT_SPEED : C.WALK_SPEED) * this.stats().speed;
       if (p.aiming) speed *= 0.6;
@@ -301,22 +366,46 @@
         p.knock.x *= 0.88; p.knock.z *= 0.88;
         if (Math.hypot(p.knock.x, p.knock.z) < 0.3) p.knock = null;
       }
+      // impulso: la mochila de prensas da un salto corto y rasante. Gasta energía y no recibe daño mientras dura.
+      // En cenital reemplaza al salto (botón "impulso" o Espacio); en tercera persona va en Q.
+      if (p.dash <= 0) p.energy = Math.min(C.ENERGY_MAX, p.energy + C.ENERGY_REGEN * dt);
+      if ((I.pressed('dash') || (td && I.pressed('jump'))) && p.dash <= 0) {
+        if (p.energy >= C.DASH_COST) {
+          p.energy -= C.DASH_COST;
+          p.dash = C.DASH_TIME;
+          p.dashDir = len > 0.15 ? { x: dx, z: dz } : { x: -Math.sin(p.yaw), z: -Math.cos(p.yaw) };
+          W.Audio.dash();
+          this.shake(0.06);
+        } else W.Audio.empty();
+      }
+      if (p.dash > 0) {
+        p.dash -= dt;
+        // en pasos cortos para no atravesar muros delgados
+        for (let i = 0; i < 3; i++) {
+          p.pos.x += p.dashDir.x * C.DASH_SPEED * dt / 3; p.pos.z += p.dashDir.z * C.DASH_SPEED * dt / 3;
+          W.World.collide(p.pos, C.PLAYER_RADIUS, p.y);
+        }
+        this.burst({ x: p.pos.x, y: p.y + 0.9, z: p.pos.z }, '#ffffff', 2, 1.2);
+      }
       // salto y gravedad
       const ground = W.World.groundAt ? W.World.groundAt(p.pos.x, p.pos.z, p.y) : 0;
-      if (I.pressed('jump') && p.y <= ground + 0.01) { p.vy = C.JUMP_SPEED; W.Audio.jump(); }
+      if (!td && I.pressed('jump') && p.y <= ground + 0.01) { p.vy = C.JUMP_SPEED; W.Audio.jump(); }
       p.vy -= C.GRAVITY * dt;
       p.y += p.vy * dt;
       if (p.y < ground) { p.y = ground; p.vy = 0; }
+      p.air = p.y > ground + 0.05; // en el aire de verdad (antes cualquier andén contaba como salto y abría la mira)
       W.World.collide(p.pos, C.PLAYER_RADIUS, p.y);
 
       p.moving = Math.min(1, len);
       p.phase += dt * (sprint ? 13 : 9) * p.moving;
-      const combat = p.aiming || this.time - p.lastShot < 0.8 || I.held('fire');
+      const combat = p.aiming || this.time - p.lastShot < 0.8 || I.held('fire') || (td && W.TopDown.target);
       let face = p.yaw + Math.PI;
       if (!combat && len > 0.1) face = Math.atan2(dx, dz);
       p.mesh.rotation.y = Ent.lerpAngle(p.mesh.rotation.y, face, Math.min(1, dt * 14));
       p.mesh.position.set(p.pos.x, p.y, p.pos.z);
       p.h.animate(p.phase, p.moving * (sprint ? 1.2 : 0.8), combat);
+      // durante el impulso el cuerpo se inclina hacia adelante
+      p.h.body.rotation.x += ((p.dash > 0 ? 0.5 : 0) - p.h.body.rotation.x) * Math.min(1, dt * 18);
     },
 
     updateCamera(dt) {
@@ -358,7 +447,7 @@
       const p = this.player;
       p.fireCool -= dt;
       const base = p.aiming ? 0.006 : 0.018;
-      const target = base + p.moving * (p.aiming ? 0.01 : 0.03) + (p.y > 0.05 ? 0.05 : 0);
+      const target = base + p.moving * (p.aiming ? 0.01 : 0.03) + (p.air ? 0.05 : 0);
       p.spread += (target - p.spread) * Math.min(1, dt * 8);
       if (p.reloading > 0) {
         p.reloading -= dt;
@@ -382,7 +471,7 @@
       const p = this.player;
       if (p.reloading > 0) return;
       if (this.cherries < C.CHERRIES_PER_RELOAD) {
-        W.HUD.toast('¡Sin cerezas! Cosecha en el HQ o busca cajas de café 📦');
+        W.HUD.toast('Sin cerezas · cosecha en tu terraza o busca costales');
         return;
       }
       p.reloading = p.reloadTime;
@@ -397,8 +486,9 @@
       p.recoil = Math.min(0.035, p.recoil + 0.006);
       p.spread += 0.008;
       W.Audio.shot();
-      const cam = this.camera.position.clone();
-      const dir = this.aimDir.clone();
+      const ray = W.TopDown.active ? W.TopDown.shotRay(this) : { origin: this.camera.position.clone(), dir: this.aimDir.clone(), minT: this.camDist || 1 };
+      const cam = ray.origin;
+      const dir = ray.dir;
       dir.x += (Math.random() - 0.5) * p.spread * 2;
       dir.y += (Math.random() - 0.5) * p.spread * 2;
       dir.z += (Math.random() - 0.5) * p.spread * 2;
@@ -406,9 +496,22 @@
       // primero lo que corta el rayo desde la cámara (paredes o enemigos)
       let tHit = W.World.raycast(cam, dir, C.RANGE);
       let target = null, head = false;
-      const minT = this.camDist || 1;
+      const minT = ray.minT;
       for (const e of this.enemies) {
         if (e.dead) continue;
+        if (e.pest) {
+          // plaga: una sola esfera a la altura a la que vuela o camina
+          const rp = this.raySphere(cam, dir, e.pos.x, e.mesh.position.y + e.alt, e.pos.z, e.hitR);
+          if (rp > minT && rp < tHit) { tHit = rp; target = e; head = false; }
+          continue;
+        }
+        if (e.h.drone) {
+          // dron: una esfera para el cuerpo y, dentro, el núcleo (el ojo): pasar por el núcleo es golpe crítico
+          const cy = e.mesh.position.y + 1.3;
+          const rb = this.raySphere(cam, dir, e.pos.x, cy, e.pos.z, 0.68);
+          if (rb > minT && rb < tHit) { tHit = rb; target = e; head = this.raySphere(cam, dir, e.pos.x, cy, e.pos.z, 0.27) < Infinity; }
+          continue;
+        }
         const sc = e.boss ? 2.6 : 1;
         const res = this.raySphere(cam, dir, e.pos.x, e.headY + (e.boss ? 0 : 0), e.pos.z, 0.24 * sc);
         if (res > minT && res < tHit) { tHit = res; target = e; head = true; }
@@ -433,6 +536,8 @@
       this.scene.add(tr);
       this.tracers.push({ mesh: tr, from: muzzle, to: hitPoint, dist: muzzle.distanceTo(hitPoint), t: 0, target, head });
       this.burst(muzzle, '#8b5a2b', 3, 2);
+      W.TopDown.muzzleFlash(muzzle);
+      if (W.TopDown.active) this.shake(0.035);
     },
 
     raySphere(o, d, cx, cy, cz, r) {
@@ -473,7 +578,7 @@
           W.Audio.stamp();
         } else if (W.World.solidAt(m.x, m.y, m.z)) {
           s.life = 0;
-          this.burst(m, '#c0392b', 4, 2);
+          this.burst(m, '#2a22f5', 4, 2);
         }
         if (s.life <= 0) this.scene.remove(s.mesh);
       }
@@ -491,19 +596,34 @@
 
     onKO(e, head) {
       W.Audio.ko();
+      if (e.pest) {
+        // plaga apagada: polvo del color de la plaga y, si era una broca cargada, suelta la cosecha
+        this.save.world.plagas = (this.save.world.plagas || 0) + 1;
+        this.addPoints(e.t.points);
+        this.save.money += e.t.money;
+        W.HUD.killFeed(`<b class="me">Barista</b> controló <b class="foe plaga">${e.name}</b>`);
+        const at = { x: e.pos.x, y: e.mesh.position.y + e.alt, z: e.pos.z };
+        this.burst(at, e.t.color, 12, 4);
+        this.burst(at, '#6b3b1f', 5, 2.5);
+        if (e.stolen) this.spawnCrate(e.pos.x, e.pos.z, e.stolen, 'orb');
+        return;
+      }
       this.save.world.kos++;
       this.addPoints(e.boss ? C.POINTS_PER_BOSS : C.POINTS_PER_KO);
       this.save.money += e.boss ? 50000 : C.KO_MONEY;
-      W.HUD.killFeed(`<b class="me">Barista</b> <span class="gun">☕ AeroPress</span> <b class="foe">${e.name}</b>${head ? ' <span class="hs">✦ HEADSHOT</span>' : ''}`);
+      W.HUD.killFeed(`<b class="me">Barista</b> apagó <b class="foe">${e.name}</b>${head ? ' <span class="hs">crítico</span>' : ''}`);
       this.say(e, W.KO_LINES[Math.floor(Math.random() * W.KO_LINES.length)]);
-      this.burst({ x: e.pos.x, y: 1.2, z: e.pos.z }, '#6b3b1f', 14, 4);
+      // chispas azules y blancas: el dron se apaga
+      this.burst({ x: e.pos.x, y: 1.3, z: e.pos.z }, '#2a22f5', 12, 5);
+      this.burst({ x: e.pos.x, y: 1.3, z: e.pos.z }, '#ffffff', 6, 3.5);
+      this.shake(e.boss ? 0.5 : 0.1);
       if (!e.boss && Math.random() < 0.45) this.spawnCrate(e.pos.x, e.pos.z, 2, 'orb');
       if (e.boss) this.onBossDefeated();
     },
 
     damagePlayer(dmg, from, opts) {
       const p = this.player;
-      if (p.dead) return;
+      if (p.dead || p.dash > 0) return;
       p.hp -= dmg;
       p.lastHurt = this.time;
       W.HUD.hurt(dmg);
@@ -531,8 +651,9 @@
     respawn() {
       const p = this.player;
       const s = W.World.hqSpot.spawn;
-      p.pos.x = s.x; p.pos.z = s.z; p.y = 0; p.vy = 0; p.yaw = Math.PI;
+      p.pos.x = s.x; p.pos.z = s.z; p.y = 0; p.vy = 0; p.yaw = 0;
       p.dead = false;
+      p.energy = C.ENERGY_MAX; p.dash = 0;
       p.hp = p.maxHp;
       p.ammo = p.magSize;
       p.reloading = 0;
@@ -578,11 +699,11 @@
       document.getElementById('numbers').appendChild(el);
       this.bubbles.push({ el, ent, t: 0 });
     },
-    updateBubbles() {
-      const v = new THREE.Vector3();
+    updateBubbles(dt) {
+      const v = this.bubbleVec || (this.bubbleVec = new THREE.Vector3());
       const W2 = window.innerWidth / 2, H2 = window.innerHeight / 2;
       for (const b of this.bubbles) {
-        b.t += 1 / 60;
+        b.t += dt;
         const h = b.ent.boss ? 6.4 : 2.7;
         v.set(b.ent.pos.x, h, b.ent.pos.z).project(this.camera);
         const dist = Math.hypot(b.ent.pos.x - this.player.pos.x, b.ent.pos.z - this.player.pos.z);
@@ -601,16 +722,34 @@
       const near = (o, r) => Math.hypot(o.x - p.pos.x, o.z - p.pos.z) < r;
       // cultivo
       for (const pl of this.planters) {
-        if (pl.ripe && near(pl.pos, pl.water ? 4 : 3.3)) {
-          this.prompt = '<kbd>E</kbd> Cosechar café hidropónico';
+        if (pl.roya > 0 && near(pl.pos, pl.reach)) {
+          // la roya se trata a mano (caldo bordelés); mientras antes, menos cosecha se pierde
+          this.prompt = `<kbd>E</kbd> Tratar la roya${pl.label ? ` · fila ${pl.label}` : ''}`;
           if (I.pressed('action')) {
-            const n = this.stats().yield;
+            pl.cure();
+            pl.pop = 1;
+            this.addPoints(2);
+            W.HUD.toast(`Roya tratada${pl.label ? ` en la fila ${pl.label}` : ''} · +2 puntos`);
+            W.HUD.gain(pl.pos.x, pl.mesh.position.y + 1.6, pl.pos.z, 'sana');
+            W.Audio.pickup();
+            this.burst({ x: pl.pos.x, y: pl.mesh.position.y + 1, z: pl.pos.z }, '#8ecfd0', 12, 3);
+          }
+          return;
+        }
+        if (pl.ripe && near(pl.pos, pl.reach)) {
+          this.prompt = `<kbd>E</kbd> Cosechar ${pl.label ? `fila ${pl.label}` : 'café hidropónico'} · ${pl.variety.name}`;
+          if (I.pressed('action')) {
+            const n = this.plantYield(pl);
+            const bonus = pl.variety.bonus || 0;
             pl.harvest();
             this.cherries += n;
             this.addPoints(n * C.POINTS_PER_CHERRY);
-            W.HUD.toast(`🌱 Cosecha: +${n} 🍒 · +${n} ★`);
-            W.Audio.pickup();
-            this.burst({ x: pl.pos.x, y: 1.2, z: pl.pos.z }, '#d6423a', 10, 3);
+            this.save.money += bonus;
+            W.HUD.toast(`${pl.variety.name} · +${n} cerezas · +${n} puntos${bonus ? ` · +$${bonus.toLocaleString('es-CO')}` : ''}`);
+            W.HUD.gain(pl.pos.x, pl.mesh.position.y + 1.6, pl.pos.z, `+${n}`);
+            W.Audio.harvest();
+            this.burst({ x: pl.pos.x, y: pl.mesh.position.y + 0.9, z: pl.pos.z }, '#b3121a', 12, 3.5);
+            this.burst({ x: pl.pos.x, y: pl.mesh.position.y + 0.9, z: pl.pos.z }, '#8cc84a', 6, 2.5);
           }
           return;
         }
@@ -625,8 +764,8 @@
       // clientes
       for (const c of this.peds) {
         if (c.icon.visible && near(c.pos, 2.6)) {
-          if (this.cherries < C.CHERRIES_PER_SALE) { this.prompt = `Necesitas ${C.CHERRIES_PER_SALE} 🍒 para preparar un café`; return; }
-          this.prompt = `<kbd>E</kbd> Vender café AeroPress · ${'$' + C.SALE_PRICE.toLocaleString('es-CO')}`;
+          if (this.cherries < C.CHERRIES_PER_SALE) { this.prompt = `Necesitas ${C.CHERRIES_PER_SALE} cerezas para preparar un café`; return; }
+          this.prompt = `<kbd>E</kbd> Vender café · ${'$' + C.SALE_PRICE.toLocaleString('es-CO')}`;
           if (I.pressed('action')) {
             this.cherries -= C.CHERRIES_PER_SALE;
             this.save.money += C.SALE_PRICE;
@@ -636,13 +775,13 @@
             c.icon.visible = false;
             c.wantTimer = 30 + Math.random() * 30;
             c.stop = 1.5;
-            W.HUD.toast(`☕ ¡Venta! +$${C.SALE_PRICE.toLocaleString('es-CO')} · +${C.POINTS_PER_SALE} ★`);
+            W.HUD.toast(`Venta · +$${C.SALE_PRICE.toLocaleString('es-CO')} · +${C.POINTS_PER_SALE} puntos`);
             W.Audio.cash();
           }
           return;
         }
       }
-      if (this.player.ammo === 0 && this.cherries < C.CHERRIES_PER_RELOAD) this.prompt = 'Sin café: cosecha en el HQ 🌱 o abre cajas 📦';
+      if (this.player.ammo === 0 && this.cherries < C.CHERRIES_PER_RELOAD) this.prompt = 'Sin café · cosecha en tu terraza o busca costales';
     },
 
     // ---------- enemigos y zonas ----------
@@ -651,7 +790,7 @@
       const owned = this.ownedDistricts();
       this.spawnTimer -= dt;
       const cap = 3 + this.capturedCount();
-      const patrols = this.enemies.filter((e) => !e.zoneId && !e.boss && !e.dead).length;
+      const patrols = this.enemies.filter((e) => !e.zoneId && !e.boss && !e.pest && !e.dead).length;
       if (this.spawnTimer <= 0 && patrols < cap) {
         this.spawnTimer = 2.5;
         for (let tries = 0; tries < 12; tries++) {
@@ -664,7 +803,7 @@
       }
       // despawn de patrullas lejanas
       for (const e of this.enemies) {
-        if (!e.zoneId && !e.boss && !e.alerted && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > 150) e.remove = true;
+        if (!e.zoneId && !e.boss && !e.pest && !e.alerted && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > 150) e.remove = true;
       }
       // jefe final
       if (this.allCaptured() && !this.save.world.bossDefeated && !this.boss) {
@@ -673,8 +812,8 @@
           this.boss = new Ent.Boss(a.x + 8, a.z - 10);
           this.scene.add(this.boss.mesh);
           this.enemies.push(this.boss);
-          W.HUD.banner(W.BOSS.name.toUpperCase(), 'El jefe de la Federación sale de la sede', 'theirs');
-          this.say(this.boss, '¡Nadie compite con la Federación!');
+          W.HUD.banner(W.BOSS.name, 'El director de Arcadia sale de su torre', 'theirs');
+          this.say(this.boss, 'Nadie compite con Arcadia');
         }
       }
     },
@@ -713,10 +852,10 @@
             const kind = i % 3 === 2 || Math.random() < 0.2 + n * 0.05 ? 'guardia' : 'inspector';
             this.spawnEnemy(kind, pt[0], pt[1], { alerted: true, zoneId: z.id });
           }
-          if (z.waves === 0) W.HUD.banner(z.name.toUpperCase(), '¡Defiende la zona hasta capturarla!', 'theirs');
+          if (z.waves === 0) W.HUD.banner(z.name, 'Defiende la zona hasta liberarla', 'theirs');
           z.waves++;
         }
-        const contested = this.enemies.some((e) => !e.dead && Math.hypot(e.pos.x - z.pos.x, e.pos.z - z.pos.z) < C.CAPTURE_RADIUS + 8);
+        const contested = this.enemies.some((e) => !e.dead && !e.pest && Math.hypot(e.pos.x - z.pos.x, e.pos.z - z.pos.z) < C.CAPTURE_RADIUS + 8);
         if (!contested) z.progress = Math.min(1, z.progress + dt / C.CAPTURE_TIME);
         this.capturing = { zone: z, contested };
         if (z.progress >= 1) this.captureZone(z);
@@ -732,13 +871,13 @@
       this.addZonePlanters(z);
       W.Audio.capture();
       const n = this.capturedCount();
-      W.HUD.banner('¡ZONA CAPTURADA!', `${z.name} ahora es Float Gardens · ${n}/${this.zones.length}`, 'ours');
-      W.HUD.killFeed(`<b class="me">Float Gardens</b> capturó <b>${z.name}</b> 🚩`);
-      for (const e of this.enemies) if (e.zoneId === z.id && !e.dead) { e.hp = 0; e.ko = 0; this.say(e, '¡Retirada!'); }
+      W.HUD.banner('Zona liberada', `${z.name} ahora es de la red · ${n}/${this.zones.length}`, 'ours');
+      W.HUD.killFeed(`<b class="me">Float Gardens</b> liberó <b>${z.name}</b>`);
+      for (const e of this.enemies) if (e.zoneId === z.id && !e.dead) { e.hp = 0; e.ko = 0; this.say(e, 'Retirada'); }
       this.updateZoneColors();
       this.persist();
       if (this.allCaptured()) {
-        setTimeout(() => W.HUD.banner('LA SEDE ESTÁ EXPUESTA', `Ve a la Plaza de Bolívar y derrota a ${W.BOSS.name}`, 'theirs'), 3200);
+        setTimeout(() => W.HUD.banner('La Torre Arcadia quedó expuesta', `Ve a la Plaza de Bolívar y derrota a ${W.BOSS.name}`, 'theirs'), 3200);
       }
     },
 
@@ -747,7 +886,7 @@
       for (const e of this.enemies) if (!e.dead) { e.hp = 0; }
       this.persist();
       W.Audio.capture();
-      W.HUD.banner('¡BOGOTÁ ES DE FLOAT GARDENS!', `${W.BOSS.name} colgó el sombrero`, 'ours');
+      W.HUD.banner('Bogotá es de la red', `${W.BOSS.name} colgó el sombrero`, 'ours');
       setTimeout(() => { if (this.state === 'playing') { this.state = 'paused'; W.Input.unlock(); W.Menus.show('victory'); } }, 3500);
     },
 
@@ -801,11 +940,8 @@
         this.raining = !this.raining;
         this.weatherTimer = this.raining ? rand(35, 60) : rand(50, 90);
         this.rain.visible = this.raining;
-        const sky = this.raining ? '#8e9ba6' : '#a9bccb';
-        this.scene.background.set(sky);
-        this.scene.fog.color.set(sky);
-        this.scene.fog.far = this.raining ? 300 : 430;
-        W.HUD.toast(this.raining ? '🌧️ Empezó a llover en Bogotá' : '⛅ Escampó');
+        W.TopDown.sky(this);
+        W.HUD.toast(this.raining ? 'Empezó a llover en Bogotá' : 'Escampó');
       }
     },
 
@@ -825,13 +961,14 @@
       W.Menus.hide();
       W.HUD.show(true);
       document.body.classList.add('playing');
-      W.Input.lock();
+      if (W.TopDown.leaveLobby) W.TopDown.leaveLobby(this);
+      if (!W.TopDown.active) W.Input.lock();
       W.Input.endFrame();
       W.Audio.ensure();
       if (!this.currentDistrict) {
         const d = W.World.districtAt(this.player.pos.x, this.player.pos.z);
         this.currentDistrict = d;
-        W.HUD.banner(d.name.toUpperCase(), 'Float Gardens HQ · Bogotá', 'ours');
+        W.HUD.banner(d.name, `${W.HQ.name} · Neo-Bogotá`, 'ours');
       }
       this.updateZoneColors();
     },
