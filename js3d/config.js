@@ -7,6 +7,8 @@ W.CONFIG = {
   BLOCK: 40,              // lado de una manzana (m)
   STREET: 14,             // ancho de calle (m)
   GRID: 12,               // manzanas por lado
+  MAQUETA: true,          // guía v2: ciudad en maqueta blanca (false = estilo anterior de ladrillo y color)
+  SUPER_TORRES: true,     // Kennedy 2089: Zona T y Centro Internacional con súper torres y acentos de color de cereza
 
   PLAYER_RADIUS: 0.45,
   WALK_SPEED: 6,
@@ -33,6 +35,14 @@ W.CONFIG = {
   HARVEST_YIELD: 4,
   REGROW_TIME: 25,
 
+  // Impulso: un salto corto con la mochila de prensas; gasta energía, que vuelve sola
+  DASH_SPEED: 26,
+  DASH_TIME: 0.17,
+  DASH_COST: 34,
+  ENERGY_MAX: 100,
+  ENERGY_REGEN: 24,
+  MAGNET_RADIUS: 4.2,     // el botín cercano vuela hacia el barista
+
   CAPTURE_RADIUS: 16,
   CAPTURE_TIME: 22,       // segundos dentro de la zona sin enemigos cerca
 
@@ -48,7 +58,7 @@ W.CONFIG = {
 
 // Mapa de barrios: fila 0 = norte, columna 0 = occidente. Al oriente están los cerros.
 // T Zona T · C Chapinero · U Teusaquillo · P Parque Simón Bolívar · I Centro Internacional
-// L La Candelaria · A Puente Aranda · R residencial · F Sede de la Federación · B Plaza de Bolívar
+// L La Candelaria · A Puente Aranda · R residencial · K Kennedy (la red de terrazas) · F Torre Arcadia · B Plaza de Bolívar
 W.DISTRICT_MAP = [
   'RRPPPRTTTTTT',
   'RPPPPRTTTTTT',
@@ -59,9 +69,9 @@ W.DISTRICT_MAP = [
   'AAUUUUIIIIII',
   'AAAARRIIIIII',
   'AAAARRRLLFLL',
-  'AAAARRRLLBLL',
-  'AAARRRRLLLLL',
-  'AARRRRRLLLLL',
+  'AAAAKKKLLBLL',
+  'AAAKKKKLLLLL',
+  'AARKKKKLLLLL',
 ];
 
 W.DISTRICTS = {
@@ -73,7 +83,8 @@ W.DISTRICTS = {
   L: { name: 'La Candelaria', style: 'colonial' },
   A: { name: 'Puente Aranda', style: 'warehouse' },
   R: { name: 'Barrios del occidente', style: 'mixed' },
-  F: { name: 'Sede de la Federación', style: 'sede' },
+  K: { name: 'Kennedy', style: 'mixed' },
+  F: { name: 'Torre Arcadia', style: 'sede' },
   B: { name: 'Plaza de Bolívar', style: 'plaza' },
 };
 
@@ -83,10 +94,10 @@ W.CARRERAS = ['Av. Boyacá', 'Av. 68', 'Carrera 50', 'Av. NQS', 'Carrera 24', 'C
 W.CALLES = ['Calle 100', 'Calle 93', 'Calle 85', 'Calle 72', 'Calle 63', 'Calle 53', 'Calle 45', 'Calle 26',
   'Calle 19', 'Av. Jiménez', 'Calle 6', 'Calle 1', 'Av. Primera de Mayo'];
 
-// Sede de Float Gardens (inicio, tienda y cultivo)
-W.HQ = { row: 4, col: 9, name: 'Float Gardens HQ', district: 'C' };
+// Sede de Float Gardens (inicio, tienda y cultivo): la torre colgante de Kennedy, al suroccidente
+W.HQ = { row: 10, col: 5, name: 'Torre Float · Kennedy', district: 'K' };
 
-// Zonas que hay que arrebatarle a la Federación
+// Zonas que hay que arrebatarle a Arcadia
 W.ZONES = [
   { id: 'teusaquillo', row: 5, col: 3, name: 'Parque Teusaquillo', district: 'U' },
   { id: 'simon', row: 2, col: 2, name: 'Lago del Simón Bolívar', district: 'P' },
@@ -96,21 +107,54 @@ W.ZONES = [
   { id: 'aranda', row: 9, col: 2, name: 'Puente Aranda', district: 'A' },
 ];
 
+// Kennedy 2089: manzanas de los barrios del occidente donde la red levantó torres colgantes [fila, columna]
+W.HANGING_TOWERS = [[7, 4], [10, 3], [11, 6], [9, 5]];
+
 // Batalla final
 W.BOSS = { row: 9, col: 9, name: 'Don Monopolio', hp: 3000 };
 
 W.ENEMY_TYPES = {
-  inspector: { name: 'Inspector', hp: 60, speed: 4.4, melee: 10, color: '#6d7078', hat: 'fedora' },
-  guardia: { name: 'Guardia del Tinto', hp: 100, speed: 3.2, ranged: 9, range: 30, cooldown: 2.2, color: '#33363d', hat: 'beret' },
+  inspector: { name: 'Dron escáner', hp: 60, speed: 4.4, melee: 10, color: '#6d7078', hat: 'fedora' },
+  guardia: { name: 'Dron sellador', hp: 100, speed: 3.2, ranged: 9, range: 30, cooldown: 2.2, color: '#33363d', hat: 'beret' },
 };
 
 W.UPGRADES = [
-  { id: 'dano', icon: '💥', name: 'Presión turbo', desc: '+20% de daño por nivel.', max: 3, cost: 20000 },
-  { id: 'cargador', icon: '☕', name: 'Cámara XL', desc: '+4 disparos por cargador.', max: 3, cost: 15000 },
-  { id: 'vida', icon: '❤️', name: 'Delantal reforzado', desc: '+25 de vida máxima.', max: 3, cost: 18000 },
-  { id: 'tenis', icon: '👟', name: 'Tenis de barista', desc: '+8% de velocidad.', max: 3, cost: 12000 },
-  { id: 'cultivo', icon: '🌱', name: 'Hidroponía avanzada', desc: '+1 cereza por cosecha y crecen más rápido.', max: 3, cost: 16000 },
+  { id: 'dano', name: 'Presión turbo', desc: '+20 % de daño por nivel.', max: 3, cost: 20000 },
+  { id: 'cargador', name: 'Cámara XL', desc: '+4 disparos por cargador.', max: 3, cost: 15000 },
+  { id: 'vida', name: 'Armadura reforzada', desc: '+25 de vida máxima.', max: 3, cost: 18000 },
+  { id: 'tenis', name: 'Tenis de barista', desc: '+8 % de velocidad.', max: 3, cost: 12000 },
+  { id: 'cultivo', name: 'Hidroponía avanzada', desc: '+1 cereza por cosecha y crecen más rápido.', max: 3, cost: 16000 },
 ];
 
-W.KO_LINES = ['¡Me quemé con el café!', '¡Llamaré a mi supervisor!', '¡Esto no se queda así!', '¡Retirada!'];
-W.ENEMY_LINES = ['¡Café sin sello!', '¡Alto ahí, barista!', '¡Formulario 27-B!', '¡Multa por innovar!', '¡Aquí manda la Federación!'];
+// Variedades de café (rasgos reales, simplificados): roya = probabilidad de resistir una infección,
+// grow = velocidad de crecimiento, yield = cerezas extra por cosecha, bonus = plata extra por cosecha (café de especialidad),
+// height = porte de la mata, cherry = colores de la cereza, leaf = tinte del follaje.
+W.VARIEDADES = {
+  caturra: { name: 'Caturra', desc: 'Porte bajo y cosecha rápida. Muy susceptible a la roya.', roya: 0, grow: 1.3, yield: 0, bonus: 0, height: 0.82, cost: 4000,
+    cherry: ['#b3121a', '#b3121a', '#e0471c', '#e8a31f'], leaf: '#ffffff' },
+  castillo: { name: 'Castillo', desc: 'La variedad de Cenicafé: resistente a la roya.', roya: 0.9, grow: 1, yield: 0, bonus: 0, height: 1, cost: 8000,
+    cherry: ['#8f0f1c', '#b3121a', '#b3121a', '#e0471c'], leaf: '#c9e2c4' },
+  borbon: { name: 'Borbón amarillo', desc: 'Cereza amarilla y dulce, una cereza más por cosecha. Susceptible a la roya.', roya: 0.05, grow: 1, yield: 1, bonus: 0, height: 1.05, cost: 6000,
+    cherry: ['#f2c21b', '#f2c21b', '#e8a31f', '#f6dc5a'], leaf: '#f1ffd8' },
+  tabi: { name: 'Tabi', desc: 'Porte alto y resistente a la roya. Crece despacio y da una cereza más.', roya: 0.75, grow: 0.82, yield: 1, bonus: 0, height: 1.25, cost: 10000,
+    cherry: ['#b3121a', '#e0471c', '#b3121a', '#e8a31f'], leaf: '#d9f0c8' },
+  geisha: { name: 'Geisha', desc: 'Café de especialidad: cada cosecha paga $6.000 extra. Lenta y delicada.', roya: 0.1, grow: 0.68, yield: 0, bonus: 6000, height: 1.18, cost: 18000,
+    cherry: ['#7d0e2a', '#a3122e', '#7d0e2a', '#c2334a'], leaf: '#ffe9cf' },
+};
+// Qué hay sembrado: las filas de la terraza al empezar (se cambian en el vivero) y la variedad de cada zona liberada
+W.ROWS_DEFAULT = { A: 'caturra', B: 'castillo', C: 'borbon' };
+W.ZONE_VARIETY = { teusaquillo: 'tabi', simon: 'borbon', zonat: 'geisha', centro: 'castillo', candelaria: 'caturra', aranda: 'tabi' };
+
+// Plagas y enfermedades del café: no van por el barista, van por las matas.
+W.PLAGAS = {
+  roya: { name: 'Nube de roya', short: 'roya', hp: 26, speed: 3.1, color: '#e8791c', time: 38, settle: 2.6, points: 3, money: 300,
+    tip: 'Hongo que amarillea y tumba la hoja. Apaga la nube antes de que se pose.' },
+  broca: { name: 'Broca del café', short: 'broca', hp: 20, speed: 6.4, color: '#2a1a12', bore: 3.6, points: 3, money: 300,
+    tip: 'Cucarrón que perfora la cereza madura y se lleva la cosecha.' },
+  arriera: { name: 'Hormiga arriera', short: 'arrieras', hp: 42, speed: 3.3, color: '#8a3317', cut: 2.4, bite: 5, points: 3, money: 300,
+    tip: 'Corta las hojas y se las lleva en fila. La mata crece más despacio.' },
+};
+W.PLAGA_LINES = { roya: ['Esporas al viento', 'Hoja amarilla'], broca: ['Cereza perforada'], arriera: ['Hoja al hormiguero'] };
+
+W.KO_LINES = ['Señal perdida', 'Batería crítica', 'Reportando a Arcadia…', 'Error 27-B'];
+W.ENEMY_LINES = ['Café sin sello', 'Escaneando terraza', 'Cosecha sin licencia', 'Propiedad de Arcadia', 'Sello en curso'];

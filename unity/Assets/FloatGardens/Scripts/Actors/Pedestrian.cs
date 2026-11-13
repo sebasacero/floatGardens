@@ -51,21 +51,13 @@ namespace FloatGardens
             p.icon = ic.transform;
 
             // Sombrilla
-            var umb = new GameObject("Sombrilla").transform;
-            umb.SetParent(go.transform, false);
+            string umbHex = new[] { "#111111", "#2c5aa0", "#c0392b", "#2fbf71", "#f2a541" }[Random.Range(0, 5)];
+            var umb = FGMesh.Bake(go.transform, "Sombrilla", new[]
+            {
+                FGMesh.P(UmbrellaMesh(), Vector3.up * 2.2f, Quaternion.identity, new Vector3(0.75f, 0.3f, 0.75f), FGMaterials.Lit(umbHex, 0.5f)),
+                FGMesh.P(PrimitiveType.Cube, Vector3.up * 1.9f, new Vector3(0.03f, 0.9f, 0.03f), FGMaterials.Lit("#333333", 0.3f)),
+            }, "sombrilla" + umbHex).transform;
             umb.localPosition = new Vector3(0.25f, 0, 0.1f);
-            var canopy = new GameObject("Tela");
-            canopy.transform.SetParent(umb, false);
-            canopy.transform.localPosition = Vector3.up * 2.2f;
-            canopy.transform.localScale = new Vector3(0.75f, 0.3f, 0.75f);
-            canopy.AddComponent<MeshFilter>().sharedMesh = UmbrellaMesh();
-            canopy.AddComponent<MeshRenderer>().sharedMaterial = FGMaterials.Lit(new[] { "#111111", "#2c5aa0", "#c0392b", "#2fbf71", "#f2a541" }[Random.Range(0, 5)], 0.5f);
-            var stick = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Destroy(stick.GetComponent<Collider>());
-            stick.transform.SetParent(umb, false);
-            stick.transform.localPosition = Vector3.up * 1.9f;
-            stick.transform.localScale = new Vector3(0.03f, 0.9f, 0.03f);
-            stick.GetComponent<MeshRenderer>().sharedMaterial = FGMaterials.Lit("#333333", 0.3f);
             umb.gameObject.SetActive(false);
             p.umbrella = umb;
             p.PickGoal();
@@ -121,8 +113,10 @@ namespace FloatGardens
         {
             Vector3 pos = transform.position;
             bool market = g.IsMarket(pos);
-            icon.gameObject.SetActive(wants && market);
-            umbrella.gameObject.SetActive(g.atmosphere.Raining);
+            // SetActive solo cuando cambia: activar/desactivar en cada cuadro dispara trabajo interno de Unity
+            bool showIcon = wants && market, raining = g.atmosphere.Raining;
+            if (icon.gameObject.activeSelf != showIcon) icon.gameObject.SetActive(showIcon);
+            if (umbrella.gameObject.activeSelf != raining) umbrella.gameObject.SetActive(raining);
             if (icon.gameObject.activeSelf)
             {
                 icon.rotation = g.cam.transform.rotation;

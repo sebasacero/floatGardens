@@ -125,6 +125,20 @@
     return toTexture(c);
   }
 
+  // baldosa blanca de la terraza de la sede: junta fina y una cruz más tenue (la maqueta de la guía)
+  function tile() {
+    const [c, ctx] = canvas(256, 256);
+    ctx.fillStyle = '#f4f5f3';
+    ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = 'rgba(44,48,46,0.14)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(0, 0, 256, 256);
+    ctx.strokeStyle = 'rgba(44,48,46,0.05)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(128, 0); ctx.lineTo(128, 256); ctx.moveTo(0, 128); ctx.lineTo(256, 128); ctx.stroke();
+    return toTexture(c);
+  }
+
   function sidewalk() {
     const [c, ctx] = canvas(128, 128);
     ctx.fillStyle = '#b4b0a8';
@@ -180,7 +194,7 @@
     return toTexture(c);
   }
 
-  // Letreros con texto (neón de Float Gardens, banderas de la Federación...)
+  // Letreros con texto (neón de Float Gardens, banderas de Arcadia...)
   function sign(text, bg, fg, w, h, font) {
     const [c, ctx] = canvas(w || 512, h || 128);
     ctx.fillStyle = bg;
@@ -258,6 +272,7 @@
       this.roof = roof();
       this.asphalt = asphalt();
       this.sidewalk = sidewalk();
+      this.tile = tile();
       this.cobble = cobble();
       this.grass = grass();
       this.water = water();

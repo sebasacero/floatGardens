@@ -2,7 +2,7 @@
 (function () {
   const KEYS = {
     up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
-    sprint: ['ShiftLeft', 'ShiftRight'], jump: ['Space'], action: ['KeyE'], reload: ['KeyR'],
+    sprint: ['ShiftLeft', 'ShiftRight'], jump: ['Space'], dash: ['KeyQ'], action: ['KeyE'], reload: ['KeyR'],
     map: ['KeyM', 'Tab'], pause: ['Escape', 'KeyP'], fire: [], aim: [],
   };
 
@@ -14,6 +14,9 @@
     sensitivity: 0.0022,
     touchSensitivity: 0.006,
     isTouch: false,
+    topdown: false,
+    // vista cenital: vector de mira del dedo (desde donde tocó) o posición del mouse
+    aimVec: { x: 0, y: 0, active: false },
 
     init(canvas) {
       this.canvas = canvas;
@@ -27,7 +30,7 @@
       window.addEventListener('blur', () => { this.keys.clear(); this.mouse.fire = false; this.mouse.aim = false; });
 
       canvas.addEventListener('mousedown', (e) => {
-        if (!this.locked) return;
+        if (!this.locked && !this.topdown) return;
         if (e.button === 0) { this.mouse.fire = true; this.pressedSet.add('fire'); }
         if (e.button === 2) this.mouse.aim = true;
       });
@@ -37,6 +40,7 @@
       });
       canvas.addEventListener('contextmenu', (e) => e.preventDefault());
       document.addEventListener('mousemove', (e) => {
+        this.mouse.px = e.clientX; this.mouse.py = e.clientY;
         if (!this.locked) return;
         this.mouse.dx += e.movementX || 0;
         this.mouse.dy += e.movementY || 0;
@@ -122,6 +126,8 @@
         e.preventDefault();
         const t = e.changedTouches[0];
         L.id = t.identifier; L.x = t.clientX; L.y = t.clientY;
+        L.sx = t.clientX; L.sy = t.clientY;
+        this.aimVec.active = true; this.aimVec.x = 0; this.aimVec.y = 0;
       }, { passive: false });
       look.addEventListener('touchmove', (e) => {
         e.preventDefault();
@@ -129,9 +135,11 @@
           if (t.identifier !== L.id) continue;
           L.dx += t.clientX - L.x; L.dy += t.clientY - L.y;
           L.x = t.clientX; L.y = t.clientY;
+          this.aimVec.x = t.clientX - L.sx; this.aimVec.y = t.clientY - L.sy;
         }
       }, { passive: false });
-      look.addEventListener('touchend', (e) => { for (const t of e.changedTouches) if (t.identifier === L.id) L.id = null; });
+      look.addEventListener('touchend', (e) => { for (const t of e.changedTouches) if (t.identifier === L.id) { L.id = null; this.aimVec.active = false; } });
+      look.addEventListener('touchcancel', () => { L.id = null; this.aimVec.active = false; });
 
       // Botones. El de disparo también sirve para apuntar arrastrando.
       const bind = (id, name, holdKey) => {
@@ -142,6 +150,7 @@
           e.preventDefault();
           const t = e.changedTouches[0];
           tid = t.identifier; lx = t.clientX; ly = t.clientY;
+          if (name === 'fire') { this.aimVec.active = true; this.aimVec.x = 0; this.aimVec.y = 0; this.fireStart = { x: lx, y: ly }; }
           if (holdKey) this.touch[holdKey] = true;
           this.pressedSet.add(name);
           el.classList.add('on');
@@ -153,9 +162,10 @@
             if (t.identifier !== tid) continue;
             L.dx += t.clientX - lx; L.dy += t.clientY - ly;
             lx = t.clientX; ly = t.clientY;
+            if (this.fireStart) { this.aimVec.x = t.clientX - this.fireStart.x; this.aimVec.y = t.clientY - this.fireStart.y; }
           }
         }, { passive: false });
-        const up = (e) => { e.preventDefault(); if (holdKey) this.touch[holdKey] = false; el.classList.remove('on'); };
+        const up = (e) => { e.preventDefault(); if (holdKey) this.touch[holdKey] = false; el.classList.remove('on'); if (name === 'fire') { this.aimVec.active = false; this.fireStart = null; } };
         el.addEventListener('touchend', up);
         el.addEventListener('touchcancel', up);
       };
