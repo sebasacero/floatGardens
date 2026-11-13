@@ -48,6 +48,7 @@
       this.data = data || {};
       this.el.innerHTML = this.screens[name].call(this, this.G.save, this.data);
       this.el.className = `menu menu-${name}`;
+      if (window.fgIcons) fgIcons(this.el);
     },
 
     topbar(s) {
@@ -79,26 +80,43 @@
     },
 
     screens: {
+      // Lobby del celular (rediseño v3): la web en vertical. Cápsula y marca, la ventana a la maqueta con el riel,
+      // el selector de red y la tarjeta verde de tu terraza; título, métricas, Jugar y la tabla de zonas de la red.
       lobbyTd(s) {
         const G = this.G;
         const n = G.capturedCount();
         const started = n > 0 || s.world.kos > 0;
         const d = W.World.districtAt(W.World.hqSpot.spawn.x, W.World.hqSpot.spawn.z);
-        return `<div class="tdl">
-          <div class="tdl-top"><span class="tdl-k">temporada 01 · ${s.world.bossDefeated ? 'red libre' : 'cosecha'}</span><span class="td-cap"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19 13 11"/></svg>Float Gardens <span>Kennedy 2089</span></span></div>
-          <div class="tdl-title"><div class="tdl-k">${W.HQ.name.toLowerCase()} · filas A B C</div><h1>Defiende tu<br><b>terraza</b></h1></div>
-          <div class="tdl-cards">
-            <div><label>cerezas</label><p class="cherry">${G.cherries}</p></div>
-            <div><label>zonas</label><p>${n}<small>/ ${G.zones.length}</small></p></div>
-            <div><label>puntos</label><p>${s.puntos.toLocaleString('es-CO')}</p></div>
+        const hq = G.planters.filter((pl) => pl.group === 'hq');
+        const avg = hq.length ? Math.round(hq.reduce((a, pl) => a + Math.min(1, pl.growth), 0) / hq.length * 100) : 0;
+        const ready = hq.filter((pl) => pl.ripe).length, sick = hq.filter((pl) => pl.roya > 0).length;
+        const eta = sick ? `Roya en ${sick} ${sick === 1 ? 'mata' : 'matas'}` : ready ? `${ready} ${ready === 1 ? 'mata lista' : 'matas listas'} para cosechar` : avg > 70 ? 'Casi lista · sigue creciendo' : 'Creciendo';
+        const sealed = G.zones.filter((z) => z.owner !== 'fg');
+        const toast = s.world.bossDefeated ? 'Bogotá es de la red · sigue cosechando' : sealed.length ? `Arcadia tiene ${sealed.length === 1 ? sealed[0].name : `${sealed.length} zonas selladas`}` : `Ve a la Plaza de Bolívar · ${W.BOSS.name}`;
+        const rows = G.zones.map((z) => `<tr><td>${z.name}</td><td class="num">${z.owner === 'fg' ? '100' : Math.round(z.progress * 100)} %</td><td><span class="chip ${z.owner === 'fg' ? '' : 'crit'}">${z.owner === 'fg' ? 'Libre' : 'Sellada'}</span></td></tr>`).join('');
+        const dot = s.puntos >= FG.CONFIG.REDEEM_COST ? 'on' : '';
+        return `<div class="lob">
+          <div class="eyebrow"><span class="pill">Float Gardens · Temporada 1</span><span class="brand"><i data-i="hoja"></i><span>float<b>Gardens</b></span></span></div>
+          <section class="frame">
+            <div class="td-top">
+              <nav class="td-rail"><span class="logo"><i data-i="hoja"></i></span><button class="on" data-a="play" aria-label="jugar"><i data-i="mapa"></i></button><button data-a="shop" aria-label="mejoras"><i data-i="mochila"></i></button><button data-a="rewards" aria-label="puntos"><i data-i="red"></i></button></nav>
+              <div class="td-icons"><button data-a="rewards" aria-label="avisos"><i data-i="campana"></i><span class="dot ${dot}"></span></button><button data-a="ajustes" aria-label="ajustes"><i data-i="cuenta"></i></button></div>
+            </div>
+            <div class="selector"><span>Red <b>${d.name}</b></span><i><i data-i="pin"></i></i></div>
+            <article class="td-harvest"><div class="in"><h3>Tu terraza · filas A B C</h3><div class="sub">${W.HQ.name}</div><div class="big num">${avg}<span class="u">%</span></div><div class="eta">${eta}</div></div>
+              <div class="actions"><button data-a="play">Jugar</button><button data-a="howto" aria-label="cómo jugar">?</button><button data-a="shop">Vivero</button></div></article>
+            <div class="toast ${sealed.length && !s.world.bossDefeated ? 'foe' : ''}">${toast}</div>
+          </section>
+          <h1>Defiende tu<br><b>terraza</b></h1>
+          <div class="kpis">
+            <div><span class="num">${G.cherries}<span class="u">cerezas</span></span><span class="lbl">en tu canasta</span></div>
+            <div><span class="num">${n}<span class="u">/ ${G.zones.length}</span></span><span class="lbl">zonas libres</span></div>
+            <div><span class="num">${s.puntos.toLocaleString('es-CO')}</span><span class="lbl">Puntos Float</span></div>
           </div>
-          <button class="tdl-play" data-a="play"><b>${started ? 'Continuar' : 'Jugar'}</b><span>${d.name} · ${W.TopDown.theme === 'noche' ? 'noche' : 'día'}</span></button>
-          <div class="tdl-tabs">
-            <button class="on" data-a="play-noop"><i>${TAB.home}</i>inicio</button>
-            <button data-a="shop"><i>${TAB.shop}</i>mejoras</button>
-            <button data-a="rewards"><i>${TAB.net}</i>puntos</button>
-            <button data-a="ajustes"><i>${TAB.gear}</i>ajustes</button>
-          </div>
+          <div class="cta"><button class="btn" data-a="play"><span>${started ? 'Continuar' : 'Jugar'}</span><span class="mono">${d.name} · ${W.TopDown.theme === 'noche' ? 'noche' : 'día'}</span></button><button class="btn alt" data-a="shop">Mejoras</button></div>
+          <section class="net"><div class="net-head"><span>Zonas de la red</span><div class="filters"><button class="on">Todas</button><button data-a="rewards">Puntos Float</button></div></div>
+            <table>${rows}</table></section>
+          <div class="foot"><span>Juego de ficción · no afiliado a ninguna organización real</span><button data-a="ajustes">Ajustes</button><button data-a="reset">Reiniciar mundo</button></div>
         </div>`;
       },
 

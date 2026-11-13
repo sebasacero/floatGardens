@@ -961,6 +961,7 @@
       W.Menus.hide();
       W.HUD.show(true);
       document.body.classList.add('playing');
+      if (W.TopDown.leaveLobby) W.TopDown.leaveLobby(this);
       if (!W.TopDown.active) W.Input.lock();
       W.Input.endFrame();
       W.Audio.ensure();

@@ -316,7 +316,7 @@
     },
 
     setBigMap(on) { this.big.parentElement.classList.toggle('hidden', !on); },
-    set, // lo usa la vista cenital para su telemetría
+    set, toggle, // los usa la vista cenital para su HUD
   };
 
   W.HUD = HUD;

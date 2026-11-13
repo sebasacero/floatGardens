@@ -47,7 +47,7 @@
     </div>
     <div class="hud-br">
       <div class="weapon">
-        <div class="w-name">AeroPress X-1 · carga</div>
+        <div class="w-name">Rociador X-1 · café a presión</div>
         <div class="w-ammo"><b id="ammo">12</b><span id="ammoMax">/ 12</span></div>
         <div id="reloadBar" class="reload hidden"><i id="reloadFill"></i><span>prensando…</span></div>
       </div>
@@ -58,22 +58,27 @@
     <div id="banner" class="banner"></div>
     <div id="numbers"></div>
     <div class="bigmap hidden"><canvas id="bigmap"></canvas><div class="bigmap-hint">M para cerrar</div></div>
-    <!-- vista cenital: telemetría, cápsula, energía y radar (estilo devlog) -->
+    <!-- vista cenital (celular): el kit de la web. Riel y puntos, objetivo, Vida y Agua, panel azul (solo Arcadia),
+         marcadores sobre el mundo, tarjeta verde de la fila que tienes al alcance y franja de métricas abajo -->
     <div id="td" class="td">
-      <div class="td-tele">
-        <span id="tdMode" class="h">en vivo · cosecha</span>
-        <div><i>velocidad</i><b id="tdSpeed">0,0</b><u>m/s</u></div>
-        <div><i>rumbo</i><b id="tdHeading">0°</b></div>
-        <div><i>vida</i><b id="tdHp">100</b><u>%</u></div>
-        <div><i>cerezas</i><b id="tdCherries">0</b></div>
-        <div><i>café</i><b id="tdAmmo">12 / 12</b></div>
-        <div><i>enemigos</i><b id="tdFoes">0</b></div>
+      <div class="td-top">
+        <nav class="td-rail"><span class="logo"><i data-i="hoja"></i></span><button class="on" data-td="map" aria-label="mapa"><i data-i="mapa"></i></button><button data-td="shop" aria-label="mejoras"><i data-i="mochila"></i></button><button data-td="rewards" aria-label="puntos"><i data-i="red"></i></button></nav>
+        <div class="td-icons"><span class="pts"><b id="tdPts">0</b>Float</span><button data-td="rewards" aria-label="avisos"><i data-i="campana"></i><span class="dot" id="tdDot"></span></button><button data-td="pause" aria-label="pausa"><i data-i="ajustes"></i></button></div>
       </div>
-      <div class="td-cap"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19 13 11"/></svg>Float Gardens <span id="tdPlace">Kennedy</span></div>
-      <div class="td-energy"><div class="l"><span>vida</span><b id="tdHpBig">100</b></div><div class="bar"><i id="tdHpFill"></i></div>
-        <div class="l en"><span>energía</span><b id="tdEn">100</b></div><div class="bar thin"><i id="tdEnFill"></i></div></div>
+      <div class="td-search"><i data-i="objetivo"></i><b id="tdObj"></b><span class="mono" id="tdObjN"></span></div>
+      <section class="td-vit">
+        <div class="td-card"><span class="lbl">Vida</span><span class="num"><b id="tdHp">100</b><span class="u" id="tdHpMax">/100</span></span><div class="bar"><i id="tdHpFill"></i></div></div>
+        <div class="td-card"><span class="lbl">Agua</span><span class="num"><b id="tdAmmo">12</b><span class="u" id="tdAmmoMax">/12</span></span><div class="bar"><i id="tdAmmoFill"></i></div></div>
+      </section>
+      <aside class="td-alert" id="tdAlert"><header><span>Atención</span><span class="mono" id="tdAlertCode"></span></header><h4 id="tdAlertTitle"></h4><div class="meta"><div><span id="tdAlertL1">Sellado</span><strong id="tdAlertV1">0 %</strong></div><div><span>Drones</span><strong id="tdAlertV2">0</strong></div></div><button class="ack" id="tdAlertAck" data-td="mark">Marcar drones</button></aside>
       <div id="tdTags"></div>
-      <div class="td-radar"><div class="t"><span>radar</span><span id="tdRadarN">0 enem.</span></div><canvas id="tdRadar" width="130" height="82"></canvas><div class="t"><span>-180°</span><span>0°</span><span>+180°</span></div></div>
+      <article class="td-harvest" id="tdCard"><div class="in"><h3 id="tdCardH">Fila B · Castillo</h3><div class="sub" id="tdCardSub">Tu terraza</div><div class="big num"><b id="tdCardBig">0</b><span class="u">%</span></div><div class="eta" id="tdCardEta"></div><div class="bars" id="tdCardBars"></div></div></article>
+      <section class="td-dock">
+        <div class="td-card"><span class="lbl">Cerezas</span><span class="num" id="tdCherries">0</span></div>
+        <div class="td-card"><span class="lbl">Zonas</span><span class="num"><b id="tdZones">0</b><span class="u" id="tdZonesMax">/6</span></span></div>
+        <div class="td-card"><span class="lbl">Señal de Arcadia</span><div class="sig" id="tdSig"></div></div>
+      </section>
+    </div>
     </div>
   </div>
   <div id="vignette"></div>
@@ -84,7 +89,7 @@
     <div id="stick"><div id="knob"></div></div>
     <button id="tFire" class="tb fire">disparar</button>
     <button id="tAim" class="tb aim">apuntar</button>
-    <button id="tJump" class="tb jump">saltar</button>
+    <button id="tJump" class="tb jump">saltar<i class="en"><b id="tEnFill"></b></i></button>
     <button id="tReload" class="tb reload">recargar</button>
     <button id="tAction" class="tb action">acción</button>
     <button id="tMap" class="tb small map" aria-label="mapa"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
@@ -107,6 +112,7 @@
   <script src="js3d/plagas.js"></script>
   <script src="js3d/input.js"></script>
   <script src="js3d/audio.js"></script>
+  <script src="js3d/fg-icons.js"></script>
   <script src="js3d/hud.js"></script>
   <script src="js3d/topdown.js"></script>
   <script src="js3d/menus.js"></script>

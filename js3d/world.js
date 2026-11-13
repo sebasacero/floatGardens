@@ -153,6 +153,7 @@
         sidewalk: new THREE.MeshLambertMaterial({ map: T.sidewalk, vertexColors: true }),
         grass: new THREE.MeshLambertMaterial({ map: T.grass, vertexColors: true }),
         cobble: new THREE.MeshLambertMaterial({ map: T.cobble, vertexColors: true }),
+        tile: new THREE.MeshLambertMaterial({ map: T.tile, vertexColors: true }),
         plain: new THREE.MeshLambertMaterial({ vertexColors: true }),
       };
       this.mats = mats;
@@ -189,7 +190,7 @@
 
       // la ciudad proyecta sombra (edificios y torres); pisos y marcas viales solo la reciben
       const casters = [];
-      for (const k in geo) if (geo[k].pos.length) { const m = geo[k].mesh(mats[k]); if (k !== 'sidewalk' && k !== 'grass' && k !== 'cobble') casters.push(m); scene.add(m); }
+      for (const k in geo) if (geo[k].pos.length) { const m = geo[k].mesh(mats[k]); if (k !== 'sidewalk' && k !== 'grass' && k !== 'cobble' && k !== 'tile') casters.push(m); scene.add(m); }
       if (this.superParts && this.superParts.length) { const m = new THREE.Mesh(W.Geom.merge(this.superParts), W.Geom.vcMat()); casters.push(m); scene.add(m); this.superParts = null; }
       for (const m of casters) m.castShadow = true;
       this.muralGeo.forEach((g, i) => { if (g.pos.length) scene.add(g.mesh(new THREE.MeshLambertMaterial({ map: T.murals[i] }))); });
@@ -373,7 +374,7 @@
     },
 
     coffeeBed(x, z, w, d) {
-      this.solidBox(x, z, 0.25, w, 0.45, d, '#3d444a');
+      this.solidBox(x, z, 0.25, w, 0.45, d, '#f4f5f3');
       this.solidBox(x, z, 0.7, w - 0.2, 0.04, d - 0.2, '#3a2a20');
       const parts = [];
       const along = Math.max(w, d), across = Math.min(w, d), horizontal = w >= d;
@@ -396,7 +397,8 @@
     // por tramos (cada tramo es un Planter con spot.bed).
     cropRow(x, z, len, name) {
       const w = 3.4;
-      this.solidBox(x, z, 0.25, w, 0.45, len, '#3d444a');
+      // jardinera blanca (estructura de la maqueta) con tierra y canal de agua a los lados
+      this.solidBox(x, z, 0.25, w, 0.45, len, '#f4f5f3');
       this.solidBox(x, z, 0.7, w - 0.24, 0.03, len - 0.24, '#3a2a20');
       for (const dx of [-w / 2 + 0.3, w / 2 - 0.3]) this.solidBox(x + dx, z, 0.7, 0.2, 0.05, len - 0.24, '#8e9c9d');
       addCollider(x - w / 2, x + w / 2, z - len / 2, z + len / 2, 0.9, 'bed');
@@ -406,7 +408,8 @@
     // Sede: la torre colgante de Kennedy y, a sus pies, la terraza de cultivo (filas A, B y C, tienda y costales)
     hq(x, z) {
       const g = this.geo;
-      g.cobble.box(x, z, 0.25, C.BLOCK - 4, 0.05, C.BLOCK - 4, col('#ffffff'), 8, 8);
+      // piso de baldosa blanca (una baldosa = 2 m), como la terraza del rediseño
+      g.tile.box(x, z, 0.25, C.BLOCK - 4, 0.05, C.BLOCK - 4, col('#ffffff'), (C.BLOCK - 4) / 2, (C.BLOCK - 4) / 2);
       // torre de terrazas colgantes (guía v2): la sede de la red, al norte de la plaza
       W.HangingTower.build(this.scene, x, z - 9, { terraces: 7, floorH: 6, base: 20, setback: 1.1, y0: 0.25, rnd, addCollider });
       // filas de cultivo, de norte a sur, con pasillos entre ellas (como la maqueta de la vista cenital)
@@ -421,8 +424,8 @@
       // camas de café a los lados de la torre (adorno: lo vivo con color)
       this.coffeeBed(x + 14.5, z - 9, 3.2, 16);
       this.coffeeBed(x - 14.5, z - 9, 3.2, 16);
-      // costales de la cosecha junto a la tienda
-      for (const [sx, sz, sy] of [[x + 9.2, z + 16.6, 0], [x + 10.5, z + 16.8, 0], [x + 9.8, z + 16.7, 0.9]]) { this.solidBox(sx, sz, 0.3 + sy, 1.15, 0.9, 1.15, '#e9a77c'); this.solidBox(sx, sz, 0.3 + sy + 0.5, 1.17, 0.1, 1.17, '#d18e63'); }
+      // costales de fique de la cosecha junto a la tienda (claros, con la franja verde de la red)
+      for (const [sx, sz, sy] of [[x + 9.2, z + 16.6, 0], [x + 10.5, z + 16.8, 0], [x + 9.8, z + 16.7, 0.66]]) { this.solidBox(sx, sz, 0.3 + sy, 1.15, 0.62, 0.8, '#efe8e1'); this.solidBox(sx, sz, 0.3 + sy + 0.5, 1.17, 0.05, 0.82, '#8f8576'); this.solidBox(sx + 0.32, sz, 0.3 + sy + 0.63, 0.12, 0.03, 0.82, '#4f8f2c'); }
       addCollider(x + 8.5, x + 11.2, z + 15.9, z + 17.5, 2, 'sacks');
       this.treeSpots = this.treeSpots || [];
       this.treeSpots.push({ x: x - 17, z: z + 17 }, { x: x + 17, z: z + 13 });
