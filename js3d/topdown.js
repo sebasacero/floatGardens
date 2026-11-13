@@ -467,7 +467,13 @@
       const v = this.tagVec || (this.tagVec = new THREE.Vector3());
       const v2 = this.tagVec2 || (this.tagVec2 = new THREE.Vector3());
       const W2 = window.innerWidth / 2, H2 = window.innerHeight / 2;
-      const top = 150 + (parseFloat(getComputedStyle(document.body).getPropertyValue('--sat')) || 0);
+      // distribución según la pantalla: en horizontal (pantalla baja) las tarjetas de arriba ocupan menos alto
+      const land = W2 > H2 && H2 * 2 <= 520;
+      this.land = land;
+      const top = (land ? 112 : 150) + (parseFloat(getComputedStyle(document.body).getPropertyValue('--sat')) || 0);
+      // dónde queda el barista en pantalla, para que la tarjeta verde no lo tape
+      v.set(p.pos.x, p.y + 1, p.pos.z).project(cam);
+      this.meAt = { x: v.x * W2 + W2, y: -v.y * H2 + H2 };
       const seen = new Set();
       // proyecta el centro y el radio: el cuadro crece y encoge con la lente
       const put = (key, x, y, z, r, label, cls) => {
@@ -479,7 +485,7 @@
         v2.set(x + r, y, z).project(cam);
         const sx = v.x * W2 + W2, sy = -v.y * H2 + H2;
         const px = Math.max(18, Math.abs(v2.x - v.x) * W2 * 2);
-        const hide = v.z > 1 || (sy < top && (sx < 200 || sx > W2 * 2 - 180)) ? 'none' : '';
+        const hide = v.z > 1 || (sy < top && (sx < 200 || sx > W2 * 2 - 180)) || (land && sy < 52) ? 'none' : '';
         if (el.style.display !== hide) el.style.display = hide;
         el.style.width = el.style.height = `${px.toFixed(0)}px`;
         el.style.transform = `translate(${(sx - px / 2).toFixed(1)}px, ${(sy - px / 2).toFixed(1)}px)`;
@@ -532,12 +538,36 @@
       const bars = document.getElementById('tdCardBars');
       if (bars && !bars.children.length) for (let i = 0; i < 24; i++) bars.appendChild(document.createElement('i'));
       if (bars) { const k = Math.round(pct / 100 * 24); for (let i = 0; i < 24; i++) { const c = bars.children[i]; const hi = i < k; const h = hi ? 40 + ((i * 29) % 55) : 22 + ((i * 11) % 12); if (c.style.height !== `${h}%`) c.style.height = `${h}%`; if (hi !== c.classList.contains('hi')) c.classList.toggle('hi', hi); } }
-      // junto al marcador, dentro de la pantalla
+      const el = document.getElementById('tdCard');
       const Wd = window.innerWidth, Hd = window.innerHeight;
-      let x = at.sx + at.px / 2 + 14, y = at.sy - 24;
-      if (x + 140 > Wd - 16) x = at.sx - at.px / 2 - 14 - 140;
-      x = Math.max(16, Math.min(Wd - 156, x));
-      y = Math.max(214, Math.min(Hd - 330, y));
+      const cs = getComputedStyle(document.body);
+      const gl = Math.max(16, parseFloat(cs.getPropertyValue('--gl')) || 16), gr = Math.max(16, parseFloat(cs.getPropertyValue('--gr')) || 16);
+      const sat = parseFloat(cs.getPropertyValue('--sat')) || 0, sab = parseFloat(cs.getPropertyValue('--sab')) || 0;
+      // horizontal: acoplada bajo Vida y Agua, encima del joystick (no cabe junto a la mata sin tapar el juego)
+      if (this.land) {
+        if (!el.classList.contains('dock')) el.classList.add('dock');
+        H.set('tdCard', 'transform', `translate(${gl.toFixed(0)}px, ${(116 + sat).toFixed(0)}px)`);
+        return;
+      }
+      if (el.classList.contains('dock')) el.classList.remove('dock');
+      // vertical: junto al marcador, dentro de la zona libre (bajo las tarjetas, sobre los controles),
+      // sin tapar al barista ni al panel azul
+      const cw = el.offsetWidth || 140, ch = el.offsetHeight || 150;
+      const stick = document.getElementById('stick');
+      const ctrlTop = stick && stick.offsetHeight ? stick.getBoundingClientRect().top - 27 : Hd - 229 - sab; // tope del bloque de acciones
+      const y0 = 214 + sat, y1 = Math.max(y0, ctrlTop - 10 - ch);
+      const x0 = gl, x1 = Wd - gr - cw;
+      const me = this.meAt || { x: Wd / 2, y: Hd / 2 };
+      const al = document.getElementById('tdAlert');
+      const blocks = [{ l: me.x - 30, r: me.x + 30, t: me.y - 44, b: me.y + 30 }];
+      if (al && al.classList.contains('on')) blocks.push({ l: Wd - gr - al.offsetWidth - 6, r: Wd, t: al.offsetTop, b: al.offsetTop + al.offsetHeight + 6 });
+      const hits = (x, y) => blocks.some((k) => x < k.r && x + cw > k.l && y < k.b && y + ch > k.t);
+      const clampX = (x) => Math.max(x0, Math.min(x1, x)), clampY = (y) => Math.max(y0, Math.min(y1, y));
+      const xr = clampX(at.sx + at.px / 2 + 14), xl = clampX(at.sx - at.px / 2 - 14 - cw);
+      const ys = [clampY(at.sy - 24), clampY(me.y + 36), clampY(me.y - 50 - ch), y1, y0];
+      let x = xr, y = ys[0], ok = false;
+      for (const cy of ys) { for (const cx of (at.sx + at.px / 2 + 14 + cw > Wd - gr ? [xl, xr] : [xr, xl])) { if (!hits(cx, cy)) { x = cx; y = cy; ok = true; break; } } if (ok) break; }
+      if (!ok) { x = x0; y = y1; }
       H.set('tdCard', 'transform', `translate(${x.toFixed(0)}px, ${y.toFixed(0)}px)`);
     },
   };
