@@ -21,38 +21,25 @@
     return g;
   }
 
-  // Sombra circular bajo los personajes
-  const shadowTex = (() => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 64;
-    const ctx = c.getContext('2d');
-    const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
-    g.addColorStop(0, 'rgba(0,0,0,0.45)');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 64, 64);
-    return new THREE.CanvasTexture(c);
-  })();
-  const shadowMat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false });
-  const shadowGeo = new THREE.PlaneGeometry(1.4, 1.4);
-
   // AeroPress X-1
+  // El rociador: una lanza de riego (tanque de café a presión, caño fino y boquilla verde), no un fusil.
   function makeAeroPress() {
     const g = new THREE.Group();
-    const chamber = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.42, 10), mat('#bcd6e6', { transparent: true, opacity: 0.8 }));
-    chamber.rotation.x = Math.PI / 2;
-    const coffee = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.26, 10), mat('#4a2c1d'));
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.34, 10), mat('#f4f5f3'));
+    tank.rotation.x = Math.PI / 2;
+    tank.position.z = -0.1;
+    const coffee = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.2, 10), mat('#4a2c1d'));
     coffee.rotation.x = Math.PI / 2;
-    coffee.position.z = 0.06;
-    const plunger = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.22, 10), mat('#333'));
-    plunger.rotation.x = Math.PI / 2;
-    plunger.position.z = -0.28;
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.04, 10), mat('#2fbf71'));
-    cap.rotation.x = Math.PI / 2;
-    cap.position.z = 0.23;
-    g.add(chamber, coffee, plunger, cap);
+    coffee.position.z = -0.04;
+    const lance = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 8), mat('#2c302e'));
+    lance.rotation.x = Math.PI / 2;
+    lance.position.z = 0.5;
+    const nozzle = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.12, 10), mat('#4f8f2c'));
+    nozzle.rotation.x = Math.PI / 2;
+    nozzle.position.z = 0.98;
+    g.add(tank, coffee, lance, nozzle);
     g.userData.muzzle = new THREE.Object3D();
-    g.userData.muzzle.position.z = 0.28;
+    g.userData.muzzle.position.z = 1.02;
     g.add(g.userData.muzzle);
     return g;
   }
@@ -90,7 +77,7 @@
     if (o.cap) b.push([0.4, 0.14, 0.4, o.cap, 0, 2.03, 0], [0.36, 0.04, 0.22, o.cap, 0, 1.97, 0.26]);
     if (o.hat === 'fedora') b.push([0.6, 0.04, 0.6, '#222', 0, 1.99, 0], [0.38, 0.2, 0.38, '#222', 0, 2.1, 0], [0.39, 0.05, 0.39, '#c0392b', 0, 2.03, 0]);
     if (o.hat === 'beret') b.push([0.44, 0.1, 0.44, '#8f1f1a', 0.03, 2.02, 0]);
-    if (o.hat === 'tophat') b.push([0.62, 0.04, 0.62, '#111', 0, 1.99, 0], [0.38, 0.5, 0.38, '#111', 0, 2.25, 0], [0.39, 0.07, 0.39, '#c0392b', 0, 2.05, 0]);
+    if (o.hat === 'tophat') b.push([0.62, 0.04, 0.62, '#111', 0, 1.99, 0], [0.38, 0.5, 0.38, '#111', 0, 2.25, 0], [0.39, 0.07, 0.39, '#2a22f5', 0, 2.05, 0]);
     if (o.sash) b.push([0.08, 0.85, 0.36, o.sash, 0, 1.22, 0, 0.6]);
     if (o.badge) b.push([0.1, 0.1, 0.03, '#e6c34a', 0.17, 1.4, 0.18]);
     if (o.helmet) {
@@ -105,12 +92,8 @@
     const body = parts(b);
     root.add(body);
     body.add(legL, legR, armL, armR);
-    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = 0.02;
-    root.add(shadow);
     if (o.scale) body.scale.setScalar(o.scale);
-    if (o.scale) shadow.scale.setScalar(o.scale);
+    root.traverse((m) => { if (m.isMesh) m.castShadow = true; });
 
     return {
       root, body, legL, legR, armL, armR,
@@ -150,18 +133,20 @@
     bar.userData.fill.scale.x = Math.max(0.001, bar.userData.width * frac);
   }
 
+  // Marcador sobre un peatón que quiere café: baldosa blanca cuadrada con una taza de trazo fino (como los marcadores de la web)
   const iconCache = new Map();
   function iconSprite(text, size) {
     if (!iconCache.has(text)) {
       const c = document.createElement('canvas');
       c.width = c.height = 64;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.beginPath(); ctx.arc(32, 32, 28, 0, Math.PI * 2); ctx.fill();
-      ctx.font = '36px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#4a2c1d';
-      ctx.fillText(text, 32, 35);
+      ctx.fillStyle = 'rgba(255,255,255,0.96)';
+      ctx.fillRect(6, 6, 52, 52);
+      ctx.strokeStyle = '#2c302e'; ctx.lineWidth = 3.2; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(19, 26); ctx.lineTo(41, 26); ctx.lineTo(39, 44); ctx.lineTo(21, 44); ctx.closePath(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(43, 33, 5, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+      ctx.strokeStyle = '#4f8f2c';
+      ctx.beginPath(); ctx.moveTo(26, 20); ctx.lineTo(26, 15); ctx.moveTo(33, 20); ctx.lineTo(33, 13); ctx.stroke();
       iconCache.set(text, new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
     }
     const s = new THREE.Sprite(iconCache.get(text));
@@ -171,17 +156,8 @@
   }
 
   // ---------- Jugador ----------
-  function makeBarista() {
-    const h = makeHuman({ shirt: '#f5f1e8', pants: '#2c2a27', apron: '#0f3d2e', cap: '#2fbf71', hair: '#2a1a10', skin: '#c98f62' });
-    const gun = makeAeroPress();
-    gun.position.set(0, -0.6, 0.18);
-    gun.rotation.x = Math.PI / 2;
-    h.armR.add(gun);
-    h.gun = gun;
-    return h;
-  }
-
-  // Barista de la vista cenital: armadura blanca (maqueta) con mochila de prensas de café
+  // Barista de la red: armadura blanca (maqueta) con mochila de prensas de café. Es el mismo en todas las cámaras.
+  function makeBarista() { return makeBaristaBlanco(); }
   function makeBaristaBlanco() {
     const h = makeHuman({ shirt: '#f2f3f1', pants: '#c9ccca', skin: '#f2f3f1', helmet: '#f2f3f1', jetpack: true });
     const gun = makeAeroPress();
@@ -218,13 +194,9 @@
       body.add(r);
       rotors.push(r);
     }
-    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = 0.02;
-    root.add(shadow);
     const noop = new THREE.Group();
     return {
-      root, body, legL: noop, legR: noop, armL: noop, armR: noop, drone: true,
+      root, body, cone, legL: noop, legR: noop, armL: noop, armR: noop, drone: true,
       animate(phase, amount, aiming) {
         body.position.y = Math.sin(phase * 0.35) * 0.08;
         for (let i = 0; i < 4; i++) rotors[i].rotation.y = phase * 3 + i;
@@ -261,49 +233,35 @@
       this.headY = 1.79;
     }
 
-    // Aspecto: humano de la Federación, o dron de Arcadia en la vista cenital. Se puede volver a llamar
-    // al cambiar de vista (reskin) sin perder posición ni vida.
+    // Aspecto: dron de Arcadia (escáner o sellador).
     buildMesh() {
       const t = this.t, kind = this.kind;
-      const cenital = W.TopDown && W.TopDown.active;
-      if (cenital) {
-        this.h = makeDrone(kind);
-        this.name = `Dron ${this.serial}`;
-      } else {
-        const look = { shirt: t.color, pants: '#26282d', hat: t.hat, tie: '#c0392b', badge: true, mustache: Math.random() < 0.5, skin: Math.random() < 0.5 ? '#d9a273' : '#a8714a' };
-        // el guardia lleva una pila de sellos; el inspector, su carpeta
-        if (kind === 'guardia') look.holdR = [[0.25, 0.12, 0.25, '#c0392b', 0, -0.72, 0.1]];
-        else look.holdL = [[0.28, 0.36, 0.04, '#9a6b3f', 0, -0.62, 0.15]];
-        this.h = makeHuman(look);
-        this.name = t.name;
-      }
-      this.bar = makeBar(0.9, cenital ? '#2a22f5' : '#ff4b3a');
+      // guía v2: la amenaza es Arcadia y es azul, en cualquier cámara
+      this.h = makeDrone(kind);
+      this.name = `${t.name} ${this.serial}`;
+      this.bar = makeBar(0.9, '#2a22f5');
       this.bar.position.y = 2.45;
       this.h.root.add(this.bar);
       this.mesh = this.h.root;
-      this.h.root.traverse((o) => { if (o.isMesh && o.material !== shadowMat) o.castShadow = true; });
+      this.h.body.castShadow = true;
     }
-    reskin() {
-      if (this.boss) return;
-      const parent = this.mesh.parent;
-      const pos = this.mesh.position.clone(), rot = this.mesh.rotation.y;
-      if (parent) parent.remove(this.mesh);
-      this.buildMesh();
-      this.mesh.position.copy(pos);
-      this.mesh.rotation.y = rot;
-      if (parent) parent.add(this.mesh);
-    }
-
     get dead() { return this.hp <= 0; }
 
     update(dt, G) {
       const p = G.player;
       if (this.dead) {
+        // el dron pierde sustentación: gira, cae y se apaga
         this.ko += dt;
-        this.h.body.rotation.x = Math.min(Math.PI / 2, this.ko * 4);
-        this.mesh.position.y = W.World.baseY(this.pos.x, this.pos.z) - Math.max(0, this.ko - 1.2) * 1.5;
+        const b = this.h.body;
+        b.rotation.z += dt * (9 - Math.min(8, this.ko * 6));
+        b.rotation.x = Math.min(0.9, this.ko * 2.2);
+        b.position.y = Math.max(-0.95, b.position.y - dt * (1 + this.ko * 9));
+        if (this.h.cone) this.h.cone.visible = false;
+        this.mesh.position.y = W.World.baseY(this.pos.x, this.pos.z) - Math.max(0, this.ko - 1.3) * 1.5;
         return this.ko > 2;
       }
+      // golpe: el cuerpo se hincha un instante
+      if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt); this.h.body.scale.setScalar(1 + this.flash * 2.4); }
       const dx = p.pos.x - this.pos.x, dz = p.pos.z - this.pos.z;
       const dist = Math.hypot(dx, dz);
       if (!this.alerted && dist < 32 && !p.dead) {
@@ -359,6 +317,7 @@
     hit(dmg) {
       this.hp -= dmg;
       this.alerted = true;
+      this.flash = 0.12;
       if (this.dead) this.bar.visible = false;
     }
   }
@@ -370,10 +329,10 @@
       this.boss = true;
       this.maxHp = this.hp = W.BOSS.hp;
       this.speed = 2.6;
-      this.h = makeHuman({ shirt: '#2f3136', pants: '#18191c', hat: 'tophat', sash: '#c0392b', badge: true, mustache: true, scale: 2.6, skin: '#d9a273' });
+      this.h = makeHuman({ shirt: '#2f3136', pants: '#18191c', hat: 'tophat', sash: '#2a22f5', badge: true, mustache: true, scale: 2.6, skin: '#d9a273' });
       this.mesh = this.h.root;
       this.mesh.position.set(x, 0, z);
-      this.bar = makeBar(0.01, '#ff4b3a');
+      this.bar = makeBar(0.01, '#2a22f5');
       this.radius = 1.2;
       this.headY = 1.79 * 2.6;
       this.volley = 2.5;
@@ -404,7 +363,7 @@
         this.volley = 2.6;
         const n = rage > 1 ? 7 : 5;
         for (let i = 0; i < n; i++) G.throwStamp(this, p, 12, (i - (n - 1) / 2) * 0.12, 4.2);
-        G.say(this, ['¡Sellado y decomisado!', '¡Formulario rechazado!', '¡Nadie compite conmigo!'][Math.floor(Math.random() * 3)]);
+        G.say(this, ['Sellado y decomisado', 'Licencia rechazada', 'Nadie compite con Arcadia'][Math.floor(Math.random() * 3)]);
       }
       // llama refuerzos
       this.summon -= dt;
@@ -480,7 +439,7 @@
       this.speed = 1.3 + Math.random() * 0.6;
       this.wants = false;
       this.wantTimer = 5 + Math.random() * 20;
-      this.icon = iconSprite('☕', 0.55);
+      this.icon = iconSprite('taza', 0.6);
       this.icon.position.y = 2.4;
       this.icon.visible = false;
       this.mesh.add(this.icon);
@@ -537,9 +496,11 @@
   const planterGeo = (() => {
     const M = W.Geom.matrix;
     // mata de café frondosa (guía v2): hojas en cuatro verdes, brotes lima y cerezas rojas/pintonas/amarillas
-    const leafGeo = new THREE.SphereGeometry(0.5, 7, 5);
+    // pocas caras: con sombreado plano se ve igual y cada mata pesa la tercera parte
+    const leafGeo = new THREE.SphereGeometry(0.5, 6, 3);
     leafGeo.scale(1, 0.32, 0.55);
-    const cg = new THREE.SphereGeometry(0.07, 6, 5);
+    const cg = new THREE.SphereGeometry(0.075, 5, 3);
+    const cgLo = new THREE.SphereGeometry(0.085, 4, 2);
     const LEAF = ['#1f5f27', '#2c7a2f', '#357f30', '#24682a'];
     let seed = 11;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -553,53 +514,137 @@
     const CH = ['#b3121a', '#b3121a', '#e0471c', '#e8a31f'];
     for (let i = 0; i < 16; i++) {
       const a = rnd() * 6.28, h = 0.4 + rnd() * 0.6, r = 0.18 + rnd() * 0.25, c = CH[i % 4];
-      for (let k = 0; k < 3; k++) cherries.push({ geo: cg, matrix: M(Math.cos(a) * r + k * 0.05, h + k * 0.03, Math.sin(a) * r), color: c });
+      for (let k = 0; k < 3; k++) cherries.push({ geo: cg, matrix: M(Math.cos(a) * r + k * 0.05, h + k * 0.03, Math.sin(a) * r), color: c, ci: i % 4 });
+    }
+    // pústulas de roya: polvo naranja sobre las hojas (se muestran cuando la mata está infectada)
+    const spotGeo = new THREE.SphereGeometry(0.15, 5, 3);
+    const spots = [];
+    for (let i = 0; i < 26; i++) {
+      const a = rnd() * 6.28, h = 0.4 + rnd() * 0.8, r = 0.3 + rnd() * 0.42 * (1.15 - h * 0.4);
+      spots.push({ geo: spotGeo, matrix: M(Math.cos(a) * r, h + 0.1, Math.sin(a) * r, 0, 0, 0, 0.7 + rnd() * 0.8), color: i % 3 ? '#d9601a' : '#e8791c' });
     }
     // variante liviana para las jardineras de las torres (muchas matas por torre): 9 hojas y 5 racimos
-    const lo = [plant[0]];
-    for (let i = 0; i < 9; i++) lo.push(plant[1 + i * 2]);
+    // (se ven de lejos: sin tronco, 7 hojas, un brote y 4 racimos)
+    const lo = [];
+    for (let i = 0; i < 7; i++) lo.push(plant[1 + i * 3]);
     lo.push(plant[25]);
     const loCh = [];
-    for (let i = 0; i < 5; i++) loCh.push(cherries[i * 9]);
+    for (let i = 0; i < 4; i++) loCh.push({ geo: cgLo, matrix: cherries[i * 9].matrix, color: cherries[i * 9].color });
+    // tramo de una fila de cultivo: 2 x 3 matas que se cosechan juntas (las filas A, B y C de la terraza)
+    const full = W.Geom.merge(plant), fullCh = W.Geom.merge(cherries);
+    const seg = [], segCh = [], segM = [];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+      const m = M((j - 0.5) * 1.5 + (rnd() - 0.5) * 0.2, 0, (i - 1) * 1.5 + (rnd() - 0.5) * 0.2, 0, rnd() * 6.28, 0, 0.95 + rnd() * 0.2);
+      seg.push({ geo: full, matrix: m }); segCh.push({ geo: fullCh, matrix: m }); segM.push(m);
+    }
+    const fullSpots = W.Geom.merge(spots);
+    // cerezas con la paleta de cada variedad (rojas, amarillas, vinotinto…); se arman una vez por variedad
+    const chCache = {};
+    const cherriesFor = (key, pal, bed) => {
+      const k = key + (bed ? ':b' : ':p');
+      if (!chCache[k]) {
+        const one = W.Geom.merge(cherries.map((d) => ({ geo: cg, matrix: d.matrix, color: pal[d.ci] })));
+        chCache[k] = bed ? W.Geom.mergeColored(segM.map((m) => ({ geo: one, matrix: m }))) : one;
+      }
+      return chCache[k];
+    };
     return {
+      cherriesFor,
+      spots: fullSpots,
+      segSpots: W.Geom.mergeColored(segM.map((m) => ({ geo: fullSpots, matrix: m }))),
+      seg: W.Geom.mergeColored(seg),
+      segCherries: W.Geom.mergeColored(segCh),
       plantLo: W.Geom.merge(lo),
       cherriesLo: W.Geom.merge(loCh),
       base: W.Geom.merge([
         { geo: new THREE.CylinderGeometry(1.1, 1.1, 0.25, 14), matrix: M(0, 0.12, 0), color: '#f2f2ee' },
         { geo: new THREE.CylinderGeometry(0.35, 0.3, 0.3, 10), matrix: M(0, 0.3, 0), color: '#2d2d2d' },
       ]),
-      plant: W.Geom.merge(plant),
-      cherries: W.Geom.merge(cherries),
+      plant: full,
+      cherries: fullCh,
     };
   })();
+  const royaMat = new THREE.MeshLambertMaterial({ vertexColors: true, emissive: '#5a2000', emissiveIntensity: 0.5, flatShading: true });
+  const LEAF_SICK = new THREE.Color('#ffc861');
   class Planter {
     constructor(spot) {
       this.pos = { x: spot.x, z: spot.z };
       this.mesh = new THREE.Group();
+      this.bed = !!spot.bed;
+      this.label = spot.label || '';
+      this.row = spot.row || '';
+      this.group = spot.group || 'hq';
+      this.reach = this.bed ? 3.5 : spot.water ? 4 : 3.3;
       // base, planta y cerezas: tres mallas fusionadas (antes eran 16 piezas sueltas)
-      this.mesh.add(new THREE.Mesh(planterGeo.base, W.Geom.vcMat()));
+      if (!this.bed) this.mesh.add(new THREE.Mesh(planterGeo.base, W.Geom.vcMat()));
       this.plant = new THREE.Group();
-      this.plant.position.y = 0.4;
-      this.plant.add(new THREE.Mesh(planterGeo.plant, W.Geom.vcMat({ flatShading: true })));
+      this.plant.position.y = this.bed ? 0 : 0.4;
+      // el follaje tiene material propio: se tiñe según la variedad y amarillea con la roya
+      this.leafMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+      this.plant.add(new THREE.Mesh(this.bed ? planterGeo.seg : planterGeo.plant, this.leafMat));
       this.cherries = new THREE.Mesh(planterGeo.cherries, W.Geom.vcMat({ emissive: '#3a0805' }));
       this.plant.add(this.cherries);
+      this.spots = new THREE.Mesh(this.bed ? planterGeo.segSpots : planterGeo.spots, royaMat);
+      this.spots.visible = false;
+      this.plant.add(this.spots);
       this.mesh.add(this.plant);
       this.mesh.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      this.spots.castShadow = false;
       this.mesh.position.set(spot.x, spot.y || (spot.water ? 0.3 : 0.3), spot.z);
       this.growth = Math.random() * 0.6;
       this.bob = Math.random() * 6;
       this.water = spot.water;
       this.baseY = this.mesh.position.y;
+      this.roya = 0;   // 0 sana · 1 roya total (se cae la hoja)
+      this.leaf = 1;   // follaje: lo recortan las hormigas arrieras y la roya
+      this.spore = 0;
+      this.setVariety(spot.variety || 'caturra');
     }
+    setVariety(id) {
+      this.varietyId = W.VARIEDADES[id] ? id : 'caturra';
+      this.variety = W.VARIEDADES[this.varietyId];
+      this.cherries.geometry = planterGeo.cherriesFor(this.varietyId, this.variety.cherry, this.bed);
+      this.leafBase = new THREE.Color(this.variety.leaf || '#ffffff');
+      this.leafMat.color.copy(this.leafBase);
+    }
+    replant(id) { this.setVariety(id); this.growth = 0; this.roya = 0; this.leaf = 1; this.pop = 1; }
     get ripe() { return this.growth >= 1; }
-    update(dt, G, rate) {
-      if (this.growth < 1) this.growth = Math.min(1, this.growth + (dt / C.REGROW_TIME) * rate);
-      const s = 0.35 + Math.min(1, this.growth) * 0.65;
-      this.plant.scale.setScalar(s);
-      this.cherries.visible = this.ripe;
-      if (this.water) this.mesh.position.y = this.baseY + Math.sin(G.time * 1.5 + this.bob) * 0.05;
+    get sick() { return this.roya > 0; }
+    // La roya llega a la mata: las variedades resistentes (Castillo, Tabi) casi siempre la rechazan.
+    infect() {
+      if (this.roya > 0) return 'ya';
+      if (Math.random() < this.variety.roya) return 'resiste';
+      this.roya = 0.04;
+      return 'infectada';
     }
-    harvest() { this.growth = 0; }
+    cure() { this.roya = 0; this.spore = 0; }
+    update(dt, G, rate) {
+      const v = this.variety, P = W.PLAGAS;
+      if (this.roya > 0) {
+        this.roya = Math.min(1, this.roya + dt / P.roya.time);
+        if (this.roya >= 1) {
+          // roya total: se cae la hoja y la cosecha que estaba lista se pierde
+          this.leaf = Math.max(0.35, this.leaf - dt * 0.05);
+          this.growth = Math.max(0.3, this.growth - dt * 0.04);
+        }
+      } else if (this.leaf < 1) this.leaf = Math.min(1, this.leaf + dt * 0.02);
+      const r = rate * v.grow * (0.3 + 0.7 * this.leaf) * (1 - 0.85 * this.roya);
+      if (this.growth < 1) this.growth = Math.min(1, this.growth + (dt / C.REGROW_TIME) * r);
+      const g = Math.min(1, this.growth);
+      // recién cosechada rebota un momento (pop) y luego vuelve a crecer
+      this.pop = Math.max(0, (this.pop || 0) - dt * 3);
+      const k = (1 + Math.sin(this.pop * Math.PI) * 0.12) * (0.6 + 0.4 * this.leaf);
+      const hy = v.height || 1;
+      if (this.bed) this.plant.scale.set((0.66 + g * 0.34) * k, (0.45 + g * 0.55) * k * hy, (0.8 + g * 0.2) * k);
+      else this.plant.scale.set((0.35 + g * 0.65) * k, (0.35 + g * 0.65) * k * hy, (0.35 + g * 0.65) * k);
+      this.cherries.visible = this.ripe;
+      this.spots.visible = this.roya > 0.1;
+      // la hoja con roya amarillea: el tinte le quita verde y el brillo propio le suma amarillo
+      this.leafMat.color.copy(this.leafBase).lerp(LEAF_SICK, this.roya * 0.8);
+      this.leafMat.emissive.setRGB(0.4 * this.roya, 0.25 * this.roya, 0);
+      if (this.water && !this.bed) this.mesh.position.y = this.baseY + Math.sin(G.time * 1.5 + this.bob) * 0.05;
+    }
+    harvest() { this.growth = 0; this.pop = 1; }
   }
 
   // ---------- Botín (cajas de café y cerezas sueltas) ----------
@@ -609,21 +654,18 @@
       this.amount = amount;
       this.kind = kind || 'crate';
       this.mesh = new THREE.Group();
-      const cenital = W.TopDown && W.TopDown.active;
-      if (this.kind === 'crate' && cenital) {
-        // costal de café (caja durazno del video)
-        this.mesh.add(box(1.0, 0.8, 1.0, '#e9a77c', 0, 0.4, 0));
-        this.mesh.add(box(1.02, 0.1, 1.02, '#d18e63', 0, 0.55, 0));
-      } else if (this.kind === 'crate') {
-        this.mesh.add(box(0.8, 0.6, 0.8, '#8b5a2b', 0, 0.3, 0));
-        this.mesh.add(box(0.82, 0.12, 0.82, '#2fbf71', 0, 0.45, 0));
+      if (this.kind === 'crate') {
+        // costal de café: fique claro con la franja verde de la red
+        this.mesh.add(box(1.15, 0.62, 0.8, '#efe8e1', 0, 0.31, 0));
+        this.mesh.add(box(1.17, 0.05, 0.82, '#8f8576', 0, 0.5, 0));
+        this.mesh.add(box(0.12, 0.03, 0.82, '#4f8f2c', 0.32, 0.625, 0));
       } else {
         const orb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), mat('#e0413a', { emissive: '#5a0a05' }));
         orb.position.y = 0.4;
         this.mesh.add(orb);
       }
-      const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.9, 20), new THREE.MeshBasicMaterial({ color: cenital ? '#d6e48a' : this.kind === 'crate' ? '#ffd34d' : '#ff6b5b', transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
-      this.mesh.children[0].castShadow = true;
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.9, 20), new THREE.MeshBasicMaterial({ color: '#d6e48a', transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+      this.mesh.children.forEach((c) => { c.castShadow = true; });
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = 0.05;
       this.ring = ring;
@@ -633,7 +675,7 @@
     }
     update(dt) {
       this.t += dt;
-      this.mesh.rotation.y += dt * (W.TopDown && W.TopDown.active ? 0.25 : 1);
+      this.mesh.rotation.y += dt * 0.25;
       this.mesh.children[0].position.y = (this.kind === 'crate' ? 0.3 : 0.4) + Math.sin(this.t * 3) * 0.1;
       this.ring.material.opacity = 0.4 + Math.sin(this.t * 4) * 0.3;
     }
@@ -693,11 +735,11 @@
   // ---------- Proyectiles ----------
   const tracerGeo = new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.06, 0.5, 2, 6) : new THREE.CylinderGeometry(0.06, 0.06, 0.6, 6);
   const tracerMat = new THREE.MeshBasicMaterial({ color: '#7a4422' });
+  const tracerGeoBig = tracerGeo.clone().scale(1.5, 2.2, 1.5);
   function makeTracer() {
-    const m = new THREE.Mesh(tracerGeo, tracerMat);
-    return m;
+    return new THREE.Mesh(tracerGeoBig, tracerMat);
   }
-  const stampMat = new THREE.MeshLambertMaterial({ color: '#c0392b', emissive: '#4a0b06' });
+  const stampMat = new THREE.MeshLambertMaterial({ color: '#2a22f5', emissive: '#2a22f5', emissiveIntensity: 0.8 });
   const stampGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.12, 12);
   function makeStamp() {
     return new THREE.Mesh(stampGeo, stampMat);
@@ -734,5 +776,5 @@
     }
   }
 
-  W.Ent = { makeHuman, makeBarista, makeBaristaBlanco, makeDrone, planterGeo, Enemy, Boss, Pedestrian, Planter, Loot, Zone, makeTracer, makeStamp, Particles, iconSprite, lerpAngle, makeBar, setBar };
+  W.Ent = { steer, tracerMat, makeHuman, makeBarista, makeBaristaBlanco, makeDrone, planterGeo, Enemy, Boss, Pedestrian, Planter, Loot, Zone, makeTracer, makeStamp, Particles, iconSprite, lerpAngle, makeBar, setBar };
 })();

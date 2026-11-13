@@ -1,22 +1,25 @@
-// Vista cenital ("devlog"): cámara casi vertical de lente larga, mira asistida tipo twin-stick,
-// piso con retícula y dos temas: noche (piso carbón, el estilo del video) y día (maqueta blanca).
-// Se activa sola en pantallas táctiles; en PC se elige en el lobby o en pausa. Todo el mundo 3D,
-// los enemigos y el balance son los mismos: solo cambian cámara, mira, controles y HUD.
+// Vista cenital (rediseño v3, guía de diseño v2): cámara casi vertical de lente larga sobre la terraza,
+// mira asistida tipo twin-stick y el HUD del kit de la web (riel, objetivo, Vida y Agua, marcadores de 1,5 px,
+// tarjeta verde, panel azul solo para Arcadia, franja de métricas). Se activa sola en pantallas táctiles;
+// en PC se elige en el lobby o en pausa. Este módulo también lleva la LUZ del juego para las dos cámaras:
+// día (maqueta blanca al sol) y noche (la misma maqueta con menos luz y regletas cálidas sobre las filas).
+// El mundo 3D, los enemigos y el balance son los mismos: solo cambian cámara, mira, controles y HUD.
 (function () {
   const KEY = 'fg.cenital', KEY_THEME = 'fg.cenital.tema';
   const read = (k, def) => { try { const v = localStorage.getItem(k); return v === null ? def : v; } catch (e) { return def; } };
   const write = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* modo privado */ } };
 
   const THEMES = {
+    // noche: la misma maqueta blanca con menos luz (cielo oscuro, sol de luna frío, exposición baja)
     noche: {
-      sky: '#23272c', fogNear: 90, fogFar: 520,
-      ground: '#262b30', paving: '#3a4046', grid: 'rgba(255,255,255,0.09)',
-      hemi: { sky: '#aab4c8', ground: '#15181b', intensity: 0.42 }, sun: 0.85, sunColor: '#ffdcb4',
+      sky: '#161b20', zenith: '#0d1013', fogNear: 90, fogFar: 520,
+      ground: '#ffffff', paving: '#ffffff', grid: 'rgba(255,255,255,0.0)',
+      hemi: { sky: '#a9b6cc', ground: '#1e2429', intensity: 0.32 }, sun: 0.3, sunColor: '#d6e0f5', exposure: 0.72, grow: 18,
     },
     dia: {
-      sky: '#e3e9e8', fogNear: 110, fogFar: 650,
-      ground: '#ffffff', paving: '#ffffff', grid: 'rgba(44,48,46,0.14)',
-      hemi: { sky: '#eef4ff', ground: '#8f9a88', intensity: 0.75 }, sun: 1.05, sunColor: '#fff1dc',
+      sky: '#e3e9e8', zenith: '#c5d3dc', fogNear: 110, fogFar: 650,
+      ground: '#ffffff', paving: '#ffffff', grid: 'rgba(44,48,46,0.0)',
+      hemi: { sky: '#eef4ff', ground: '#b7c2a8', intensity: 1.0 }, sun: 1.6, sunColor: '#fff4e4', exposure: 1.12, grow: 0,
     },
   };
 
@@ -24,14 +27,16 @@
     enabled: false,
     theme: 'noche',
     // cámara
-    FOV: 24, DIST: 54, TILT: 9 * Math.PI / 180,
+    FOV: 22, DIST: 58, TILT: 9 * Math.PI / 180,
     AUTO_AIM_RANGE: 42, AUTO_AIM_CONE: Math.PI / 5, SNAP_CONE: 0.2,
     GRID: 8,
 
     load(isTouch) {
       const saved = read(KEY, null);
       this.enabled = saved === null ? !!isTouch : saved === '1';
-      this.theme = THEMES[read(KEY_THEME, 'noche')] ? read(KEY_THEME, 'noche') : 'noche';
+      // sin preferencia guardada: noche en el celular (el estilo del video), día en PC
+      const def = isTouch ? 'noche' : 'dia';
+      this.theme = THEMES[read(KEY_THEME, def)] ? read(KEY_THEME, def) : def;
     },
     get active() { return this.enabled; },
 
@@ -65,13 +70,6 @@
       this.grid.renderOrder = 1;
       this.grid.visible = false;
       scene.add(this.grid);
-      // sombra blanda bajo el barista (la escena no usa sombras reales)
-      this.blob = new THREE.Mesh(new THREE.CircleGeometry(0.75, 24), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.28, depthWrite: false }));
-      this.blob.rotation.x = -Math.PI / 2;
-      this.blob.position.y = 0.03;
-      this.blob.renderOrder = 2;
-      this.blob.visible = false;
-      scene.add(this.blob);
       // marcador de mira: una línea fina en el piso hacia donde apunta (lima = "lo que apuntas")
       this.aimLine = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 1), new THREE.MeshBasicMaterial({ color: '#d6e48a', transparent: true, opacity: 0.9, depthWrite: false }));
       this.aimLine.rotation.x = -Math.PI / 2;
@@ -82,7 +80,59 @@
       this.camVec = new THREE.Vector3();
       this.lookVec = new THREE.Vector3();
       this.follow = null;
+      // cielo: cúpula con degradado del horizonte (color de la niebla) al cenit; sigue a la cámara
+      const sc = document.createElement('canvas');
+      sc.width = 4; sc.height = 256;
+      this.skyCtx = sc.getContext('2d');
+      this.skyTex = new THREE.CanvasTexture(sc);
+      this.skyDome = new THREE.Mesh(new THREE.SphereGeometry(820, 24, 12), new THREE.MeshBasicMaterial({ map: this.skyTex, side: THREE.BackSide, fog: false, depthWrite: false }));
+      this.skyDome.renderOrder = -10;
+      this.skyDome.frustumCulled = false;
+      scene.add(this.skyDome);
+      // destello del disparo
+      this.flash = new THREE.PointLight('#ffd9a8', 0, 10, 2);
+      scene.add(this.flash);
+      // regletas de cultivo sobre las filas A, B y C: cálidas, solo encienden de noche
+      this.growLights = [];
+      const hq = W.World.hqSpot;
+      if (hq) for (const dx of [-11, -3.5, 4]) { const L = new THREE.PointLight('#fff1d6', 0, 11, 1.6); L.position.set(hq.x + dx, 3.2, hq.z + 8.4); scene.add(L); this.growLights.push(L); }
+      // íconos del kit y botones del riel (mapa, mejoras, puntos, pausa) y del panel azul (marcar drones)
+      if (window.fgIcons) fgIcons(document.getElementById('td'));
+      document.getElementById('td').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-td]');
+        if (b) this.railAction(G, b.dataset.td);
+      });
       this.apply(G);
+    },
+
+    // Botones del riel y del panel azul en el juego
+    railAction(G, a) {
+      if (G.state !== 'playing') return;
+      if (a === 'map') { G.showMap = !G.showMap; W.HUD.setBigMap(G.showMap); }
+      else if (a === 'pause') G.pause();
+      else if (a === 'shop') { G.pause(); W.Menus.returnTo = 'pause'; W.Menus.show('shop', { from: 'game' }); }
+      else if (a === 'rewards') { G.pause(); W.Menus.returnTo = 'pause'; W.Menus.show('rewards'); }
+      else if (a === 'mark') { this.markUntil = G.time + 8; }
+    },
+
+    drawSky(T, rain) {
+      const g = this.skyCtx;
+      const grad = g.createLinearGradient(0, 0, 0, 256);
+      const top = rain ? '#77848f' : T.zenith, hor = rain ? '#8e9ba6' : T.sky;
+      grad.addColorStop(0, top); grad.addColorStop(0.42, hor); grad.addColorStop(1, hor);
+      g.fillStyle = grad; g.fillRect(0, 0, 4, 256);
+      this.skyTex.needsUpdate = true;
+    },
+    // Cielo y niebla según tema y clima (la lluvia solo cambia el cielo de día)
+    sky(G) {
+      const T = THEMES[this.theme];
+      const rain = G.raining && this.theme === 'dia';
+      const c = rain ? '#8e9ba6' : T.sky;
+      G.scene.background.set(c);
+      G.scene.fog.color.set(c);
+      G.scene.fog.near = this.enabled ? T.fogNear : 55;
+      G.scene.fog.far = this.enabled ? T.fogFar : rain ? 320 : 480;
+      this.drawSky(T, rain);
     },
 
     drawGrid(color) {
@@ -97,43 +147,35 @@
     apply(G) {
       const on = this.enabled;
       const T = THEMES[this.theme];
+      const night = this.theme === 'noche';
       const body = document.body;
       body.classList.toggle('cenital', on);
-      body.classList.toggle('cenital-noche', on && this.theme === 'noche');
-      body.classList.toggle('cenital-dia', on && this.theme === 'dia');
+      body.classList.toggle('cenital-noche', on && night);
+      body.classList.toggle('cenital-dia', on && !night);
+      body.classList.toggle('fg-noche', night);
       W.Input.topdown = on;
       if (this.grid) this.grid.visible = on;
-      if (this.blob) this.blob.visible = false; // con sombras reales no hace falta
-      if (G.sun) G.sun.castShadow = on;
-      this.reskin(G, on);
       if (this.aimLine) this.aimLine.visible = false;
       if (on) this.drawGrid(T.grid);
-      // luces, cielo, niebla y piso
-      const sky = on ? T.sky : G.skyColor.getStyle();
-      G.scene.background.set(sky);
-      G.scene.fog.color.set(sky);
-      G.scene.fog.near = on ? T.fogNear : 40;
-      G.scene.fog.far = on ? T.fogFar : 430;
-      if (G.hemi) {
-        if (on) { G.hemi.color.set(T.hemi.sky); G.hemi.groundColor.set(T.hemi.ground); G.hemi.intensity = T.hemi.intensity; }
-        else { G.hemi.color.copy(G.hemiBase.color); G.hemi.groundColor.copy(G.hemiBase.ground); G.hemi.intensity = G.hemiBase.intensity; }
-      }
-      if (G.sun) { G.sun.intensity = on ? T.sun : G.sunBase; G.sun.color.set(on ? T.sunColor : '#fff4e0'); }
-      // tonemapping de cine solo en la cenital (los materiales se recompilan)
-      if (G.renderer) {
-        const tm = on ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
-        if (G.renderer.toneMapping !== tm) {
-          G.renderer.toneMapping = tm;
-          G.renderer.toneMappingExposure = on ? 1.15 : 1;
-          G.scene.traverse((o) => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.needsUpdate = true; }); });
-        }
+      // luces, cielo, niebla y piso: iguales en las dos cámaras
+      this.sky(G);
+      if (G.hemi) { G.hemi.color.set(T.hemi.sky); G.hemi.groundColor.set(T.hemi.ground); G.hemi.intensity = T.hemi.intensity; }
+      if (G.sun) {
+        G.sun.intensity = T.sun; G.sun.color.set(T.sunColor);
+        // la cenital ve ~30 m alrededor; la tercera persona necesita sombras más lejos
+        const r = on ? 34 : 62, sc = G.sun.shadow.camera;
+        if (sc.right !== r) { sc.left = -r; sc.right = r; sc.top = r; sc.bottom = -r; sc.updateProjectionMatrix(); }
       }
       if (!on) this.clearTags();
-      if (W.World.ground) W.World.ground.material.color.set(on ? T.ground : '#ffffff');
-      // andenes, adoquín y pasto: de noche son "la mesa oscura" bajo la maqueta blanca
+      if (W.World.ground) W.World.ground.material.color.set(T.ground);
+      // la maqueta no cambia de color de noche: solo hay menos luz
       const mats = W.World.mats || {};
-      for (const k of ['sidewalk', 'cobble', 'grass']) if (mats[k]) mats[k].color.set(on ? T.paving : '#ffffff');
-      if (W.World.pool) W.World.pool.material.color.set(on && this.theme === 'noche' ? '#2f363b' : '#8e9c9d');
+      for (const k of ['sidewalk', 'cobble', 'grass', 'tile']) if (mats[k]) mats[k].color.set(T.paving);
+      if (G.renderer) G.renderer.toneMappingExposure = T.exposure;
+      if (this.growLights) for (const L of this.growLights) L.intensity = T.grow;
+      // el chorro del rociador: lima de día (lo que apuntas), blanco de noche
+      if (W.Ent.tracerMat) W.Ent.tracerMat.color.set(night ? '#ffffff' : '#d6e48a');
+      if (!on && G.camera) this.leaveLobby(G);
       if (G.camera) {
         G.camera.fov = on ? this.FOV : 70;
         G.camera.updateProjectionMatrix();
@@ -143,39 +185,25 @@
       if (on) W.Input.unlock();
     },
 
-    // Arte de la cenital: barista de armadura blanca con mochila de prensas, drones de Arcadia y costales durazno.
-    // Al volver a tercera persona vuelve el barista de delantal y los inspectores humanos.
-    reskin(G, on) {
-      const p = G.player;
-      if (p && (!!p.h.cenital !== on)) {
-        const h = on ? W.Ent.makeBaristaBlanco() : W.Ent.makeBarista();
-        h.cenital = on;
-        h.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-        h.root.position.copy(p.mesh.position);
-        h.root.rotation.y = p.mesh.rotation.y;
-        G.scene.remove(p.mesh);
-        G.scene.add(h.root);
-        p.h = h;
-        p.mesh = h.root;
-      }
-      for (const e of G.enemies || []) if (!e.dead && e.reskin && (!!e.h.drone !== on)) e.reskin();
-      if (G.loot) {
-        G.loot = G.loot.map((l) => {
-          G.scene.remove(l.mesh);
-          const n = new W.Ent.Loot(l.pos.x, l.pos.z, l.amount, l.kind);
-          G.scene.add(n.mesh);
-          return n;
-        });
-      }
+    // El sol acompaña al punto de interés para que las sombras siempre caigan dentro del mapa de sombras.
+    // En cenital entra desde atrás (noroccidente); en tercera persona, de lado, para que las fachadas que ves tengan luz.
+    placeSun(G, x, y, z) {
+      if (!G.sun) return;
+      if (this.enabled) G.sun.position.set(x - 60, y + 100, z - 40); else G.sun.position.set(x - 62, y + 96, z + 44);
+      G.sun.target.position.set(x, y, z);
+      if (this.skyDome) this.skyDome.position.copy(G.camera.position);
+      if (this.flash && this.flash.intensity > 0) this.flash.intensity = Math.max(0, this.flash.intensity - 0.35);
     },
+    muzzleFlash(at) { this.flash.position.copy(at); this.flash.intensity = 2.2; },
 
-    // Los botones táctiles cambian de texto: en cenital son cuadrados con etiqueta, como en el video.
+    // Los botones táctiles cambian de texto: en cenital son el bloque de cuatro acciones del kit.
     labelButtons(on) {
-      const L = { tFire: ['💥', 'disparar'], tJump: ['⤒', 'impulso'], tReload: ['↻', 'recargar'], tAction: ['E', 'cosechar'], tAim: ['🎯', 'fijar'] };
+      const L = { tFire: ['disparar', 'Rociar'], tJump: ['saltar', 'Impulso'], tReload: ['recargar', 'Llenar'], tAction: ['acción', 'Cosechar'], tAim: ['apuntar', 'fijar'] };
       for (const id in L) {
         const el = document.getElementById(id);
         if (!el) continue;
-        el.textContent = on ? L[id][1] : L[id][0];
+        const t = on ? L[id][1] : L[id][0];
+        if (el.firstChild && el.firstChild.nodeType === 3) el.firstChild.nodeValue = t; else el.textContent = t;
       }
     },
 
@@ -260,7 +288,7 @@
       const dir = new THREE.Vector3(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
       if (this.target) {
         // apunta al torso del objetivo asistido, también en altura
-        dir.set(this.target.pos.x - origin.x, this.target.y + 1.15 - origin.y, this.target.pos.z - origin.z).normalize();
+        dir.set(this.target.pos.x - origin.x, this.target.mesh.position.y + (this.target.pest ? this.target.alt : this.target.boss ? 3 : 1.3) - origin.y, this.target.pos.z - origin.z).normalize();
       }
       return { origin, dir, minT: 0.7 };
     },
@@ -270,25 +298,28 @@
       const p = G.player;
       const cam = G.camera;
       // la cámara se adelanta un poco hacia donde apunta y hacia donde camina
+      if (cam.view && cam.view.enabled) this.leaveLobby(G);
       const lead = this.target ? 4.5 : 2.5;
       const tx = p.pos.x - Math.sin(p.yaw) * lead, tz = p.pos.z - Math.cos(p.yaw) * lead;
       if (!this.follow) this.follow = { x: tx, z: tz };
       const k = Math.min(1, dt * 4.5);
       this.follow.x += (tx - this.follow.x) * k;
       this.follow.z += (tz - this.follow.z) * k;
-      const d = this.DIST, s = Math.sin(this.TILT), c = Math.cos(this.TILT);
-      cam.position.set(this.follow.x, p.y + c * d, this.follow.z + s * d);
+      // celular vertical: la cámara sube (se ve más terraza a los lados) y encuadra al barista en el tercio alto,
+      // porque los controles ocupan la parte de abajo
+      const portrait = cam.aspect < 0.8;
+      const d = portrait ? this.DIST * 1.32 : this.DIST, s = Math.sin(this.TILT), c = Math.cos(this.TILT);
+      const bias = portrait ? 4.5 : 0;
+      cam.position.set(this.follow.x, p.y + c * d, this.follow.z + bias + s * d);
       if (G.shakeAmt > 0) {
         cam.position.x += (Math.random() - 0.5) * G.shakeAmt * 2;
         cam.position.z += (Math.random() - 0.5) * G.shakeAmt * 2;
         G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2);
       }
-      cam.lookAt(this.camVec.set(this.follow.x, p.y, this.follow.z));
+      cam.lookAt(this.camVec.set(this.follow.x, p.y, this.follow.z + bias));
       const targetFov = p.aiming || this.target ? 22 : p.sprinting ? 26 : this.FOV;
       if (Math.abs(targetFov - cam.fov) > 0.01) { cam.fov += (targetFov - cam.fov) * Math.min(1, dt * 6); cam.updateProjectionMatrix(); }
       this.placeDecor(G);
-      // el sol acompaña al jugador para que su sombra siempre caiga dentro del mapa de sombras
-      if (G.sun) { G.sun.position.set(p.pos.x - 60, p.y + 100, p.pos.z - 40); G.sun.target.position.set(p.pos.x, p.y, p.pos.z); }
       G.aimDir = this.shotRay(G).dir;
     },
 
@@ -296,127 +327,218 @@
       const p = G.player;
       const gs = this.GRID;
       this.grid.position.set(Math.round(p.pos.x / gs) * gs, 0.02, Math.round(p.pos.z / gs) * gs);
-      const ground = W.World.groundAt ? W.World.groundAt(p.pos.x, p.pos.z, p.y) : 0;
-      this.blob.position.set(p.pos.x, ground + 0.03, p.pos.z);
-      const h = Math.max(0, p.y - ground);
-      const sc = Math.max(0.45, 1 - h * 0.12);
-      this.blob.scale.set(sc, sc, 1);
-      this.blob.material.opacity = 0.28 * sc;
     },
 
-    // Lobby: el barista posa sobre el pad, visto desde arriba, con un giro lento.
+    // Lobby: la torre colgante de la sede vista desde arriba y de lado, como el render de la web, con un giro lento.
+    // En el celular la maqueta se ve por la "ventana" del lobby (arriba), así que la cámara se descentra hacia allá.
     lobbyCamera(G) {
-      const sp = W.World.hqSpot.spawn;
+      const hq = W.World.hqSpot;
+      const sp = hq.spawn;
       const p = G.player;
       p.mesh.position.set(sp.x, 0.25, sp.z);
       p.mesh.rotation.y = 0.5 + Math.sin(G.time * 0.3) * 0.25;
       p.h.animate(G.time * 2, 0.05, true);
       const cam = G.camera;
-      const d = 56, tilt = 14 * Math.PI / 180;
-      const a = Math.sin(G.time * 0.18) * 0.5;
-      cam.position.set(sp.x + Math.sin(a) * Math.sin(tilt) * d, 0.25 + Math.cos(tilt) * d, sp.z + Math.cos(a) * Math.sin(tilt) * d);
-      cam.lookAt(this.camVec.set(sp.x, 0.6, sp.z - 1.5));
-      if (cam.fov !== this.FOV) { cam.fov = this.FOV; cam.updateProjectionMatrix(); }
+      const d = 150, tilt = 38 * Math.PI / 180;
+      const a = -0.62 + Math.sin(G.time * 0.12) * 0.18;
+      const tx = hq.x + 2, ty = 14, tz = hq.z - 3;
+      cam.position.set(tx + Math.sin(a) * Math.sin(tilt) * d, ty + Math.cos(tilt) * d, tz + Math.cos(a) * Math.sin(tilt) * d);
+      cam.lookAt(this.camVec.set(tx, ty, tz));
+      cam.translateX(8);
+      if (cam.fov !== 26) { cam.fov = 26; cam.updateProjectionMatrix(); }
+      const frame = document.querySelector('.menu-lobbyTd .frame');
+      if (frame) {
+        // la ventana del lobby es "la pantalla": la cámara encuadra la torre en ella y el lienzo pinta lo que sobra alrededor
+        const r = frame.getBoundingClientRect();
+        const Wd = window.innerWidth, Hd = window.innerHeight;
+        const fw = Math.round(r.width), fh = Math.round(r.height), ox = -Math.round(r.left), oy = -Math.round(r.top);
+        if (fw > 0 && fh > 0 && (!cam.view || !cam.view.enabled || cam.view.offsetX !== ox || cam.view.offsetY !== oy || cam.view.fullWidth !== fw || cam.view.width !== Wd)) {
+          cam.aspect = fw / fh;
+          cam.setViewOffset(fw, fh, ox, oy, Wd, Hd);
+        }
+      } else if (cam.view && cam.view.enabled) this.leaveLobby(G);
       this.grid.position.set(Math.round(sp.x / this.GRID) * this.GRID, 0.02, Math.round(sp.z / this.GRID) * this.GRID);
-      if (G.sun) { G.sun.position.set(sp.x - 60, 100, sp.z - 40); G.sun.target.position.set(sp.x, 0, sp.z); }
+    },
+    leaveLobby(G) {
+      const cam = G.camera;
+      if (!cam || !cam.view || !cam.view.enabled) return;
+      cam.clearViewOffset();
+      cam.aspect = window.innerWidth / window.innerHeight;
+      cam.updateProjectionMatrix();
     },
 
-    // ---------- HUD ----------
+    // ---------- HUD (kit de la web) ----------
     hud(G, dt) {
       const p = G.player;
       const H = W.HUD;
-      const speed = this.lastPos ? Math.hypot(p.pos.x - this.lastPos.x, p.pos.z - this.lastPos.z) / Math.max(dt, 1e-3) : 0;
-      this.lastPos = { x: p.pos.x, z: p.pos.z };
-      this.speedS = (this.speedS || 0) + (speed - (this.speedS || 0)) * Math.min(1, dt * 8);
-      const heading = Math.round((((-p.yaw * 180) / Math.PI) % 360 + 540) % 360 - 180);
-      const threat = G.enemies.some((e) => !e.dead && e.alerted && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 45);
-      H.set('tdMode', 'text', threat ? 'en vivo · defensa' : 'en vivo · cosecha');
-      H.set('tdMode', 'class', threat ? 'h threat' : 'h');
-      H.set('tdSpeed', 'text', this.speedS.toFixed(1).replace('.', ','));
-      H.set('tdHeading', 'text', `${heading}°`);
-      H.set('tdHp', 'text', `${Math.ceil(Math.max(0, p.hp))}`);
-      H.set('tdCherries', 'text', `${G.cherries}`);
-      H.set('tdAmmo', 'text', p.reloading > 0 ? 'prensando…' : `${p.ammo} / ${p.magSize}`);
-      H.set('tdFoes', 'text', `${G.enemies.filter((e) => !e.dead).length}`);
-      const d = G.currentDistrict;
-      if (d) H.set('tdPlace', 'text', d.name);
-      H.set('tdHpBig', 'text', `${Math.ceil(Math.max(0, p.hp))}`);
+      const hp = Math.ceil(Math.max(0, p.hp));
+      H.set('tdHp', 'text', `${hp}`);
+      H.set('tdHpMax', 'text', `/${p.maxHp}`);
       H.set('tdHpFill', 'width', `${Math.max(0, p.hp / p.maxHp) * 100}%`);
       H.set('tdHpFill', 'class', p.hp / p.maxHp < 0.3 ? 'low' : '');
-      this.drawRadar(G);
+      // Agua: el tanque del rociador (los chorros de café a presión)
+      H.set('tdAmmo', 'text', p.reloading > 0 ? '…' : `${p.ammo}`);
+      H.set('tdAmmoMax', 'text', `/${p.magSize}`);
+      H.set('tdAmmoFill', 'width', `${p.reloading > 0 ? (1 - p.reloading / p.reloadTime) * 100 : (p.ammo / p.magSize) * 100}%`);
+      H.set('tdAmmoFill', 'class', p.ammo <= 3 && !(p.reloading > 0) ? 'low' : '');
+      H.set('tEnFill', 'width', `${p.energy}%`);
+      H.set('tEnFill', 'class', p.energy < W.CONFIG.DASH_COST ? 'empty' : '');
+      H.set('tdPts', 'text', G.save.puntos.toLocaleString('es-CO'));
+      H.set('tdCherries', 'text', `${G.cherries}`);
+      H.set('tdZones', 'text', `${G.capturedCount()}`);
+      H.set('tdZonesMax', 'text', `/${G.zones.length}`);
+      // objetivo: una línea, con la distancia en mono
+      const obj = G.objective();
+      H.set('tdObj', 'text', obj.title);
+      H.set('tdObjN', 'text', obj.target ? `${Math.round(Math.hypot(obj.target.x - p.pos.x, obj.target.z - p.pos.z))} m` : `${G.capturedCount()}/${G.zones.length}`);
+      H.set('tdDot', 'class', G.save.puntos >= FG.CONFIG.REDEEM_COST ? 'dot on' : 'dot');
+      this.updateAlert(G);
+      this.updateSignal(G, dt);
       this.updateTags(G);
     },
 
-    // Etiquetas sobre el mundo (como en la maqueta): madurez de cada mata, serie y vida de cada dron, cerezas de cada costal
+    // Panel azul: solo cuando Arcadia actúa (liberando una zona, jefe o drones en alerta cerca)
+    updateAlert(G) {
+      const H = W.HUD;
+      const p = G.player;
+      const cz = G.capturing, b = G.boss && !G.boss.dead ? G.boss : null;
+      const near = G.enemies.filter((e) => !e.dead && !e.pest && e.alerted && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 45);
+      const pests = G.enemies.filter((e) => !e.dead && e.pest && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 40);
+      let on = true;
+      if (cz) {
+        H.set('tdAlertCode', 'text', cz.zone.id || 'zona');
+        H.set('tdAlertTitle', 'text', cz.contested ? `Arcadia defiende ${cz.zone.name}` : `Liberando ${cz.zone.name}`);
+        H.set('tdAlertL1', 'text', 'Liberada');
+        H.set('tdAlertV1', 'text', `${Math.round(cz.zone.progress * 100)} %`);
+        H.set('tdAlertV2', 'text', `${near.length}`);
+      } else if (b) {
+        H.set('tdAlertCode', 'text', 'jefe');
+        H.set('tdAlertTitle', 'text', W.BOSS.name);
+        H.set('tdAlertL1', 'text', 'Vida');
+        H.set('tdAlertV1', 'text', `${Math.round((b.hp / b.maxHp) * 100)} %`);
+        H.set('tdAlertV2', 'text', `${near.length}`);
+      } else if (pests.length) {
+        H.set('tdAlertCode', 'text', 'plaga');
+        H.set('tdAlertTitle', 'text', `${pests[0].name || 'Plaga'} va por tus matas`);
+        H.set('tdAlertL1', 'text', 'Con roya');
+        H.set('tdAlertV1', 'text', `${G.planters.filter((x) => x.roya > 0).length}`);
+        H.set('tdAlertV2', 'text', `${near.length}`);
+      } else if (near.length) {
+        H.set('tdAlertCode', 'text', near[0].serial || 'dron');
+        H.set('tdAlertTitle', 'text', near.length > 1 ? 'Drones de Arcadia encima' : 'Un dron de Arcadia te vio');
+        H.set('tdAlertL1', 'text', 'Vida');
+        H.set('tdAlertV1', 'text', `${Math.ceil(Math.max(0, p.hp))}`);
+        H.set('tdAlertV2', 'text', `${near.length}`);
+      } else on = false;
+      H.toggle('tdAlert', 'on', on);
+      H.toggle('tdAlertAck', 'on', this.markUntil > G.time);
+    },
+
+    // Señal de Arcadia: barras de la franja; las de la derecha se vuelven azules según cuántos drones hay cerca
+    updateSignal(G, dt) {
+      const el = document.getElementById('tdSig');
+      if (!el) return;
+      if (!el.children.length) for (let i = 0; i < 22; i++) el.appendChild(document.createElement('i'));
+      const p = G.player;
+      let n = 0, hot = 0;
+      for (const e of G.enemies) if (!e.dead) { const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z); if (d < 90) { n++; if (d < 40) hot++; } }
+      const k = Math.min(22, n * 3 + hot * 4);
+      this.sigT = (this.sigT || 0) + dt;
+      if (this.sigT < 0.12) return;
+      this.sigT = 0;
+      for (let i = 0; i < 22; i++) {
+        const c = el.children[i];
+        const b = i >= 22 - k;
+        const h = b ? 45 + ((i * 37 + Math.floor(G.time * 3)) % 50) : 22 + ((i * 13) % 14);
+        c.style.height = `${h}%`;
+        if (b !== c.classList.contains('b')) c.classList.toggle('b', b);
+      }
+    },
+
+    // Marcadores sobre el mundo: cuadro fino sobre cada mata, dron, plaga y costal cercano (lima = al alcance,
+    // azul = Arcadia); la fila al alcance abre la tarjeta verde.
     tags: new Map(),
-    clearTags() { for (const el of this.tags.values()) el.remove(); this.tags.clear(); },
+    clearTags() { for (const el of this.tags.values()) el.remove(); this.tags.clear(); W.HUD.toggle('tdCard', 'on', false); },
     updateTags(G) {
       const root = document.getElementById('tdTags');
       if (!root) return;
       const p = G.player;
       const cam = G.camera;
       const v = this.tagVec || (this.tagVec = new THREE.Vector3());
+      const v2 = this.tagVec2 || (this.tagVec2 = new THREE.Vector3());
       const W2 = window.innerWidth / 2, H2 = window.innerHeight / 2;
+      const top = 150 + (parseFloat(getComputedStyle(document.body).getPropertyValue('--sat')) || 0);
       const seen = new Set();
-      const put = (key, x, y, z, html, cls) => {
+      // proyecta el centro y el radio: el cuadro crece y encoge con la lente
+      const put = (key, x, y, z, r, label, cls) => {
         let el = this.tags.get(key);
-        if (!el) { el = document.createElement('div'); el.className = 'td-tag'; root.appendChild(el); this.tags.set(key, el); }
-        if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; }
-        if (el.dataset.c !== cls) { el.className = `td-tag ${cls}`; el.dataset.c = cls; }
+        if (!el) { el = document.createElement('div'); el.className = 'td-mark'; el.appendChild(document.createElement('span')); root.appendChild(el); this.tags.set(key, el); }
+        if (el.dataset.h !== label) { el.firstChild.textContent = label; el.dataset.h = label; el.firstChild.style.display = label ? '' : 'none'; }
+        if (el.dataset.c !== cls) { el.className = `td-mark ${cls}`; el.dataset.c = cls; }
         v.set(x, y, z).project(cam);
-        el.style.transform = `translate(${(v.x * W2 + W2).toFixed(1)}px, ${(-v.y * H2 + H2).toFixed(1)}px) translate(-50%, -100%)`;
+        v2.set(x + r, y, z).project(cam);
+        const sx = v.x * W2 + W2, sy = -v.y * H2 + H2;
+        const px = Math.max(18, Math.abs(v2.x - v.x) * W2 * 2);
+        const hide = v.z > 1 || (sy < top && (sx < 200 || sx > W2 * 2 - 180)) ? 'none' : '';
+        if (el.style.display !== hide) el.style.display = hide;
+        el.style.width = el.style.height = `${px.toFixed(0)}px`;
+        el.style.transform = `translate(${(sx - px / 2).toFixed(1)}px, ${(sy - px / 2).toFixed(1)}px)`;
         seen.add(key);
+        return { sx, sy, px };
       };
       const near = (o, r) => Math.abs(o.x - p.pos.x) < r && Math.abs(o.z - p.pos.z) < r;
+      // la fila al alcance (la que abre la tarjeta verde): la misma que usa la acción "Cosechar"
+      let card = null, cardAt = null;
       for (const pl of G.planters) {
-        if (!near(pl.pos, 24)) continue;
+        if (!near(pl.pos, 26)) continue;
         const pct = Math.round(Math.min(1, pl.growth) * 100);
-        put(pl, pl.pos.x, pl.mesh.position.y + 1.7, pl.pos.z, pl.ripe ? 'lista · 100 %' : `${pct} %`, pl.ripe ? 'green' : '');
+        const d = Math.hypot(pl.pos.x - p.pos.x, pl.pos.z - p.pos.z);
+        const reach = d < pl.reach;
+        const name = pl.label ? `Fila ${pl.label}` : pl.variety.name;
+        let label, cls = '';
+        if (pl.roya > 0) { label = `${name} · roya ${Math.round(pl.roya * 100)} %`; cls = 'sick'; }
+        else if (pl.ripe) { label = `${name} · lista`; }
+        else label = `${name} · ${pct} %`;
+        if (reach && !card) { cls += ' on'; card = pl; }
+        const at = put(pl, pl.pos.x, pl.mesh.position.y + 0.6, pl.pos.z, pl.bed ? 1.6 : 0.9, reach ? '' : label, cls);
+        if (card === pl) cardAt = at;
       }
+      const mk = this.markUntil > G.time;
       for (const e of G.enemies) {
-        if (e.dead || e.boss || !near(e.pos, 40)) continue;
-        put(e, e.pos.x, e.mesh.position.y + 2.2, e.pos.z, `${e.serial} · ${Math.ceil(e.hp)}`, 'blue');
+        if (e.dead || !near(e.pos, mk ? 90 : 40)) continue;
+        const d = Math.round(Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z));
+        if (e.pest) put(e, e.pos.x, e.mesh.position.y + e.alt, e.pos.z, e.hitR || 0.6, `${e.serial} · ${d} m`, 'foe up');
+        else if (e.boss) put(e, e.pos.x, e.mesh.position.y + 2.6, e.pos.z, 1.8, `${W.BOSS.name} · ${Math.ceil(e.hp)}`, 'foe up');
+        else put(e, e.pos.x, e.mesh.position.y + 1.3, e.pos.z, 0.7, `${e.serial} · ${d} m`, e === this.target ? 'foe' : 'foe up');
       }
       for (const l of G.loot) {
-        if (l.kind !== 'crate' || !near(l.pos, 24)) continue;
-        put(l, l.pos.x, 1.3, l.pos.z, `${l.amount} <small>cerezas</small>`, 'big');
+        if (l.kind !== 'crate' || !near(l.pos, 26)) continue;
+        put(l, l.pos.x, 0.55, l.pos.z, 0.7, `Costal · ${l.amount} cerezas`, 'up');
       }
       for (const [key, el] of this.tags) if (!seen.has(key)) { el.remove(); this.tags.delete(key); }
+      this.updateCard(G, card, cardAt);
     },
 
-    drawRadar(G) {
-      const cv = document.getElementById('tdRadar');
-      if (!cv) return;
-      const ctx = cv.getContext('2d');
-      const Wd = cv.width, Hd = cv.height;
-      const p = G.player;
-      const night = this.theme === 'noche';
-      ctx.clearRect(0, 0, Wd, Hd);
-      // puntos del panel, como en el video
-      ctx.fillStyle = night ? '#5d6663' : '#b5bbb8';
-      for (let i = 0; i < 7; i++) for (let j = 0; j < 4; j++) { ctx.beginPath(); ctx.arc(5 + i * 20, 6 + j * 22, 1.3, 0, Math.PI * 2); ctx.fill(); }
-      ctx.fillStyle = night ? '#3b4240' : '#d7dcd9';
-      ctx.fillRect(5, Hd - 10, Wd - 10, 1);
-      // escala: 130 px ≈ 90 m
-      const k = (Wd - 10) / 90;
-      const cx = Wd / 2, cz = Hd / 2 - 4;
-      const dot = (x, z, color, s) => {
-        const dx = (x - p.pos.x) * k, dz = (z - p.pos.z) * k;
-        if (Math.abs(dx) > Wd / 2 - 4 || Math.abs(dz) > Hd / 2 - 6) return;
-        ctx.fillStyle = color;
-        ctx.fillRect(cx + dx - s / 2, cz + dz - s / 2, s, s);
-      };
-      let n = 0;
-      const hq = W.World.hqSpot;
-      dot(hq.x, hq.z, '#4f8f2c', 7);
-      for (const pl of G.planters) if (pl.ripe) dot(pl.pos.x, pl.pos.z, '#8fbf45', 4);
-      for (const l of G.loot) dot(l.pos.x, l.pos.z, '#d6e48a', 4);
-      for (const z of G.zones) dot(z.pos.x, z.pos.z, z.owner === 'fg' ? '#4f8f2c' : '#2a22f5', 6);
-      for (const e of G.enemies) if (!e.dead) { n++; dot(e.pos.x, e.pos.z, '#2a22f5', e.boss ? 9 : 6); }
-      ctx.fillStyle = night ? '#ffffff' : '#2c302e';
-      ctx.fillRect(cx - 3, cz - 3, 6, 6);
-      const label = document.getElementById('tdRadarN');
-      if (label) { const t = `${n} enem.`; if (label.textContent !== t) label.textContent = t; }
+    // Tarjeta verde de la fila al alcance: variedad, madurez y qué hacer (cosechar, tratar la roya, esperar)
+    updateCard(G, pl, at) {
+      const H = W.HUD;
+      H.toggle('tdCard', 'on', !!pl);
+      if (!pl) return;
+      const pct = Math.round(Math.min(1, pl.growth) * 100);
+      H.set('tdCardH', 'text', `${pl.label ? `Fila ${pl.label} · ` : ''}${pl.variety.name}`);
+      H.set('tdCardSub', 'text', `${W.HQ.name} · ${pl.ripe ? `${G.plantYield ? G.plantYield(pl) : ''} cerezas` : 'tu terraza'}`);
+      H.set('tdCardBig', 'text', pl.roya > 0 ? `${Math.round(pl.roya * 100)}` : `${pct}`);
+      H.set('tdCardEta', 'text', pl.roya > 0 ? 'Con roya · Cosechar la trata' : pl.ripe ? 'Lista para cosechar' : pct > 70 ? 'Casi lista · sigue creciendo' : 'Creciendo');
+      const bars = document.getElementById('tdCardBars');
+      if (bars && !bars.children.length) for (let i = 0; i < 24; i++) bars.appendChild(document.createElement('i'));
+      if (bars) { const k = Math.round(pct / 100 * 24); for (let i = 0; i < 24; i++) { const c = bars.children[i]; const hi = i < k; const h = hi ? 40 + ((i * 29) % 55) : 22 + ((i * 11) % 12); if (c.style.height !== `${h}%`) c.style.height = `${h}%`; if (hi !== c.classList.contains('hi')) c.classList.toggle('hi', hi); } }
+      // junto al marcador, dentro de la pantalla
+      const Wd = window.innerWidth, Hd = window.innerHeight;
+      let x = at.sx + at.px / 2 + 14, y = at.sy - 24;
+      if (x + 140 > Wd - 16) x = at.sx - at.px / 2 - 14 - 140;
+      x = Math.max(16, Math.min(Wd - 156, x));
+      y = Math.max(214, Math.min(Hd - 330, y));
+      H.set('tdCard', 'transform', `translate(${x.toFixed(0)}px, ${y.toFixed(0)}px)`);
     },
   };
 

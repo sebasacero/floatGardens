@@ -3,7 +3,7 @@
 Videojuego de navegador sobre **Float Gardens**, un proyecto colaborativo de **café hidropónico** en Bogotá.
 Es un **shooter de mundo abierto en tercera persona** (al estilo de CoD Mobile o Free Fire) en una Bogotá
 estilizada: eres un barista con una **AeroPress** que dispara chorros de café a presión, cultiva café en balsas
-flotantes, lo vende en sus barrios y le arrebata la ciudad, zona por zona, a **la Federación**.
+flotantes, lo vende en sus barrios y le arrebata la ciudad, zona por zona, a **Arcadia Bean Corp.**.
 
 Mientras juegas **farmeas** (cosechas) café y ganas **Puntos Float**, que se canjean por **café gratis** en los
 puntos oficiales de Float Gardens.
@@ -41,26 +41,52 @@ Tiene dos temas (**🌙 noche**: piso carbón, maqueta a media luz; **☀️ dí
 Una cuadrícula de manzanas con calles y carreras reales (Calle 72, Carrera 7, Av. Caracas, Av. Jiménez...) y un
 GPS en pantalla que dice en qué esquina estás. Barrios con estilo propio:
 
-- **Chapinero**: edificios de ladrillo. Aquí está el **HQ de Float Gardens** con su piscina hidropónica y la tienda.
+- **Kennedy** (suroccidente): la **Torre Float**, una torre de terrazas colgantes, con su terraza de cultivo (filas A, B y C), la tienda y otras torres de la red alrededor. Aquí empiezas.
+- **Chapinero**: manzanas de la maqueta blanca con árboles en los andenes.
 - **La Candelaria**: casas coloniales de colores con techos de teja y calles empedradas.
 - **Centro Internacional**: torres de vidrio y la Torre del Centro con su corona de luces.
 - **Zona T**, **Teusaquillo**, **Puente Aranda** (bodegas con murales), el **Parque Simón Bolívar** con su lago.
 - **Av. Caracas** con carril rojo, estaciones y buses articulados en movimiento.
 - Los **cerros orientales** con **Monserrate**, su santuario y el teleférico.
-- La **Plaza de Bolívar** frente a la **Sede de la Federación**.
+- La **Plaza de Bolívar** frente a la **Torre Arcadia**.
 - Llueve de vez en cuando (y los peatones sacan sombrilla).
 
 ### El ciclo del juego
 
-1. **Farmea**: cosecha las plantas flotantes del HQ y abre las cajas de café 📦 repartidas por la ciudad.
+1. **Cosecha**: las filas de tu terraza dan cerezas cuando la etiqueta dice "lista"; también hay costales de café por la ciudad (los cercanos vuelan hacia ti).
 2. **Dispara**: cada recarga de la AeroPress gasta 1 cereza. Los disparos a la cabeza hacen más daño.
 3. **Vende**: los peatones con ☕ te compran café (2 cerezas = $8.000), pero solo en barrios de Float Gardens.
-4. **Conquista**: entra a una zona roja, sobrevive a las oleadas de inspectores y guardias, y quédate dentro
-   hasta capturarla. Cada zona capturada abre un barrio nuevo para vender y agrega cultivos.
-5. **Mejora**: con la plata compra daño, cargador, vida, velocidad y cultivo en la tienda del HQ.
+4. **Libera**: entra a una zona azul, apaga las oleadas de drones de Arcadia (escáner y sellador) y quédate
+   dentro hasta liberarla. Cada zona libre abre un barrio nuevo para vender y agrega cultivos.
+   El **impulso** (Q en tercera persona, Espacio o el botón en la vista cenital) gasta energía y esquiva los sellos.
+5. **Mejora**: con la plata compra daño, cargador, vida, velocidad y cultivo en la tienda de la terraza.
 6. **Jefe final**: con las 6 zonas, ve a la Plaza de Bolívar y derrota a **Don Monopolio**.
 
-La vida se regenera si te cubres unos segundos. Si caes, vuelves al HQ y pierdes la mitad de tus cerezas.
+### Plagas y variedades
+
+Además de los drones de Arcadia, tus matas tienen enemigos propios. No van por ti: van por el cultivo más cercano.
+
+| Plaga | Qué hace | Cómo se controla |
+| --- | --- | --- |
+| **Nube de roya** (*Hemileia vastatrix*) | Baja del cielo, se posa en una mata y la infecta: la hoja amarillea, la mata deja de crecer, pierde la cosecha y suelta esporas a la vecina. Sale más cuando llueve. | Apaga la nube antes de que se pose. Si ya infectó, acércate y trata la fila con `E`. |
+| **Broca** (*Hypothenemus hampei*) | Busca la cereza madura, la perfora y se va volando con la cosecha. Sale más en tiempo seco. | Cosecha a tiempo o apágala; si la tumbas cargada, suelta las cerezas. |
+| **Hormiga arriera** (*Atta*) | Llega en fila por el piso, corta hojas y se las lleva: la mata crece más despacio. Muerde si te atraviesas. | Apaga la fila antes de que llegue a la cama. |
+
+En el **vivero** (menú Mejoras) eliges qué variedad va en cada fila de la terraza:
+
+| Variedad | Rasgo |
+| --- | --- |
+| Caturra | Porte bajo, crece rápido, muy susceptible a la roya |
+| Castillo | Resistente a la roya |
+| Borbón amarillo | Cereza amarilla, una cereza más por cosecha, susceptible |
+| Tabi | Porte alto, resistente a la roya, crece lento, una cereza más |
+| Geisha | Café de especialidad: $6.000 extra por cosecha, lenta y delicada |
+
+Cada zona liberada trae su propia variedad. Los rasgos son una simplificación de los reales; las plagas están agrandadas para poder apuntarles. Todo se ajusta en `W.VARIEDADES` y `W.PLAGAS` (`js3d/config.js`); el comportamiento está en `js3d/plagas.js`.
+
+La vida se regenera si te cubres unos segundos. Si caes, vuelves a tu terraza y pierdes la mitad de tus cerezas.
+
+La misma luz en las dos cámaras (tercera persona y cenital): sombras reales, exposición de cine y dos temas, día (maqueta blanca) y noche (mesa carbón), que se cambian en el lobby o en pausa.
 
 ## La historia y el diseño
 
@@ -125,6 +151,7 @@ js3d/config.js        mapa de barrios, calles, zonas, enemigos, mejoras y balanc
 js3d/textures.js      texturas generadas por código (ladrillo, colonial, vidrio, grafiti...)
 js3d/world.js         generación de la ciudad, colisiones, buses, cerros, minimapa
 js3d/entities.js      personajes low-poly, enemigos, jefe, peatones, cultivos, botín, zonas
+js3d/plagas.js        plagas del café (roya, broca, hormiga arriera) y los brotes sobre el cultivo
 js3d/game.js          bucle principal: jugador, cámara, disparo, zonas, economía, clima
 js3d/hud.js           minimapa, brújula, kill feed, vida, munición, hitmarkers
 js3d/menus.js         lobby, tienda, Puntos Float, pausa, derrota y victoria
