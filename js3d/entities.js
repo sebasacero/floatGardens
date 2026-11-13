@@ -22,22 +22,24 @@
   }
 
   // AeroPress X-1
+  // El rociador: una lanza de riego (tanque de café a presión, caño fino y boquilla verde), no un fusil.
   function makeAeroPress() {
     const g = new THREE.Group();
-    const chamber = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.42, 10), mat('#bcd6e6', { transparent: true, opacity: 0.8 }));
-    chamber.rotation.x = Math.PI / 2;
-    const coffee = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.26, 10), mat('#4a2c1d'));
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.34, 10), mat('#f4f5f3'));
+    tank.rotation.x = Math.PI / 2;
+    tank.position.z = -0.1;
+    const coffee = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.2, 10), mat('#4a2c1d'));
     coffee.rotation.x = Math.PI / 2;
-    coffee.position.z = 0.06;
-    const plunger = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.22, 10), mat('#333'));
-    plunger.rotation.x = Math.PI / 2;
-    plunger.position.z = -0.28;
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.04, 10), mat('#2fbf71'));
-    cap.rotation.x = Math.PI / 2;
-    cap.position.z = 0.23;
-    g.add(chamber, coffee, plunger, cap);
+    coffee.position.z = -0.04;
+    const lance = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 8), mat('#2c302e'));
+    lance.rotation.x = Math.PI / 2;
+    lance.position.z = 0.5;
+    const nozzle = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.12, 10), mat('#4f8f2c'));
+    nozzle.rotation.x = Math.PI / 2;
+    nozzle.position.z = 0.98;
+    g.add(tank, coffee, lance, nozzle);
     g.userData.muzzle = new THREE.Object3D();
-    g.userData.muzzle.position.z = 0.28;
+    g.userData.muzzle.position.z = 1.02;
     g.add(g.userData.muzzle);
     return g;
   }
@@ -653,9 +655,10 @@
       this.kind = kind || 'crate';
       this.mesh = new THREE.Group();
       if (this.kind === 'crate') {
-        // costal de café (caja durazno)
-        this.mesh.add(box(1.0, 0.8, 1.0, '#e9a77c', 0, 0.4, 0));
-        this.mesh.add(box(1.02, 0.1, 1.02, '#d18e63', 0, 0.55, 0));
+        // costal de café: fique claro con la franja verde de la red
+        this.mesh.add(box(1.15, 0.62, 0.8, '#efe8e1', 0, 0.31, 0));
+        this.mesh.add(box(1.17, 0.05, 0.82, '#8f8576', 0, 0.5, 0));
+        this.mesh.add(box(0.12, 0.03, 0.82, '#4f8f2c', 0.32, 0.625, 0));
       } else {
         const orb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), mat('#e0413a', { emissive: '#5a0a05' }));
         orb.position.y = 0.4;
