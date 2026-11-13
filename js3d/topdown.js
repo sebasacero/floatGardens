@@ -471,6 +471,9 @@
       const land = W2 > H2 && H2 * 2 <= 520;
       this.land = land;
       const top = (land ? 112 : 150) + (parseFloat(getComputedStyle(document.body).getPropertyValue('--sat')) || 0);
+      // a la derecha, los marcadores tampoco se pintan sobre el panel azul cuando está abierto
+      const al = document.getElementById('tdAlert');
+      const topR = al && al.classList.contains('on') ? Math.max(top, al.offsetTop + al.offsetHeight + 8) : top;
       // dónde queda el barista en pantalla, para que la tarjeta verde no lo tape
       v.set(p.pos.x, p.y + 1, p.pos.z).project(cam);
       this.meAt = { x: v.x * W2 + W2, y: -v.y * H2 + H2 };
@@ -485,7 +488,7 @@
         v2.set(x + r, y, z).project(cam);
         const sx = v.x * W2 + W2, sy = -v.y * H2 + H2;
         const px = Math.max(18, Math.abs(v2.x - v.x) * W2 * 2);
-        const hide = v.z > 1 || (sy < top && (sx < 200 || sx > W2 * 2 - 180)) || (land && sy < 52) ? 'none' : '';
+        const hide = v.z > 1 || (sy < top && sx < 200) || (sy < topR && sx > W2 * 2 - 180) || (land && sy < 52) ? 'none' : '';
         if (el.style.display !== hide) el.style.display = hide;
         el.style.width = el.style.height = `${px.toFixed(0)}px`;
         el.style.transform = `translate(${(sx - px / 2).toFixed(1)}px, ${(sy - px / 2).toFixed(1)}px)`;
