@@ -107,6 +107,8 @@ namespace FloatGardens
         public const char HQDistrict = 'C';
         // Kennedy 2089: manzanas de los barrios del occidente donde la red levantó torres colgantes (columna, fila)
         public static readonly Vector2Int[] HangingTowers = { new Vector2Int(4, 7), new Vector2Int(4, 10), new Vector2Int(6, 11) };
+        // Kennedy 2089: Zona T (T) y Centro Internacional (I) pasan a súper torres de 40-110 pisos con acentos de color de cereza
+        public static bool SuperTowers = true;
 
         public struct ZoneDef
         {

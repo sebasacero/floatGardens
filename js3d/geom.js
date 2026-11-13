@@ -71,5 +71,32 @@
     return vcMats.get(key);
   }
 
-  W.Geom = { merge, matrix, freeze, vcMat };
+  // Igual que merge, pero conserva el color por vértice de cada pieza cuando la trae (parts sin color)
+  function mergeColored(parts) {
+    let count = 0;
+    const flat = parts.map((p) => { const g = p.geo.index ? p.geo.toNonIndexed() : p.geo; count += g.attributes.position.count; return { g, p }; });
+    const pos = new Float32Array(count * 3), nor = new Float32Array(count * 3), col = new Float32Array(count * 3);
+    let o = 0;
+    for (const { g, p } of flat) {
+      const P = g.attributes.position, N = g.attributes.normal, Cc = g.attributes.color;
+      normalMatrix.getNormalMatrix(p.matrix);
+      for (let i = 0; i < P.count; i++, o++) {
+        v.fromBufferAttribute(P, i).applyMatrix4(p.matrix);
+        pos[o * 3] = v.x; pos[o * 3 + 1] = v.y; pos[o * 3 + 2] = v.z;
+        v.fromBufferAttribute(N, i).applyMatrix3(normalMatrix).normalize();
+        nor[o * 3] = v.x; nor[o * 3 + 1] = v.y; nor[o * 3 + 2] = v.z;
+        if (Cc) { col[o * 3] = Cc.getX(i); col[o * 3 + 1] = Cc.getY(i); col[o * 3 + 2] = Cc.getZ(i); }
+        else { tmpColor.set(p.color || '#ffffff'); col[o * 3] = tmpColor.r; col[o * 3 + 1] = tmpColor.g; col[o * 3 + 2] = tmpColor.b; }
+      }
+      if (g !== p.geo) g.dispose();
+    }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    out.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    out.computeBoundingSphere();
+    return out;
+  }
+
+  W.Geom = { merge, mergeColored, matrix, freeze, vcMat };
 })();

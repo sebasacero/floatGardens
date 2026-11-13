@@ -461,6 +461,7 @@ namespace FloatGardens
 
         void Buildings(char code, Vector3 c)
         {
+            if (FGConfig.SuperTowers && (code == 'T' || code == 'I')) { SuperBlock(code, c); return; }
             switch (code)
             {
                 case 'T':
@@ -638,6 +639,22 @@ namespace FloatGardens
             HangingTower.Build(B, Collider, transform, c,
                 new HangingTower.Settings { terraces = 11, floorHeight = 6.4f, baseSize = 36, setback = 1.3f, plinth = 9, sealed_ = true }, rng);
             noShadow.Add("selloVidrio");
+        }
+
+        // Kennedy 2089: súper torres (una en el Centro Internacional, dos en la Zona T), con la regla de acento por manzana
+        void SuperBlock(char code, Vector3 c)
+        {
+            var lots = code == 'I'
+                ? new[] { (c.x, c.z, RR(24, 28), RR(24, 28), Mathf.RoundToInt(RR(65, 105))) }
+                : new[] { (c.x - 9, c.z, 17f, RR(30, 34), Mathf.RoundToInt(RR(40, 80))), (c.x + 9, c.z, 17f, RR(30, 34), Mathf.RoundToInt(RR(40, 80))) };
+            var styles = SuperTower.BlockStyles(lots.Length, rng);
+            for (int k = 0; k < lots.Length; k++)
+            {
+                var (x, z, w, d, fl) = lots[k];
+                var s = styles[k];
+                s.width = w; s.depth = d; s.floors = fl; s.slabEvery = 2;
+                SuperTower.Build(B, Collider, new Vector3(x, 0, z), s, rng);
+            }
         }
 
         // Kennedy 2089: torre colgante de la red en los barrios del occidente
@@ -966,7 +983,7 @@ namespace FloatGardens
             cab.name = "Teleferico";
             cab.transform.SetParent(transform, false);
             cab.transform.localScale = new Vector3(3, 2.4f, 3);
-            cab.GetComponent<MeshRenderer>().sharedMaterial = FGMaterials.Lit("#d6423a", 0.4f);
+            cab.GetComponent<MeshRenderer>().sharedMaterial = FGMaterials.Lit(FGConfig.SuperTowers ? SuperTower.Madura : "#d6423a", 0.4f); // rojo de cereza madura
             cabin = cab.transform;
         }
 
