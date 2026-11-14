@@ -4,7 +4,7 @@
    actúa, aviso oscuro, joystick cuadrado, bloque de cuatro acciones y franja de métricas abajo.
    Solo aplica con body.cenital; se puede quitar sin tocar el juego. La noche es la misma maqueta con menos luz. */
 :root { --lime: #d6e48a; --toast: rgba(40, 46, 42, 0.85); --sky: #e7ecec; --ground: #c9cfcb; --warn: #d9a21b; --fault: #d75a5a; --shadow-card: 0 18px 50px -20px rgba(40, 70, 20, 0.55); --shadow-screen: 0 30px 80px -40px rgba(30, 40, 35, 0.45); }
-body.cenital { --td-txt: var(--ink); --td-txt2: var(--ink-2); --td-txt3: var(--ink-3); --td-panel: var(--glass); --td-glass2: var(--glass-2); --td-line: var(--line); --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
+body.cenital { --td-txt: var(--ink); --td-txt2: var(--ink-2); --td-txt3: var(--ink-3); --td-panel: var(--glass); --td-glass2: var(--glass-2); --td-line: var(--line); --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); --gl: max(16px, env(safe-area-inset-left, 0px)); --gr: max(16px, env(safe-area-inset-right, 0px)); }
 body.cenital-noche { background: #161b20; }
 body.cenital-noche #loading { background: #161b20; color: #e9ecea; }
 
@@ -13,11 +13,11 @@ body.cenital .hud-tl, body.cenital #compass, body.cenital .hud-bl, body.cenital 
 
 /* ---------- lo que se queda, con el kit ---------- */
 body.cenital #hud { color: var(--td-txt); text-shadow: none; }
-body.cenital .hud-tc { top: calc(214px + var(--sat)); left: 16px; right: 16px; width: auto; transform: none; align-items: flex-start; }
+body.cenital .hud-tc { top: calc(214px + var(--sat)); left: var(--gl); right: var(--gr); width: auto; transform: none; align-items: flex-start; }
 body.cenital .toast { margin: 0; background: var(--toast); color: #fff; border: 0; font: 400 11px var(--font); padding: 7px 12px; white-space: nowrap; }
 body.cenital .toast.show { animation: tdToast 2.5s var(--ease, ease) forwards; }
 @keyframes tdToast { 0% { opacity: 0; transform: translateY(20px); } 12% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; } }
-body.cenital .hud-tr { top: calc(260px + var(--sat)); right: 16px; }
+body.cenital .hud-tr { top: calc(260px + var(--sat)); right: var(--gr); }
 body.cenital .feed-item { background: var(--toast); border: 0; color: #fff; font: 400 11px var(--font); padding: 5px 10px; }
 body.cenital .feed-item .me { color: var(--lime); }
 body.cenital .feed-item .foe { color: #b7b3ff; }
@@ -48,7 +48,7 @@ body.cenital.playing #td { display: block; }
 #td .mono { font-family: var(--mono); font-size: 10.5px; color: var(--td-txt3); font-variant-numeric: tabular-nums; }
 
 /* fila 1: riel (hoja, mapa, mochila, red) y puntos (Float, campana, ajustes) */
-.td-top { position: absolute; left: 16px; right: 16px; top: calc(12px + var(--sat)); display: flex; justify-content: space-between; align-items: flex-start; }
+.td-top { position: absolute; left: var(--gl); right: var(--gr); top: calc(12px + var(--sat)); display: flex; justify-content: space-between; align-items: flex-start; }
 .td-rail, .td-icons { display: flex; background: var(--td-glass2); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); pointer-events: auto; }
 .td-rail .logo { width: 36px; height: 36px; display: grid; place-items: center; background: #fff; }
 .td-rail button, .td-icons button { width: 36px; height: 36px; display: grid; place-items: center; color: var(--td-txt2); position: relative; }
@@ -58,11 +58,11 @@ body.cenital.playing #td { display: block; }
 .td-icons .pts { display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 36px; font-size: 10px; color: var(--td-txt2); border-right: 1px solid var(--td-line); }
 .td-icons .pts b { font: 300 17px var(--font); color: var(--td-txt); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 /* fila 2: objetivo */
-.td-search { position: absolute; left: 16px; right: 16px; top: calc(54px + var(--sat)); height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: var(--td-glass2); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); font-size: 12px; color: var(--td-txt2); }
+.td-search { position: absolute; left: var(--gl); right: var(--gr); top: calc(54px + var(--sat)); height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: var(--td-glass2); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); font-size: 12px; color: var(--td-txt2); }
 .td-search b { color: var(--td-txt); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .td-search .mono { margin-left: auto; white-space: nowrap; }
 /* fila 3: Vida y Agua (tarjetas pegadas, separador de 1 px) */
-.td-vit { position: absolute; left: 16px; top: calc(96px + var(--sat)); display: grid; grid-template-columns: 86px 86px; }
+.td-vit { position: absolute; left: var(--gl); top: calc(96px + var(--sat)); display: grid; grid-template-columns: 86px 86px; }
 .td-card { background: var(--td-panel); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); padding: 8px 10px 9px; position: relative; min-width: 0; }
 .td-card + .td-card { border-left: 1px solid rgba(44, 48, 46, 0.08); }
 .td-vit .num { display: block; font-size: 22px; line-height: 1; margin-top: 5px; }
@@ -71,7 +71,7 @@ body.cenital.playing #td { display: block; }
 #td .bar i { display: block; height: 100%; background: var(--leaf); transition: width 0.15s; }
 #td .bar i.low { background: var(--fault); }
 /* panel azul: solo cuando Arcadia actúa (sello, drones alerta, jefe). Único azul fuera de los drones. */
-.td-alert { position: absolute; right: 16px; top: calc(96px + var(--sat)); width: 158px; background: var(--alert); color: #fff; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 10px; transform: translateX(calc(100% + 20px)); opacity: 0; transition: transform 0.35s var(--ease, ease), opacity 0.35s; pointer-events: none; }
+.td-alert { position: absolute; right: var(--gr); top: calc(96px + var(--sat)); width: min(158px, calc(100vw - var(--gl) - var(--gr) - 178px)); background: var(--alert); color: #fff; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 10px; transform: translateX(calc(100% + 20px)); opacity: 0; transition: transform 0.35s var(--ease, ease), opacity 0.35s; pointer-events: none; }
 .td-alert.on { transform: none; opacity: 1; pointer-events: auto; }
 .td-alert header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; opacity: 0.85; }
 .td-alert header .mono { color: #fff; opacity: 0.8; }
@@ -105,7 +105,7 @@ body.cenital.playing #td { display: block; }
 .td-harvest .bars i { flex: 1; background: rgba(255, 255, 255, 0.55); height: 30%; }
 .td-harvest .bars i.hi { background: #fff; }
 /* franja de métricas abajo: Cerezas, Zonas, Señal de Arcadia */
-.td-dock { position: absolute; left: 16px; right: 16px; bottom: calc(26px + var(--sab)); display: grid; grid-template-columns: 1fr 1fr 1.25fr; border-top: 1px solid rgba(255, 255, 255, 0.6); }
+.td-dock { position: absolute; left: var(--gl); right: var(--gr); bottom: calc(26px + var(--sab)); display: grid; grid-template-columns: 1fr 1fr 1.25fr; border-top: 1px solid rgba(255, 255, 255, 0.6); }
 .td-dock .lbl { display: block; }
 .td-dock .num { font-size: 20px; line-height: 1; display: block; margin-top: 5px; }
 .td-dock .num .u { font-size: 10px; }
@@ -114,7 +114,7 @@ body.cenital.playing #td { display: block; }
 .td-dock .sig i.b { background: var(--alert); }
 
 /* ---------- controles táctiles: joystick cuadrado y bloque de cuatro acciones ---------- */
-body.cenital #stick { left: 16px; bottom: calc(98px + var(--sab)); width: 104px; height: 104px; border-radius: 0; border: 0; background: rgba(255, 255, 255, 0.22); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+body.cenital #stick { left: var(--gl); bottom: calc(98px + var(--sab)); width: 104px; height: 104px; border-radius: 0; border: 0; background: rgba(255, 255, 255, 0.22); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 body.cenital #stick::before { content: ''; position: absolute; inset: 0; border: 1.5px solid rgba(255, 255, 255, 0.92); }
 body.cenital #stick::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)) center/1px 100% no-repeat, linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)) center/100% 1px no-repeat; }
 body.cenital #knob { left: 34px; top: 34px; width: 36px; height: 36px; border-radius: 0; background: #fff; box-shadow: 0 8px 18px -8px rgba(30, 40, 35, 0.5); z-index: 1; }
@@ -122,12 +122,12 @@ body.cenital .tb { border-radius: 0; border: 0; background: var(--td-glass2); co
 body.cenital .tb::before { content: ''; width: 18px; height: 18px; margin-bottom: 5px; background-repeat: no-repeat; background-size: contain; }
 body.cenital .tb.on { background: var(--lime); color: #1f2a14; }
 /* bloque pegado (1 px de aire): Llenar 54×54 · Impulso 76×54 / Cosechar 54×76 · Rociar 76×76 (la principal, en blanco) */
-body.cenital .tb.fire { right: 16px; bottom: calc(98px + var(--sab)); width: 76px; height: 76px; background: #fff; color: var(--td-txt); font-size: 11px; font-weight: 500; }
+body.cenital .tb.fire { right: var(--gr); bottom: calc(98px + var(--sab)); width: 76px; height: 76px; background: #fff; color: var(--td-txt); font-size: 11px; font-weight: 500; }
 body.cenital .tb.fire::before { width: 24px; height: 24px; }
 body.cenital .tb.fire.on { background: var(--lime); }
-body.cenital .tb.action { right: 93px; bottom: calc(98px + var(--sab)); width: 54px; height: 76px; }
-body.cenital .tb.jump { right: 16px; bottom: calc(175px + var(--sab)); width: 76px; height: 54px; }
-body.cenital .tb.reload { right: 93px; bottom: calc(175px + var(--sab)); width: 54px; height: 54px; }
+body.cenital .tb.action { right: calc(var(--gr) + 77px); bottom: calc(98px + var(--sab)); width: 54px; height: 76px; }
+body.cenital .tb.jump { right: var(--gr); bottom: calc(175px + var(--sab)); width: 76px; height: 54px; }
+body.cenital .tb.reload { right: calc(var(--gr) + 77px); bottom: calc(175px + var(--sab)); width: 54px; height: 54px; }
 body.cenital .tb.aim, body.cenital .tb.small { display: none; }
 /* energía del impulso: línea fina al pie del botón */
 body.cenital .tb.jump .en { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(44, 48, 46, 0.12); }
@@ -140,7 +140,7 @@ body.cenital .tb.reload::before { background-image: url("data:image/svg+xml,%3Cs
 
 /* ---------- lobby cenital (celular): la web en vertical ---------- */
 .menu.menu-lobbyTd { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; padding: 0; justify-content: flex-start; align-items: stretch; overflow: hidden; color: var(--ink); }
-.lob { position: relative; flex: 1; display: flex; flex-direction: column; padding: calc(14px + var(--sat)) 16px calc(16px + var(--sab)); min-height: 100%; overflow-y: auto; }
+.lob { position: relative; flex: 1; display: flex; flex-direction: column; padding: calc(14px + var(--sat)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + var(--sab)) max(16px, env(safe-area-inset-left, 0px)); min-height: 100%; overflow-y: auto; }
 .lob .eyebrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; height: 34px; }
 .lob .pill { display: inline-block; border: 1px solid rgba(44, 48, 46, 0.25); border-radius: 999px; padding: 6px 14px; color: var(--ink); font-size: 12px; background: rgba(255, 255, 255, 0.25); }
 .lob .brand { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 600; letter-spacing: 0.02em; font-size: 13px; }
@@ -149,7 +149,7 @@ body.cenital .tb.reload::before { background-image: url("data:image/svg+xml,%3Cs
 .lob .brand .ico { width: 20px; height: 20px; }
 .lob .frame .td-rail button, .lob .frame .td-icons button { pointer-events: auto; cursor: pointer; }
 /* la ventana a la maqueta: lo que queda fuera se cubre de salvia (sombra enorme), lo de adentro es el 3D */
-.lob .frame { position: relative; z-index: 0; height: 350px; flex: none; margin-top: 12px; box-shadow: 0 0 0 200vmax var(--ground), var(--shadow-screen); }
+.lob .frame { position: relative; z-index: 0; height: clamp(250px, 46vh, 350px); flex: none; margin-top: 12px; box-shadow: 0 0 0 200vmax var(--ground), var(--shadow-screen); }
 /* lo que sigue a la ventana se pinta encima de su sombra */
 .lob .eyebrow, .lob h1, .lob .kpis, .lob .cta, .lob .net, .lob .foot { position: relative; z-index: 1; }
 .lob .frame::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 22%, transparent 70%, rgba(255, 255, 255, 0.08)); }
@@ -193,14 +193,87 @@ body.cenital .tb.reload::before { background-image: url("data:image/svg+xml,%3Cs
 /* de noche el lobby sigue siendo claro: la misma web, la maqueta con menos luz dentro de la ventana */
 @media (min-width: 760px) { .lob { max-width: 460px; margin: 0 auto; width: 100%; } }
 
-/* pantallas muy bajas (celular apaisado): el bloque de acciones baja y las tarjetas se encogen */
+/* ---------- responsive ---------- */
+/* tarjeta verde acoplada (pantallas bajas): no sigue a la mata, se queda en un sitio fijo y no tapa al barista */
+.td-harvest.dock .bars, .td-harvest.dock .sub { display: none; }
+.td-harvest.dock .big { font-size: 26px; margin: 7px 0 1px; }
+.td-harvest.dock .in { padding: 8px 10px 9px; }
+
+/* celular vertical bajo (o dentro de un panel): tarjetas más cortas para dejar ver la terraza */
+@media (max-height: 700px) and (orientation: portrait) {
+  .td-alert { padding: 9px 10px; gap: 5px; }
+  .td-alert header { display: none; }
+  .td-alert h4 { font-size: 12.5px; }
+  .td-alert .meta strong { font-size: 15px; }
+  .td-alert .ack { padding: 6px 0; }
+  .td-harvest .bars, .td-harvest .sub { display: none; }
+  .td-harvest .big { font-size: 26px; margin: 7px 0 1px; }
+  .lob h1 { font-size: 32px; margin-top: 16px; }
+}
+@media (max-height: 600px) and (orientation: portrait) {
+  .td-dock { display: none; }
+  body.cenital #stick { bottom: calc(16px + var(--sab)); }
+  body.cenital .tb.fire, body.cenital .tb.action { bottom: calc(16px + var(--sab)); }
+  body.cenital .tb.jump, body.cenital .tb.reload { bottom: calc(93px + var(--sab)); }
+}
+/* celulares angostos */
+@media (max-width: 350px) {
+  .td-vit { grid-template-columns: 74px 74px; }
+  .td-alert { width: min(158px, calc(100vw - var(--gl) - var(--gr) - 154px)); }
+  .td-icons .pts { padding: 0 7px; }
+  .lob h1 { font-size: 32px; }
+  .lob .kpis { gap: 16px; }
+}
+
+/* celular horizontal: una sola fila arriba (riel · objetivo · puntos), Vida y Agua debajo a la izquierda,
+   panel azul compacto a la derecha, tarjeta verde acoplada sobre el joystick y controles pegados abajo */
 @media (max-height: 520px) and (orientation: landscape) {
   .td-dock { display: none; }
-  body.cenital #stick { bottom: 16px; }
-  body.cenital .tb.fire, body.cenital .tb.action { bottom: 16px; }
-  body.cenital .tb.jump, body.cenital .tb.reload { bottom: 93px; }
-  .td-vit { top: calc(54px + var(--sat)); left: 190px; }
-  .td-search { right: auto; width: 300px; }
-  .td-alert { top: calc(54px + var(--sat)); }
-  body.cenital .hud-tc { top: 130px; left: 190px; }
+  body.cenital #stick { bottom: calc(16px + var(--sab)); }
+  body.cenital .tb.fire, body.cenital .tb.action { bottom: calc(16px + var(--sab)); }
+  body.cenital .tb.jump, body.cenital .tb.reload { bottom: calc(93px + var(--sab)); }
+  .td-search { top: calc(12px + var(--sat)); left: calc(var(--gl) + 152px); right: calc(var(--gr) + 150px); }
+  .td-vit { top: calc(54px + var(--sat)); }
+  .td-vit .num { font-size: 19px; margin-top: 3px; }
+  .td-vit .td-card { padding: 6px 10px 7px; }
+  #td .td-vit .bar { margin-top: 5px; }
+  .td-alert { top: calc(54px + var(--sat)); width: 150px; padding: 8px 10px; gap: 4px; }
+  .td-alert header { display: none; }
+  .td-alert h4 { font-size: 12px; }
+  .td-alert .meta strong { font-size: 14px; }
+  .td-alert .ack { padding: 5px 0; }
+  .td-harvest.dock { width: 150px; }
+  body.cenital .hud-tc { top: calc(54px + var(--sat)); left: calc(var(--gl) + 182px); right: calc(var(--gr) + 160px); }
+  body.cenital .hud-tr { top: calc(54px + var(--sat)); right: calc(var(--gr) + 160px); max-width: 30vw; }
+  body.cenital .banner { top: 34%; }
+}
+/* muy bajo (celulares pequeños apaisados): joystick y acciones más chicos */
+@media (max-height: 350px) and (orientation: landscape) {
+  body.cenital #stick { width: 88px; height: 88px; }
+  body.cenital #knob { left: 28px; top: 28px; width: 32px; height: 32px; }
+  body.cenital .tb.fire { width: 68px; height: 68px; }
+  body.cenital .tb.action { width: 50px; height: 68px; right: calc(var(--gr) + 69px); }
+  body.cenital .tb.jump { width: 68px; height: 46px; bottom: calc(85px + var(--sab)); }
+  body.cenital .tb.reload { width: 50px; height: 46px; right: calc(var(--gr) + 69px); bottom: calc(85px + var(--sab)); }
+  .td-harvest.dock .eta { display: none; }
+}
+
+/* lobby en horizontal: la ventana a la maqueta a la izquierda y el título, las cifras y Jugar a la derecha,
+   todo en una pantalla; la tabla de zonas queda debajo */
+@media (orientation: landscape) and (min-width: 560px) {
+  .lob { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-rows: 34px auto auto auto 1fr; column-gap: 22px; align-content: start; max-width: 1040px; margin: 0 auto; width: 100%; padding-top: calc(10px + var(--sat)); }
+  .lob .eyebrow { grid-column: 1 / -1; }
+  .lob .frame { grid-column: 1; grid-row: 2 / 6; height: clamp(220px, calc(100vh - 78px - var(--sat) - var(--sab)), 560px); margin-top: 8px; }
+  .lob h1 { grid-column: 2; grid-row: 2; font-size: clamp(26px, 8.4vh, 44px); margin-top: 10px; }
+  .lob .kpis { grid-column: 2; grid-row: 3; gap: 18px; margin-top: clamp(8px, 3vh, 18px); }
+  .lob .kpis .num { font-size: clamp(20px, 6vh, 28px); }
+  .lob .cta { grid-column: 2; grid-row: 4; margin-top: clamp(10px, 3.4vh, 20px); }
+  .lob .net, .lob .foot { grid-column: 1 / -1; }
+  .lob .net { margin-top: 18px; }
+}
+@media (orientation: landscape) and (min-width: 560px) and (max-height: 520px) {
+  .lob .btn { height: 42px; padding: 0 12px; font-size: 13px; }
+  .lob .frame .td-harvest { top: 52px; width: 140px; }
+  .lob .frame .td-harvest .big { font-size: 26px; margin: 6px 0 1px; }
+  .lob .frame .selector { display: none; }
 }
