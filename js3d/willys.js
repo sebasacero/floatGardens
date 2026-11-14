@@ -29,7 +29,7 @@
     g.add(box(1.5, 0.5, 1.9, white, 0, 0.82, -0.55));      // tina (cabina y platón)
     g.add(box(1.5, 0.12, 1.9, grey, 0, 1.1, -0.55));       // borde de la tina
     g.add(box(1.1, 0.42, 1.15, white, 0, 0.84, 0.95));     // capó
-    g.add(box(1.12, 0.04, 1.17, grey, 0, 1.07, 0.95));
+    g.add(box(1.12, 0.04, 1.17, cherry, 0, 1.07, 0.95));   // capó rojo cereza: se distingue desde arriba sobre la calle clara
     // parrilla de siete ranuras y farolas
     g.add(box(1.1, 0.46, 0.08, white, 0, 0.82, 1.56));
     for (let i = -3; i <= 3; i++) g.add(box(0.06, 0.3, 0.03, dark, i * 0.1, 0.84, 1.61));
