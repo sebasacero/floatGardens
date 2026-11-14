@@ -154,6 +154,7 @@
       }
       const hq = W.World.hqSpot;
       dot(hq.x, hq.z, '#4f8f2c', 6);
+      if (W.Willys && !W.Willys.driving) dot(W.Willys.pos.x, W.Willys.pos.z, '#b3121a', 4);
       for (const l of G.loot) dot(l.pos.x, l.pos.z, '#d18e63', 2.5);
       for (const c of G.peds) if (c.icon.visible) dot(c.pos.x, c.pos.z, '#7b817e', 2.5);
       for (const e of G.enemies) if (!e.dead && (e.alerted || Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 45)) dot(e.pos.x, e.pos.z, e.pest ? '#e8791c' : '#2a22f5', e.boss ? 6 : 3.5);
@@ -238,6 +239,7 @@
       ctx.fillRect(tx(hq.x) - 7, tz(hq.z) - 7, 14, 14);
       ctx.fillStyle = '#2c302e';
       ctx.fillText(W.HQ.name, tx(hq.x), tz(hq.z) - 14);
+      if (W.Willys && !W.Willys.driving) { const wl = W.Willys.pos; ctx.fillStyle = '#b3121a'; ctx.fillRect(tx(wl.x) - 4, tz(wl.z) - 4, 8, 8); ctx.fillStyle = '#2c302e'; ctx.fillText('Willys', tx(wl.x), tz(wl.z) + 18); }
       const bs = W.World.bossArena;
       ctx.fillStyle = '#2a22f5';
       ctx.fillText(G.allCaptured() ? 'Torre Arcadia · expuesta' : 'Torre Arcadia · sellada', tx(bs.x), tz(bs.z) - 30);

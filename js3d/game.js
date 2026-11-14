@@ -64,6 +64,7 @@
       this.partPool = new Ent.Particles(161);
       this.scene.add(this.partPool.mesh);
       this.createPlayer();
+      W.Willys.build(this);
       this.createZones();
       this.createPlanters();
       for (let i = 0; i < 45; i++) this.spawnPed();
@@ -333,6 +334,9 @@
       const I = W.Input;
       const p = this.player;
       const td = W.TopDown.active;
+      // al timón del Willys el movimiento es otro: lo lleva el campero
+      if (W.Willys.driving) { W.Willys.drive(this, dt); return; }
+      W.Willys.update(this, dt);
       const look = I.look();
       const aimMul = p.aiming ? 0.55 : 1;
       if (td) {
@@ -416,7 +420,7 @@
         cam.fov += (targetFov - cam.fov) * Math.min(1, dt * 10);
         cam.updateProjectionMatrix();
       }
-      const dist = p.aiming ? 2.3 : 3.6;
+      const dist = W.Willys.driving ? 7.5 : p.aiming ? 2.3 : 3.6;
       const side = p.aiming ? 0.95 : 1.05;
       const cp = Math.cos(p.pitch + p.recoil);
       // vectores reutilizados: sin basura para el recolector en cada cuadro
@@ -658,6 +662,7 @@
       p.ammo = p.magSize;
       p.reloading = 0;
       p.h.body.rotation.x = 0;
+      W.Willys.reset(this);
       this.cherries = Math.max(this.cherries, 4);
       for (const e of this.enemies) e.alerted = false;
       this.stamps.forEach((st) => this.scene.remove(st.mesh));
@@ -720,6 +725,10 @@
       const p = this.player;
       this.prompt = null;
       const near = (o, r) => Math.hypot(o.x - p.pos.x, o.z - p.pos.z) < r;
+      // el Willys: bajar si vas manejando; subir si estás al lado (y no hay una mata al alcance)
+      if (W.Willys.driving) { W.Willys.interact(this); return; }
+      const rowNear = this.planters.some((pl) => (pl.ripe || pl.roya > 0) && near(pl.pos, pl.reach));
+      if (!rowNear && W.Willys.interact(this)) return;
       // cultivo
       for (const pl of this.planters) {
         if (pl.roya > 0 && near(pl.pos, pl.reach)) {

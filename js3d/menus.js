@@ -177,6 +177,7 @@
             <div><b>Cosecha</b>Las filas A, B y C de tu terraza en Kennedy dan cerezas cuando la etiqueta dice "lista". También hay costales de café por la ciudad. Cada cereza suma Puntos Float.</div>
             <div><b>Dispara</b>Tu prensa dispara chorros de café a presión. Recargar gasta 1 cereza. Un tiro al ojo del dron hace más daño.</div>
             <div><b>Impulso</b>La mochila de prensas te lanza en la dirección en que te mueves. Gasta energía y, mientras dura, los sellos no te tocan.</div>
+            <div><b>Willys</b>El campero de la red está parqueado frente a tu terraza. Súbete con Acción y manéjalo con el joystick: por la calle va casi tres veces más rápido que a pie. Bájate con Acción cuando llegues a la zona.</div>
             <div><b>Vende</b>Los peatones con una taza quieren café, pero solo te compran en barrios de la red. 2 cerezas = $8.000.</div>
             <div><b>Libera</b>Entra a las zonas azules, apaga las oleadas de drones y quédate dentro hasta liberarlas. Cada zona abre un barrio para vender y cultivar.</div>
             <div><b>Plagas</b>La roya, la broca y las hormigas arrieras no van por ti: van por tus matas. Apágalas antes de que lleguen. Si una fila amarillea, acércate y trata la roya.</div>

@@ -198,6 +198,7 @@
 
     // Los botones táctiles cambian de texto: en cenital son el bloque de cuatro acciones del kit.
     labelButtons(on) {
+      this.actLabel = null;
       const L = { tFire: ['disparar', 'Rociar'], tJump: ['saltar', 'Impulso'], tReload: ['recargar', 'Llenar'], tAction: ['acción', 'Cosechar'], tAim: ['apuntar', 'fijar'] };
       for (const id in L) {
         const el = document.getElementById(id);
@@ -299,8 +300,12 @@
       const cam = G.camera;
       // la cámara se adelanta un poco hacia donde apunta y hacia donde camina
       if (cam.view && cam.view.enabled) this.leaveLobby(G);
-      const lead = this.target ? 4.5 : 2.5;
-      const tx = p.pos.x - Math.sin(p.yaw) * lead, tz = p.pos.z - Math.cos(p.yaw) * lead;
+      // al timón del Willys la cámara sube y se adelanta hacia donde va el campero, para ver venir las esquinas
+      const wl = W.Willys, drv = wl.driving;
+      this.driveK = (this.driveK || 0) + ((drv ? 1 : 0) - (this.driveK || 0)) * Math.min(1, dt * 3);
+      const lead = drv ? 3 + wl.speed * 0.42 : this.target ? 4.5 : 2.5;
+      const tx = drv ? p.pos.x + Math.sin(wl.heading) * lead : p.pos.x - Math.sin(p.yaw) * lead;
+      const tz = drv ? p.pos.z + Math.cos(wl.heading) * lead : p.pos.z - Math.cos(p.yaw) * lead;
       if (!this.follow) this.follow = { x: tx, z: tz };
       const k = Math.min(1, dt * 4.5);
       this.follow.x += (tx - this.follow.x) * k;
@@ -308,7 +313,7 @@
       // celular vertical: la cámara sube (se ve más terraza a los lados) y encuadra al barista en el tercio alto,
       // porque los controles ocupan la parte de abajo
       const portrait = cam.aspect < 0.8;
-      const d = portrait ? this.DIST * 1.32 : this.DIST, s = Math.sin(this.TILT), c = Math.cos(this.TILT);
+      const d = (portrait ? this.DIST * 1.32 : this.DIST) * (1 + 0.5 * this.driveK), s = Math.sin(this.TILT), c = Math.cos(this.TILT);
       const bias = portrait ? 4.5 : 0;
       cam.position.set(this.follow.x, p.y + c * d, this.follow.z + bias + s * d);
       if (G.shakeAmt > 0) {
@@ -524,6 +529,11 @@
         if (l.kind !== 'crate' || !near(l.pos, 26)) continue;
         put(l, l.pos.x, 0.55, l.pos.z, 0.7, `Costal · ${l.amount} cerezas`, 'up');
       }
+      // el Willys: marcador cuando está cerca (lima si ya puedes subir); el botón de acción dice qué hace
+      const wl = W.Willys;
+      if (!wl.driving && near(wl.pos, 30)) put(wl, wl.pos.x, wl.y + 1, wl.pos.z, 1.9, wl.canBoard(G) ? 'Willys · subir' : 'Willys', wl.canBoard(G) && !card ? 'on up' : 'up');
+      const act = wl.driving ? 'Bajar' : wl.canBoard(G) && !card ? 'Subir' : 'Cosechar';
+      if (this.actLabel !== act) { this.actLabel = act; const b = document.getElementById('tAction'); if (b && b.firstChild && b.firstChild.nodeType === 3) b.firstChild.nodeValue = act; }
       for (const [key, el] of this.tags) if (!seen.has(key)) { el.remove(); this.tags.delete(key); }
       this.updateCard(G, card, cardAt);
     },
